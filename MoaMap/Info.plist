@@ -48,6 +48,15 @@
 		</dict>
 	</dict>
 
+	<key>UIAppFonts</key>
+	<array>
+		<string>nanum_square_light.otf</string>
+		<string>nanum_square_regular.otf</string>
+		<string>nanum_square_bold.otf</string>
+		<string>nanum_square_extra_bold.otf</string>
+		<string>pretendard_regular.otf</string>
+	</array>
+
 	<!-- 다크 테마가 없다. 고정하지 않으면 시스템 색이 섞여 들어온다. -->
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>
