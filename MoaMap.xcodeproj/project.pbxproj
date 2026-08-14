@@ -27,11 +27,26 @@
 		9E542B33302EE90B0052FD62 /* MoaMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MoaMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E542B40302EE90C0052FD62 /* MoaMapTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MoaMapTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E542B4A302EE90C0052FD62 /* MoaMapUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MoaMapUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EC0F1050000000000000002 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		9EC0F1050000000000000003 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9EC0F1050000000000000004 /* Exceptions for "MoaMap" folder in "MoaMap" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9E542B32302EE90B0052FD62 /* MoaMap */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9E542B35302EE90B0052FD62 /* MoaMap */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9EC0F1050000000000000004 /* Exceptions for "MoaMap" folder in "MoaMap" target */,
+			);
 			path = MoaMap;
 			sourceTree = "<group>";
 		};
@@ -75,6 +90,7 @@
 		9E542B2A302EE90B0052FD62 = {
 			isa = PBXGroup;
 			children = (
+				9EC0F1050000000000000001 /* Configs */,
 				9E542B35302EE90B0052FD62 /* MoaMap */,
 				9E542B43302EE90C0052FD62 /* MoaMapTests */,
 				9E542B4D302EE90C0052FD62 /* MoaMapUITests */,
@@ -90,6 +106,15 @@
 				9E542B4A302EE90C0052FD62 /* MoaMapUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9EC0F1050000000000000001 /* Configs */ = {
+			isa = PBXGroup;
+			children = (
+				9EC0F1050000000000000002 /* Base.xcconfig */,
+				9EC0F1050000000000000003 /* Secrets.xcconfig.example */,
+			);
+			path = Configs;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -271,6 +296,7 @@
 /* Begin XCBuildConfiguration section */
 		9E542B52302EE90C0052FD62 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9EC0F1050000000000000002 /* Base.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -334,6 +360,7 @@
 		};
 		9E542B53302EE90C0052FD62 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9EC0F1050000000000000002 /* Base.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -397,6 +424,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MoaMap/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -429,6 +457,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MoaMap/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

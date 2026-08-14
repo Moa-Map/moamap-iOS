@@ -1,0 +1,7 @@
+// 공통 빌드 설정
+
+// xcconfig 는 `//` 를 주석으로 읽어 URL 이 잘린다. 슬래시를 변수로 우회한다.
+SLASH = /
+
+// 물음표 없는 #include. 파일이 없으면 빌드가 여기서 멈춘다.
+#include "Secrets.xcconfig"
