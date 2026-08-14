@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 값은 빌드할 때 Configs/Secrets.xcconfig 에서 채워진다. -->
+	<key>BASE_URL</key>
+	<string>$(BASE_URL)</string>
+	<key>KAKAO_NATIVE_APP_KEY</key>
+	<string>$(KAKAO_NATIVE_APP_KEY)</string>
+	<key>KAKAO_REST_API_KEY</key>
+	<string>$(KAKAO_REST_API_KEY)</string>
+
+	<!-- Mapbox SDK 가 이 이름으로 토큰을 읽는다. -->
+	<key>MBXAccessToken</key>
+	<string>$(MAPBOX_PUBLIC_TOKEN)</string>
+
+	<!-- 카카오 로그인을 마친 카카오톡이 이 scheme 으로 앱을 다시 연다. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kakao$(KAKAO_NATIVE_APP_KEY)</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- 카카오톡 설치 여부를 확인하려면 조회할 scheme 을 미리 밝혀야 한다. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaokompassauth</string>
+		<string>kakaolink</string>
+	</array>
+
+	<!-- 게이트웨이가 평문 HTTP 라 예외가 없으면 모든 요청이 차단된다.
+	     NSAllowsLocalNetworking 은 로컬 백엔드를 볼 때를 위한 것이다. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>125.6.39.211</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+
+	<key>UIAppFonts</key>
+	<array>
+		<string>nanum_square_light.otf</string>
+		<string>nanum_square_regular.otf</string>
+		<string>nanum_square_bold.otf</string>
+		<string>nanum_square_extra_bold.otf</string>
+		<string>pretendard_regular.otf</string>
+	</array>
+
+	<!-- 다크 테마가 없다. 고정하지 않으면 시스템 색이 섞여 들어온다. -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
+</dict>
+</plist>

@@ -1,0 +1,69 @@
+{
+  "originHash" : "800821844344a49459067df2aa0f77f44025d603d4c589028967fffeb4e33567",
+  "pins" : [
+    {
+      "identity" : "alamofire",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Alamofire/Alamofire.git",
+      "state" : {
+        "revision" : "7595cbcf59809f9977c5f6378500de2ad73b7ddb",
+        "version" : "5.12.0"
+      }
+    },
+    {
+      "identity" : "kakao-ios-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kakao/kakao-ios-sdk",
+      "state" : {
+        "revision" : "2a68ca01e2d7900a1559b31d0d59843837f130f2",
+        "version" : "2.28.0"
+      }
+    },
+    {
+      "identity" : "kingfisher",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/onevcat/Kingfisher",
+      "state" : {
+        "revision" : "410984bf301f4fa224fe56277b3f8672cc465c79",
+        "version" : "8.11.0"
+      }
+    },
+    {
+      "identity" : "mapbox-common-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mapbox/mapbox-common-ios.git",
+      "state" : {
+        "revision" : "96c41d0b1a42e339cb682b02f7eaa0df5d1f42ec",
+        "version" : "24.28.2"
+      }
+    },
+    {
+      "identity" : "mapbox-core-maps-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mapbox/mapbox-core-maps-ios.git",
+      "state" : {
+        "revision" : "0e4589bb663020264b779d1813e513cb6d6d0cc8",
+        "version" : "11.28.2"
+      }
+    },
+    {
+      "identity" : "mapbox-maps-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mapbox/mapbox-maps-ios",
+      "state" : {
+        "revision" : "311d1829115928c83b5a7111a07f1f37b8377053",
+        "version" : "11.28.2"
+      }
+    },
+    {
+      "identity" : "turf-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mapbox/turf-swift.git",
+      "state" : {
+        "revision" : "bf840e6b9529d105687840fe2c9dcd74197d46d1",
+        "version" : "4.0.0"
+      }
+    }
+  ],
+  "version" : 3
+}

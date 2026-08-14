@@ -1,62 +1,53 @@
-# Xcode
-#
-# gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
+# macOS
+.DS_Store
 
-## User settings
+# Xcode - 사용자별 설정
 xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
 
-## Obj-C/Swift specific
+# Xcode - 빌드 산출물
+build/
+DerivedData/
+*.moved-aside
 *.hmap
+*.o
 
-## App packaging
+# 앱 패키징
 *.ipa
-*.dSYM.zip
 *.dSYM
+*.dSYM.zip
+*.xcarchive
 
-## Playgrounds
+# Swift Package Manager
+.build/
+.swiftpm/
+# CI 가 -clonedSourcePackagesDirPath 로 여기에 받는다.
+.spm/
+# Package.resolved 는 추적한다. 팀원과 CI 가 같은 의존성 버전을 쓰게 하려면 필요하다.
+
+# 시크릿 (절대 커밋하지 않는다)
+Secrets.xcconfig
+.netrc
+*.p12
+*.cer
+*.certSigningRequest
+*.mobileprovision
+GoogleService-Info.plist
+
+# Playgrounds
 timeline.xctimeline
 playground.xcworkspace
 
-# Swift Package Manager
-#
-# Add this line if you want to avoid checking in source code from Swift Package Manager dependencies.
-# Packages/
-# Package.pins
-# Package.resolved
-# *.xcodeproj
-#
-# Xcode automatically generates this directory with a .xcworkspacedata file and xcuserdata
-# hence it is not needed unless you have added a package configuration file to your project
-# .swiftpm
+# 로그
+*.log
 
-.build/
+# Claude Code / superpowers
+.claude/
+CLAUDE.md
+.superpowers/
+docs/superpowers/
 
-# CocoaPods
-#
-# We recommend against adding the Pods directory to your .gitignore. However
-# you should judge for yourself, the pros and cons are mentioned at:
-# https://guides.cocoapods.org/using/using-cocoapods.html#should-i-check-the-pods-directory-into-source-control
-#
-# Pods/
-#
-# Add this line if you want to avoid checking in source code from the Xcode workspace
-# *.xcworkspace
-
-# Carthage
-#
-# Add this line if you want to avoid checking in source code from Carthage dependencies.
-# Carthage/Checkouts
-
-Carthage/Build/
-
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo.
-# Instead, use fastlane to re-generate the screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/#source-control
-
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots/**/*.png
-fastlane/test_output
+# Playwright MCP 산출물
+.playwright-mcp/
