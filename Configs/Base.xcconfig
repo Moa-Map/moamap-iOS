@@ -3,5 +3,9 @@
 // xcconfig 는 `//` 를 주석으로 읽어 URL 이 잘린다. 슬래시를 변수로 우회한다.
 SLASH = /
 
+// Android dev와 동일한 환경별 기본 서버. Secrets.xcconfig에서 개별 재정의 가능.
+DEBUG_BASE_URL = https:$(SLASH)$(SLASH)api-dev.moamap.co.kr/
+RELEASE_BASE_URL = https:$(SLASH)$(SLASH)api.moamap.co.kr/
+
 // 물음표 없는 #include. 파일이 없으면 빌드가 여기서 멈춘다.
 #include "Secrets.xcconfig"

@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    let container: AppContainer
+
     var body: some View {
         VStack {
             Image(systemName: "globe")
@@ -20,5 +22,9 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    if let configuration = try? APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"]) {
+        ContentView(container: AppContainer(configuration: configuration) { _ in
+            throw URLError(.notConnectedToInternet)
+        })
+    }
 }

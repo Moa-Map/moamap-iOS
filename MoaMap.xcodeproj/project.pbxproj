@@ -32,6 +32,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		9E4D56DC305818A1002D37C3 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		9E542B33302EE90B0052FD62 /* MoaMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MoaMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E542B40302EE90C0052FD62 /* MoaMapTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MoaMapTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E542B4A302EE90C0052FD62 /* MoaMapUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MoaMapUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -124,6 +125,7 @@
 		9EC0F1050000000000000001 /* Configs */ = {
 			isa = PBXGroup;
 			children = (
+				9E4D56DC305818A1002D37C3 /* Secrets.xcconfig */,
 				9EC0F1050000000000000002 /* Base.xcconfig */,
 				9EC0F1050000000000000003 /* Secrets.xcconfig.example */,
 			);
@@ -323,6 +325,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BASE_URL = "$(DEBUG_BASE_URL)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -387,6 +390,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BASE_URL = "$(RELEASE_BASE_URL)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";

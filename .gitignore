@@ -49,5 +49,11 @@ CLAUDE.md
 .superpowers/
 docs/superpowers/
 
+# Codex / agent local settings
+.codex/
+.agents/
+AGENTS.md
+CODEX.md
+
 # Playwright MCP 산출물
 .playwright-mcp/

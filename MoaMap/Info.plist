@@ -32,22 +32,6 @@
 		<string>kakaolink</string>
 	</array>
 
-	<!-- 게이트웨이가 평문 HTTP 라 예외가 없으면 모든 요청이 차단된다.
-	     NSAllowsLocalNetworking 은 로컬 백엔드를 볼 때를 위한 것이다. -->
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>125.6.39.211</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
-	</dict>
-
 	<key>UIAppFonts</key>
 	<array>
 		<string>nanum_square_light.otf</string>

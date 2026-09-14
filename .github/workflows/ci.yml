@@ -16,6 +16,9 @@ jobs:
   test:
     runs-on: macos-latest
     timeout-minutes: 30
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
 
     steps:
       - uses: actions/checkout@v4
@@ -39,15 +42,12 @@ jobs:
       # 시크릿은 레포에 없다. 러너에서 매번 만든다.
       - name: Secrets.xcconfig 생성
         env:
-          BASE_URL: ${{ secrets.BASE_URL }}
           KAKAO_NATIVE_APP_KEY: ${{ secrets.KAKAO_NATIVE_APP_KEY }}
           KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
         run: |
-          # xcconfig 는 `//` 를 주석으로 읽는다. 시크릿에는 평범한 URL 을 넣고 여기서 우회한다.
-          escaped_base_url=$(printf '%s' "$BASE_URL" | sed 's|//|$(SLASH)$(SLASH)|g')
+          # 서버 주소는 Base.xcconfig와 Debug/Release 빌드 설정으로 선택한다.
           cat > Configs/Secrets.xcconfig <<EOF
-          BASE_URL = $escaped_base_url
           KAKAO_NATIVE_APP_KEY = $KAKAO_NATIVE_APP_KEY
           KAKAO_REST_API_KEY = $KAKAO_REST_API_KEY
           MAPBOX_PUBLIC_TOKEN = $MAPBOX_PUBLIC_TOKEN
@@ -69,12 +69,15 @@ jobs:
           echo "선택된 시뮬레이터: $name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
-      # UI 테스트는 돌리지 않는다. 
+      # Release의 @testable import를 위해 테스트 실행에만 testability를 켠다.
+      # 일반 Release 빌드/Archive 설정은 변경하지 않는다. UI 테스트는 돌리지 않는다.
       - name: 빌드 및 유닛 테스트
         run: |
           xcodebuild test \
             -project MoaMap.xcodeproj \
             -scheme MoaMap \
+            -configuration "${{ matrix.configuration }}" \
             -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
             -clonedSourcePackagesDirPath .spm \
-            -only-testing:MoaMapTests
+            -only-testing:MoaMapTests \
+            ENABLE_TESTABILITY=YES
