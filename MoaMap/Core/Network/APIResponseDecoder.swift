@@ -27,22 +27,33 @@ nonisolated enum APIResponseDecoder {
         return error?.networkError(fallbackStatus: statusCode) ?? .http(statusCode: statusCode)
     }
 
-    static func validate(_ data: Data) throws {
-        let metadata: Metadata
-        do { metadata = try JSONDecoder().decode(Metadata.self, from: data) }
-        catch { throw NetworkError.decoding }
+    static func validate(_ data: Data, statusCode: Int) throws {
+        let metadata = try decodeJSON(Metadata.self, from: data)
         guard metadata.success == true else {
-            throw metadata.error?.networkError(fallbackStatus: 200)
-                ?? NetworkError.server(code: "UNKNOWN", statusCode: 200)
+            throw metadata.error?.networkError(fallbackStatus: statusCode)
+                ?? NetworkError.server(code: "UNKNOWN", statusCode: statusCode)
         }
     }
 
-    static func decode<Value: Decodable>(_ data: Data, as type: Value.Type) throws -> Value {
-        try validate(data)
-        let payload: Payload<Value>
-        do { payload = try JSONDecoder().decode(Payload<Value>.self, from: data) }
-        catch { throw NetworkError.decoding }
+    static func decode<Value: Decodable>(_ data: Data, as type: Value.Type, statusCode: Int) throws -> Value {
+        try validate(data, statusCode: statusCode)
+        let payload = try decodeJSON(Payload<Value>.self, from: data)
         guard let value = payload.data else { throw NetworkError.emptyData }
         return value
+    }
+
+    private static func decodeJSON<Value: Decodable>(_ type: Value.Type, from data: Data) throws -> Value {
+        try Task.checkCancellation()
+        do {
+            let value = try JSONDecoder().decode(type, from: data)
+            try Task.checkCancellation()
+            return value
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            // 디코딩 도중 취소된 요청은 일반 오류로 화면 상태를 덮지 않는다.
+            try Task.checkCancellation()
+            throw NetworkError.decoding
+        }
     }
 }

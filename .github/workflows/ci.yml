@@ -69,7 +69,8 @@ jobs:
           echo "선택된 시뮬레이터: $name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
-      # UI 테스트는 돌리지 않는다. 
+      # Release의 @testable import를 위해 테스트 실행에만 testability를 켠다.
+      # 일반 Release 빌드/Archive 설정은 변경하지 않는다. UI 테스트는 돌리지 않는다.
       - name: 빌드 및 유닛 테스트
         run: |
           xcodebuild test \
@@ -78,4 +79,5 @@ jobs:
             -configuration "${{ matrix.configuration }}" \
             -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
             -clonedSourcePackagesDirPath .spm \
-            -only-testing:MoaMapTests
+            -only-testing:MoaMapTests \
+            ENABLE_TESTABILITY=YES

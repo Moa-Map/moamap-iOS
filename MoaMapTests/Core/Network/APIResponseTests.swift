@@ -5,6 +5,17 @@ import Testing
 struct APIResponseTests {
     nonisolated private struct Item: Decodable, Sendable, Equatable { let id: Int }
 
+    nonisolated private struct ThrowsCancellation: Decodable, Sendable {
+        init(from decoder: any Decoder) throws { throw CancellationError() }
+    }
+
+    nonisolated private struct CancelsThenFails: Decodable, Sendable {
+        init(from decoder: any Decoder) throws {
+            withUnsafeCurrentTask { $0?.cancel() }
+            throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "fixture"))
+        }
+    }
+
     private func client(_ body: String, status: Int = 200) throws -> APIClient {
         let configuration = try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"])
         return APIClient(configuration: configuration) { request in
@@ -73,5 +84,36 @@ struct APIResponseTests {
         await #expect(throws: NetworkError.http(statusCode: 502)) {
             try await api.sendWithoutResponse(APIRequest(path: []))
         }
+    }
+
+    @Test(arguments: [201, 202, 206], [
+        #"{"success":false}"#,
+        #"{"success":false,"error":{"status":0}}"#,
+        #"{"success":false,"error":{}}"#,
+    ])
+    func 실제_HTTP_상태를_실패_응답에_보존한다(status: Int, body: String) async throws {
+        let api = try client(body, status: status)
+        await #expect(throws: NetworkError.server(code: "UNKNOWN", statusCode: status)) {
+            try await api.send(APIRequest(path: []), as: Item.self)
+        }
+        await #expect(throws: NetworkError.server(code: "UNKNOWN", statusCode: status)) {
+            try await api.sendWithoutResponse(APIRequest(path: []))
+        }
+    }
+
+    @Test
+    func 디코더가_던진_취소를_전파한다() async throws {
+        let api = try client(#"{"success":true,"data":{}}"#)
+        await #expect(throws: CancellationError.self) {
+            try await api.send(APIRequest(path: []), as: ThrowsCancellation.self)
+        }
+    }
+
+    @Test
+    func 디코딩_실패_도중_취소되면_취소를_우선한다() async throws {
+        let api = try client(#"{"success":true,"data":{}}"#)
+        // 테스트 자체가 아니라 자식 작업만 취소한다.
+        let task = Task { try await api.send(APIRequest(path: []), as: CancelsThenFails.self) }
+        await #expect(throws: CancellationError.self) { try await task.value }
     }
 }
