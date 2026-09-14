@@ -17,7 +17,21 @@ nonisolated struct APIClient: Sendable {
         self.transport = transport
     }
 
-    /// 공통 응답 envelope 해석은 전송 처리와 별도로 구성한다.
+    func send<Value: Decodable & Sendable>(_ request: APIRequest, as type: Value.Type) async throws -> Value {
+        let data = try await send(request)
+        let value = try APIResponseDecoder.decode(data, as: type)
+        try Task.checkCancellation()
+        return value
+    }
+
+    /// data 없는 성공 envelope 또는 비어 있는 2xx 응답을 처리한다.
+    func sendWithoutResponse(_ request: APIRequest) async throws {
+        let data = try await send(request)
+        if !data.isEmpty { try APIResponseDecoder.validate(data) }
+        try Task.checkCancellation()
+    }
+
+    /// 카카오 등 공통 envelope를 사용하지 않는 API에도 쓸 수 있는 원문 응답.
     func send(_ request: APIRequest) async throws -> Data {
         try Task.checkCancellation()
         let urlRequest = try request.urlRequest(baseURL: configuration.baseURL)
@@ -37,7 +51,7 @@ nonisolated struct APIClient: Sendable {
         try Task.checkCancellation()
         guard let response = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
         guard (200..<300).contains(response.statusCode) else {
-            throw NetworkError.http(statusCode: response.statusCode)
+            throw APIResponseDecoder.httpError(data: data, statusCode: response.statusCode)
         }
         return data
     }
