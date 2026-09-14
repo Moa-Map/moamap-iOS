@@ -5,7 +5,7 @@ import Testing
 struct APIConfigurationTests {
     @Test(arguments: [
         "https://example.com/",
-        "http://127.0.0.1:8080/",
+        "https://localhost:8080/",
         "https://example.com/api/v1/",
     ])
     func 서버_주소와_경로를_보존한다(value: String) throws {
@@ -35,7 +35,7 @@ struct APIConfigurationTests {
 
     @Test(arguments: [
         "$(BASE_URL)", "https://$(API_HOST)/", "example.com", "/api/",
-        "https://", "http:", "file:///tmp/api", "ftp://example.com/",
+        "https://", "http:", "http://127.0.0.1:8080/", "file:///tmp/api", "ftp://example.com/",
         "https://exam ple.com/", "https://example.com/a b",
         "https://user:password@example.com/", "https://example.com/?key=value",
         "https://example.com/#fragment", "https://example.com:65536/",

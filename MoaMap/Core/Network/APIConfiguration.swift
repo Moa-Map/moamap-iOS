@@ -28,7 +28,7 @@ nonisolated struct APIConfiguration: Sendable {
               trimmed.rangeOfCharacter(from: .whitespacesAndNewlines) == nil,
               let components = URLComponents(string: trimmed),
               let scheme = components.scheme?.lowercased(),
-              ["http", "https"].contains(scheme),
+              scheme == "https",
               let host = components.host, !host.isEmpty,
               components.user == nil, components.password == nil,
               components.query == nil, components.fragment == nil,
