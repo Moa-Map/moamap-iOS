@@ -10,7 +10,6 @@ import SwiftUI
 struct ContentView: View {
     let container: AppContainer
     @State private var loginViewModel: LoginViewModel
-    @State private var showsLoginSuccess = false
 
     init(container: AppContainer) {
         self.container = container
@@ -18,47 +17,39 @@ struct ContentView: View {
     }
 
     var body: some View {
-        LoginView(
-            isLoading: loginViewModel.uiState == .loading,
-            onKakaoLogin: loginAction
-        )
+        ZStack {
+            if loginViewModel.uiState == .authenticated {
+                MainTabView()
+            } else {
+                LoginView(
+                    isLoading: loginViewModel.uiState == .loading,
+                    onKakaoLogin: { loginViewModel.loginWithKakao() }
+                )
+            }
+        }
         .task {
             loginViewModel.restoreSession()
             for await _ in container.sessionEvents.sessionExpired {
                 guard !Task.isCancelled else { return }
-                showsLoginSuccess = false
                 loginViewModel.sessionExpired()
             }
         }
-        .onChange(of: loginViewModel.uiState) { _, state in
-            if state == .authenticated { showsLoginSuccess = true }
-        }
-        .alert(showsLoginSuccess ? "로그인되었습니다" : "로그인할 수 없습니다", isPresented: showsAlert) {
-            Button("확인", role: .cancel) { dismissAlert() }
+        .alert("로그인할 수 없습니다", isPresented: showsError) {
+            Button("확인", role: .cancel) { loginViewModel.dismissError() }
         } message: {
             if case .failed(let message) = loginViewModel.uiState { Text(message) }
         }
         .onDisappear { loginViewModel.cancelLogin() }
     }
 
-    private var loginAction: (() -> Void)? {
-        guard loginViewModel.uiState != .authenticated else { return nil }
-        return { loginViewModel.loginWithKakao() }
-    }
-
-    private var showsAlert: Binding<Bool> {
+    private var showsError: Binding<Bool> {
         Binding(
             get: {
                 if case .failed = loginViewModel.uiState { return true }
-                return showsLoginSuccess
+                return false
             },
-            set: { if !$0 { dismissAlert() } }
+            set: { if !$0 { loginViewModel.dismissError() } }
         )
-    }
-
-    private func dismissAlert() {
-        showsLoginSuccess = false
-        loginViewModel.dismissError()
     }
 }
 
