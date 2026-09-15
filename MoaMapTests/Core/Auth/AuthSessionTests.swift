@@ -69,7 +69,8 @@ struct AuthSessionTests {
         let users = MemoryCurrentUserStore(42)
         let events = SessionEvents()
         let session = AuthSession(tokenStore: tokens, currentUserStore: users, refresher: RefreshProbe(.rejected), events: events)
-        #expect(try await session.refresh(failedAccessToken: "old") == nil)
+        let credentials = try #require(await session.credentials())
+        #expect(try await session.refresh(for: credentials) == nil)
         #expect(try tokens.load() == nil)
         #expect(try users.load() == nil)
         var iterator = events.sessionExpired.makeAsyncIterator()
@@ -82,8 +83,9 @@ struct AuthSessionTests {
         let users = MemoryCurrentUserStore(42)
         let refresher = RefreshProbe(.failed)
         let session = AuthSession(tokenStore: tokens, currentUserStore: users, refresher: refresher, events: SessionEvents())
-        #expect(try await session.refresh(failedAccessToken: "old") == nil)
-        #expect(try await session.refresh(failedAccessToken: "old") == nil)
+        let credentials = try #require(await session.credentials())
+        #expect(try await session.refresh(for: credentials) == nil)
+        #expect(try await session.refresh(for: credentials) == nil)
         #expect(try tokens.load() == old)
         #expect(try users.load() == 42)
         #expect(await refresher.receivedTokens.count == 2)
@@ -95,9 +97,10 @@ struct AuthSessionTests {
         let tokens = MemoryAuthTokenStore(old)
         let refresher = RefreshProbe(.success(new), release: gate)
         let session = AuthSession(tokenStore: tokens, currentUserStore: MemoryCurrentUserStore(), refresher: refresher, events: SessionEvents())
-        let first = Task { try await session.refresh(failedAccessToken: "old") }
+        let credentials = try #require(await session.credentials())
+        let first = Task { try await session.refresh(for: credentials) }
         await refresher.started.wait()
-        let others = (0..<20).map { _ in Task { try await session.refresh(failedAccessToken: "old") } }
+        let others = (0..<20).map { _ in Task { try await session.refresh(for: credentials) } }
         await gate.open()
         #expect(try await first.value == "new")
         for task in others { #expect(try await task.value == "new") }
@@ -109,10 +112,11 @@ struct AuthSessionTests {
         let gate = AsyncGate()
         let refresher = RefreshProbe(.success(new), release: gate)
         let session = AuthSession(tokenStore: MemoryAuthTokenStore(old), currentUserStore: MemoryCurrentUserStore(), refresher: refresher, events: SessionEvents())
-        let cancelled = Task { try await session.refresh(failedAccessToken: "old") }
+        let credentials = try #require(await session.credentials())
+        let cancelled = Task { try await session.refresh(for: credentials) }
         await refresher.started.wait()
         cancelled.cancel()
-        let other = Task { try await session.refresh(failedAccessToken: "old") }
+        let other = Task { try await session.refresh(for: credentials) }
         await gate.open()
         await #expect(throws: CancellationError.self) { try await cancelled.value }
         #expect(try await other.value == "new")
@@ -125,7 +129,8 @@ struct AuthSessionTests {
         let tokens = MemoryAuthTokenStore(old)
         let refresher = RefreshProbe(result, release: gate)
         let session = AuthSession(tokenStore: tokens, currentUserStore: MemoryCurrentUserStore(42), refresher: refresher, events: SessionEvents())
-        let task = Task { try await session.refresh(failedAccessToken: "old") }
+        let credentials = try #require(await session.credentials())
+        let task = Task { try await session.refresh(for: credentials) }
         await refresher.started.wait()
         let replacement = AuthToken(accessToken: "other-user", refreshToken: "other-refresh")
         try tokens.save(replacement)
@@ -139,7 +144,8 @@ struct AuthSessionTests {
         let tokens = MemoryAuthTokenStore(old)
         let events = SessionEvents()
         let session = AuthSession(tokenStore: tokens, currentUserStore: FailingCurrentUserStore(), refresher: RefreshProbe(.rejected), events: events)
-        await #expect(throws: FailingCurrentUserStore.StorageFailure.self) { try await session.refresh(failedAccessToken: "old") }
+        let credentials = try #require(await session.credentials())
+        await #expect(throws: FailingCurrentUserStore.StorageFailure.self) { try await session.refresh(for: credentials) }
         #expect(try tokens.load() == nil)
         // 기존 구현에서는 이 검증부터 실패하므로 이벤트 대기로 테스트를 붙잡지 않는다.
         guard try tokens.load() == nil else { return }
@@ -161,5 +167,44 @@ struct AuthSessionTests {
         #expect(try tokens.load() == old)
         #expect(try users.load() == 42)
         #expect(await recorder.headers.count == 1)
+    }
+
+    @Test
+    func 이전_계정의_요청을_새_계정의_토큰으로_재전송하지_않는다() async throws {
+        let tokens = MemoryAuthTokenStore(old)
+        let users = MemoryCurrentUserStore(42)
+        let session = AuthSession(tokenStore: tokens, currentUserStore: users, refresher: RefreshProbe(.success(new)), events: SessionEvents())
+        let recorder = AuthRequestRecorder()
+        let subject = try client(session: session) { request in
+            await recorder.record(request)
+            // 최초 요청이 전송된 뒤 다른 계정으로 로그인하고 나서 401이 도착한다.
+            try tokens.clear()
+            try tokens.save(AuthToken(accessToken: "other-user", refreshToken: "other-refresh"))
+            try users.save(userId: 99)
+            return try response(request, status: 401)
+        }
+        await #expect(throws: NetworkError.http(statusCode: 401)) { try await subject.send(APIRequest(path: ["maps"], method: .post)) }
+        #expect(await recorder.headers == ["Bearer old"])
+        #expect(try users.load() == 99)
+    }
+
+    @Test
+    func 같은_세션에서_다른_요청이_갱신한_토큰으로는_재시도한다() async throws {
+        let tokens = MemoryAuthTokenStore(old)
+        let refresher = RefreshProbe(.success(new))
+        let session = AuthSession(tokenStore: tokens, currentUserStore: MemoryCurrentUserStore(42), refresher: refresher, events: SessionEvents())
+        let credentials = try #require(await session.credentials())
+        let recorder = AuthRequestRecorder()
+        let subject = try client(session: session) { request in
+            await recorder.record(request)
+            if request.value(forHTTPHeaderField: "Authorization") == "Bearer old" {
+                _ = try await session.refresh(for: credentials)
+                return try response(request, status: 401)
+            }
+            return try response(request, status: 200)
+        }
+        _ = try await subject.send(APIRequest(path: ["maps"]))
+        #expect(await recorder.headers == ["Bearer old", "Bearer new"])
+        #expect(await refresher.receivedTokens == ["refresh"])
     }
 }

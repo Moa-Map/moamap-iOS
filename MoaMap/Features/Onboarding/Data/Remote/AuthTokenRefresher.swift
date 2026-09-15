@@ -27,8 +27,9 @@ nonisolated struct AuthTokenRefresher: TokenRefresher {
         } catch let error as NetworkError {
             try Task.checkCancellation()
             switch error {
-            // Android와 동일하게 HTTP/서버 오류 응답은 거부로, 연결/응답 해석 오류는 일시적 실패로 분류한다.
-            case .http, .server: return .rejected
+            // 인증 거부만 세션을 끝낸다. 서버 장애·요청 제한·알 수 없는 오류는 세션을 유지한다.
+            case .http(let status), .server(_, let status):
+                return [401, 403].contains(status) ? .rejected : .failed
             default: return .failed
             }
         } catch {

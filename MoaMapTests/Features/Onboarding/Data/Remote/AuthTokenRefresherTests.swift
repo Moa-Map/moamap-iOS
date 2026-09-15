@@ -23,7 +23,7 @@ struct AuthTokenRefresherTests {
         #expect(result == .success(AuthToken(accessToken: "new", refreshToken: refreshJSON == "\"rotated\"" ? "rotated" : "old-refresh")))
     }
 
-    @Test(arguments: [400, 401, 403])
+    @Test(arguments: [401, 403])
     func 서버의_명시적_거부를_구분한다(status: Int) async throws {
         #expect(try await refresher(status: status, body: "{}").refresh(refreshToken: "old-refresh") == .rejected)
     }
@@ -40,5 +40,12 @@ struct AuthTokenRefresherTests {
         #expect(try await offline.refresh(refreshToken: "old-refresh") == .failed)
         let cancelled = AuthTokenRefresher(client: APIClient(configuration: configuration) { _ in throw CancellationError() })
         await #expect(throws: CancellationError.self) { try await cancelled.refresh(refreshToken: "old-refresh") }
+    }
+
+    @Test(arguments: [400, 404, 408, 429, 500, 502, 503])
+    func 일시적인_HTTP_오류는_세션_거부가_아니다(status: Int) async throws {
+        #expect(try await refresher(status: status, body: "{}").refresh(refreshToken: "old-refresh") == .failed)
+        let envelope = "{\"success\":false,\"error\":{\"code\":\"COMMON_005\",\"status\":\(status)}}"
+        #expect(try await refresher(status: status, body: envelope).refresh(refreshToken: "old-refresh") == .failed)
     }
 }

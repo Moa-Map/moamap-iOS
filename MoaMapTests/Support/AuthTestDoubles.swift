@@ -34,7 +34,7 @@ actor AsyncGate {
     }
 }
 
-actor RefreshProbe: TokenRefresher {
+actor RefreshProbe {
     private(set) var receivedTokens: [String] = []
     let started = AsyncGate()
     let release: AsyncGate?
@@ -50,6 +50,9 @@ actor RefreshProbe: TokenRefresher {
         return result
     }
 }
+
+// Release의 전체 모듈 최적화에서 protocol의 nonisolated가 actor 선언에 추론되지 않도록 분리한다.
+extension RefreshProbe: TokenRefresher {}
 
 actor AuthRequestRecorder {
     private(set) var headers: [String?] = []

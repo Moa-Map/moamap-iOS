@@ -45,13 +45,13 @@ nonisolated struct APIClient: Sendable {
         var urlRequest = try request.urlRequest(baseURL: configuration.baseURL)
         let excludesAuth = ["/api/v1/auth/kakao/login", "/api/v1/auth/token/refresh"].contains(urlRequest.url?.path)
         let session = excludesAuth ? nil : authSession
-        let accessToken = try await session?.accessToken()
-        if let accessToken {
-            urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let credentials = try await session?.credentials()
+        if let credentials {
+            urlRequest.setValue("Bearer \(credentials.accessToken)", forHTTPHeaderField: "Authorization")
         }
         let initial = try await transfer(urlRequest)
-        if initial.statusCode == 401, let session, let accessToken,
-           let refreshed = try await session.refresh(failedAccessToken: accessToken) {
+        if initial.statusCode == 401, let session, let credentials,
+           let refreshed = try await session.refresh(for: credentials) {
             try Task.checkCancellation()
             urlRequest.setValue("Bearer \(refreshed)", forHTTPHeaderField: "Authorization")
             return try validate(try await transfer(urlRequest))
