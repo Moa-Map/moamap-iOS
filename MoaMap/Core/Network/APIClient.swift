@@ -5,6 +5,7 @@ nonisolated struct APIClient: Sendable {
 
     private let configuration: APIConfiguration
     private let transport: Transport
+    private let authSession: AuthSession?
 
     init(configuration: APIConfiguration, session: URLSession) {
         self.init(configuration: configuration) { request in
@@ -12,8 +13,9 @@ nonisolated struct APIClient: Sendable {
         }
     }
 
-    init(configuration: APIConfiguration, transport: @escaping Transport) {
+    init(configuration: APIConfiguration, authSession: AuthSession? = nil, transport: @escaping Transport) {
         self.configuration = configuration
+        self.authSession = authSession
         self.transport = transport
     }
 
@@ -40,7 +42,25 @@ nonisolated struct APIClient: Sendable {
 
     private func perform(_ request: APIRequest) async throws -> (data: Data, statusCode: Int) {
         try Task.checkCancellation()
-        let urlRequest = try request.urlRequest(baseURL: configuration.baseURL)
+        var urlRequest = try request.urlRequest(baseURL: configuration.baseURL)
+        let excludesAuth = ["/api/v1/auth/kakao/login", "/api/v1/auth/token/refresh"].contains(urlRequest.url?.path)
+        let session = excludesAuth ? nil : authSession
+        let credentials = try await session?.credentials()
+        if let credentials {
+            urlRequest.setValue("Bearer \(credentials.accessToken)", forHTTPHeaderField: "Authorization")
+        }
+        let initial = try await transfer(urlRequest)
+        if initial.statusCode == 401, let session, let credentials,
+           let refreshed = try await session.refresh(for: credentials) {
+            try Task.checkCancellation()
+            urlRequest.setValue("Bearer \(refreshed)", forHTTPHeaderField: "Authorization")
+            return try validate(try await transfer(urlRequest))
+        }
+        return try validate(initial)
+    }
+
+    private func transfer(_ urlRequest: URLRequest) async throws -> (data: Data, statusCode: Int) {
+        try Task.checkCancellation()
         let data: Data
         let response: URLResponse
         do {
@@ -56,9 +76,14 @@ nonisolated struct APIClient: Sendable {
         }
         try Task.checkCancellation()
         guard let response = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
-        guard (200..<300).contains(response.statusCode) else {
-            throw APIResponseDecoder.httpError(data: data, statusCode: response.statusCode)
-        }
         return (data, response.statusCode)
+    }
+
+    private func validate(_ response: (data: Data, statusCode: Int)) throws -> (data: Data, statusCode: Int) {
+        try Task.checkCancellation()
+        guard (200..<300).contains(response.statusCode) else {
+            throw APIResponseDecoder.httpError(data: response.data, statusCode: response.statusCode)
+        }
+        return response
     }
 }

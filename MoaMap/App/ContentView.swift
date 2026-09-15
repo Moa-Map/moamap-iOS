@@ -23,7 +23,11 @@ struct ContentView: View {
 
 #Preview {
     if let configuration = try? APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"]) {
-        ContentView(container: AppContainer(configuration: configuration) { _ in
+        ContentView(container: AppContainer(
+            configuration: configuration,
+            tokenStore: KeychainAuthTokenStore(service: "com.moamap.preview"),
+            currentUserStore: KeychainCurrentUserStore(service: "com.moamap.preview")
+        ) { _ in
             throw URLError(.notConnectedToInternet)
         })
     }
