@@ -4,9 +4,25 @@ import Foundation
 @MainActor
 final class AppContainer {
     let apiClient: APIClient
+    let tokenStore: any AuthTokenStore
+    let currentUserStore: any CurrentUserStore
+    let sessionEvents: SessionEvents
 
-    init(configuration: APIConfiguration, transport: @escaping APIClient.Transport) {
-        apiClient = APIClient(configuration: configuration, transport: transport)
+    init(
+        configuration: APIConfiguration,
+        tokenStore: any AuthTokenStore,
+        currentUserStore: any CurrentUserStore,
+        transport: @escaping APIClient.Transport
+    ) {
+        self.tokenStore = tokenStore
+        self.currentUserStore = currentUserStore
+        sessionEvents = SessionEvents()
+        let refreshClient = APIClient(configuration: configuration, transport: transport)
+        let authSession = AuthSession(
+            tokenStore: tokenStore, currentUserStore: currentUserStore,
+            refresher: AuthTokenRefresher(client: refreshClient), events: sessionEvents
+        )
+        apiClient = APIClient(configuration: configuration, authSession: authSession, transport: transport)
     }
 
     convenience init(bundle: Bundle) throws {
@@ -18,7 +34,12 @@ final class AppContainer {
         sessionConfiguration.requestCachePolicy = .reloadIgnoringLocalCacheData
         sessionConfiguration.httpShouldSetCookies = false
         let session = URLSession(configuration: sessionConfiguration)
-        self.init(configuration: configuration) { request in
+        let service = (bundle.bundleIdentifier ?? "com.moamap") + ".auth"
+        self.init(
+            configuration: configuration,
+            tokenStore: KeychainAuthTokenStore(service: service),
+            currentUserStore: KeychainCurrentUserStore(service: service)
+        ) { request in
             try await session.data(for: request)
         }
     }

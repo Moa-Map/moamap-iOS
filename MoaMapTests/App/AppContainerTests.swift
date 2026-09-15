@@ -9,7 +9,7 @@ struct AppContainerTests {
     @Test
     func 주입한_서버와_전송으로_응답을_처리한다() async throws {
         let configuration = try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/api/"])
-        let container = AppContainer(configuration: configuration) { request in
+        let container = AppContainer(configuration: configuration, tokenStore: MemoryAuthTokenStore(), currentUserStore: MemoryCurrentUserStore()) { request in
             #expect(request.url?.absoluteString == "https://example.com/api/maps")
             let url = try #require(request.url)
             let response = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil))
@@ -31,6 +31,39 @@ struct AppContainerTests {
         #expect(throws: APIConfiguration.ConfigurationError.missingBaseURL) {
             try AppContainer(bundle: testBundle)
         }
+    }
+
+    @Test
+    func 인증_요청과_인증없는_갱신_요청을_같은_전송으로_조립한다() async throws {
+        let tokens = MemoryAuthTokenStore(AuthToken(accessToken: "old", refreshToken: "refresh"))
+        let users = MemoryCurrentUserStore(42)
+        let recorder = AuthRequestRecorder()
+        let container = AppContainer(
+            configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"]),
+            tokenStore: tokens, currentUserStore: users
+        ) { request in
+            await recorder.record(request)
+            let body: String
+            let status: Int
+            if request.url?.path == "/api/v1/auth/token/refresh" {
+                #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
+                body = #"{"success":true,"data":{"accessToken":"new","refreshToken":"rotated"}}"#
+                status = 200
+            } else if request.value(forHTTPHeaderField: "Authorization") == "Bearer new" {
+                body = #"{"success":true,"data":{"id":7}}"#
+                status = 200
+            } else {
+                body = "{}"
+                status = 401
+            }
+            let url = try #require(request.url)
+            return (Data(body.utf8), try #require(HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil)))
+        }
+        let item = try await container.apiClient.send(APIRequest(path: ["maps"]), as: Item.self)
+        #expect(item.id == 7)
+        #expect(await recorder.headers == ["Bearer old", nil, "Bearer new"])
+        #expect(try tokens.load() == AuthToken(accessToken: "new", refreshToken: "rotated"))
+        #expect(try users.load() == 42)
     }
 }
 
