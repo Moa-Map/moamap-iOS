@@ -24,6 +24,7 @@ struct MoaMapApp: App {
         WindowGroup {
             if let container {
                 ContentView(container: container)
+                    .onOpenURL { container.handleOpenURL($0) }
             } else {
                 ContentUnavailableView(
                     "앱을 시작할 수 없습니다",
