@@ -47,6 +47,7 @@ playground.xcworkspace
 .claude/
 CLAUDE.md
 .superpowers/
+docs/
 docs/superpowers/
 
 # Codex / agent local settings

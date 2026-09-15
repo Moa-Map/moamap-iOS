@@ -9,15 +9,47 @@ import SwiftUI
 
 struct ContentView: View {
     let container: AppContainer
+    @State private var loginViewModel: LoginViewModel
+
+    init(container: AppContainer) {
+        self.container = container
+        _loginViewModel = State(initialValue: container.makeLoginViewModel())
+    }
 
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        ZStack {
+            if loginViewModel.uiState == .authenticated {
+                MainTabView()
+            } else {
+                LoginView(
+                    isLoading: loginViewModel.uiState == .loading,
+                    onKakaoLogin: { loginViewModel.loginWithKakao() }
+                )
+            }
         }
-        .padding()
+        .task {
+            loginViewModel.restoreSession()
+            for await _ in container.sessionEvents.sessionExpired {
+                guard !Task.isCancelled else { return }
+                loginViewModel.sessionExpired()
+            }
+        }
+        .alert("로그인할 수 없습니다", isPresented: showsError) {
+            Button("확인", role: .cancel) { loginViewModel.dismissError() }
+        } message: {
+            if case .failed(let message) = loginViewModel.uiState { Text(message) }
+        }
+        .onDisappear { loginViewModel.cancelLogin() }
+    }
+
+    private var showsError: Binding<Bool> {
+        Binding(
+            get: {
+                if case .failed = loginViewModel.uiState { return true }
+                return false
+            },
+            set: { if !$0 { loginViewModel.dismissError() } }
+        )
     }
 }
 
