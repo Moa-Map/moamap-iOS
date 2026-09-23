@@ -37,7 +37,12 @@ struct AuthSessionTests {
         #expect(await refresher.receivedTokens == ["refresh"])
     }
 
-    @Test(arguments: [["api", "v1", "auth", "kakao", "login"], ["api", "v1", "auth", "token", "refresh"]])
+    @Test(arguments: [
+        ["api", "v1", "auth", "kakao", "login"],
+        ["api", "v1", "auth", "apple", "nonce"],
+        ["api", "v1", "auth", "apple", "login"],
+        ["api", "v1", "auth", "token", "refresh"]
+    ])
     func 로그인과_갱신에는_토큰을_붙이거나_재시도하지_않는다(path: [String]) async throws {
         let refresher = RefreshProbe(.success(new))
         let session = AuthSession(tokenStore: MemoryAuthTokenStore(old), currentUserStore: MemoryCurrentUserStore(), refresher: refresher, events: SessionEvents())

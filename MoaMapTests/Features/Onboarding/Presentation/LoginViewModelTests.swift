@@ -83,5 +83,6 @@ final class LoginRepositoryStub: AuthRepository {
     var session = false
     private(set) var calls = 0
     func loginWithKakao() async throws { calls += 1; try await login() }
+    func loginWithApple() async throws { calls += 1; try await login() }
     func hasSession() throws -> Bool { session }
 }
