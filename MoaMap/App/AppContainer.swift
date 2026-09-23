@@ -2,6 +2,7 @@ import Foundation
 import KakaoSDKAuth
 import KakaoSDKCommon
 import KakaoSDKUser
+import UIKit
 
 /// 앱의 의존성을 조립하고 앱 실행 동안 유지한다.
 @MainActor
@@ -17,6 +18,7 @@ final class AppContainer {
         tokenStore: any AuthTokenStore,
         currentUserStore: any CurrentUserStore,
         kakaoLogin: @escaping () async throws -> String = { throw LoginError.notConfigured },
+        appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
         transport: @escaping APIClient.Transport
     ) {
         self.tokenStore = tokenStore
@@ -29,7 +31,7 @@ final class AppContainer {
         )
         apiClient = APIClient(configuration: configuration, authSession: authSession, transport: transport)
         authRepository = AuthRepositoryImpl(
-            client: refreshClient, kakaoLogin: kakaoLogin,
+            client: refreshClient, kakaoLogin: kakaoLogin, appleLogin: appleLogin,
             tokenStore: tokenStore, currentUserStore: currentUserStore
         )
     }
@@ -61,6 +63,14 @@ final class AppContainer {
                 }
             }
         )
+        let appleClient = AppleAuthClient {
+            guard let window = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .filter({ $0.activationState == .foregroundActive })
+                .flatMap(\.windows)
+                .first(where: \.isKeyWindow) else { throw LoginError.notConfigured }
+            return SystemAppleAuthorizationSession(anchor: window)
+        }
         self.init(
             configuration: configuration,
             tokenStore: KeychainAuthTokenStore(service: service),
@@ -68,7 +78,8 @@ final class AppContainer {
             kakaoLogin: {
                 guard isConfigured else { throw LoginError.notConfigured }
                 return try await kakaoClient.login()
-            }
+            },
+            appleLogin: { nonce in try await appleClient.login(nonce: nonce) }
         ) { request in
             try await session.data(for: request)
         }
