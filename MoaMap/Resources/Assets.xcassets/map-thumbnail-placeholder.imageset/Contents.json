@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "map-thumbnail-placeholder.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

@@ -22,6 +22,10 @@ nonisolated struct MoaMapTextStyle: Sendable {
         let natural = UIFont(name: fontName, size: size)?.lineHeight ?? size
         return max(0, lineHeight - natural)
     }
+
+    /// `lineSpacing` 은 줄 사이에만 들어가 한 줄 텍스트는 폰트 높이로 줄어든다.
+    /// 시안처럼 남는 줄 높이를 첫 줄 위와 마지막 줄 아래에 반씩 나눠 준다.
+    var verticalPadding: CGFloat { lineSpacing / 2 }
 }
 
 nonisolated struct MoaMapTypography: Sendable {
@@ -97,5 +101,6 @@ extension View {
             .font(.custom(style.fontName, size: style.size))
             .tracking(style.letterSpacing)
             .lineSpacing(style.lineSpacing)
+            .padding(.vertical, style.verticalPadding)
     }
 }
