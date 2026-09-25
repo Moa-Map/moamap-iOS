@@ -82,6 +82,7 @@ struct SocialLoginButton: View {
         }
         .buttonStyle(.plain)
         .disabled(action == nil || isLoading)
-        .accessibilityLabel(isLoading ? "로그인 중" : provider.title)
+        .accessibilityLabel(provider.title)
+        .accessibilityValue(isLoading ? "로그인 중" : "")
     }
 }

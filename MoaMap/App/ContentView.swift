@@ -22,8 +22,9 @@ struct ContentView: View {
                 MainTabView()
             } else {
                 LoginView(
-                    isLoading: loginViewModel.uiState == .loading,
-                    onKakaoLogin: { loginViewModel.loginWithKakao() }
+                    loadingProvider: loginViewModel.uiState.loadingProvider,
+                    onKakaoLogin: { loginViewModel.loginWithKakao() },
+                    onAppleLogin: { loginViewModel.loginWithApple() }
                 )
             }
         }
