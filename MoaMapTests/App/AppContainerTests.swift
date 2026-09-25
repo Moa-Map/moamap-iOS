@@ -26,6 +26,39 @@ struct AppContainerTests {
     }
 
     @Test
+    func 주입한_Apple_인증으로_로그인하고_세션을_저장한다() async throws {
+        let tokens = MemoryAuthTokenStore()
+        let users = MemoryCurrentUserStore()
+        let nonce = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"
+        let container = AppContainer(
+            configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"]),
+            tokenStore: tokens, currentUserStore: users,
+            appleLogin: { received in
+                #expect(received == nonce)
+                return AppleLoginCredential(identityToken: "identity", authorizationCode: "code", fullName: nil)
+            }
+        ) { request in
+            #expect(request.httpMethod == "POST")
+            #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
+            let body: String
+            if request.url?.path == "/api/v1/auth/apple/nonce" {
+                body = "{\"success\":true,\"data\":{\"nonce\":\"\(nonce)\",\"expiresIn\":300}}"
+            } else {
+                #expect(request.url?.path == "/api/v1/auth/apple/login")
+                let payload = try JSONSerialization.jsonObject(with: #require(request.httpBody)) as? [String: String]
+                #expect(payload == ["identityToken": "identity", "authorizationCode": "code", "nonce": nonce])
+                body = #"{"success":true,"data":{"userId":42,"accessToken":"access","refreshToken":"refresh","tokenType":"Bearer","expiresIn":1800,"refreshTokenExpiresIn":1209600,"isNewUser":false}}"#
+            }
+            let url = try #require(request.url)
+            let response = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil))
+            return (Data(body.utf8), response)
+        }
+        try await container.authRepository.loginWithApple()
+        #expect(try users.load() == 42)
+        #expect(try tokens.load() == AuthToken(accessToken: "access", refreshToken: "refresh"))
+    }
+
+    @Test
     func 설정이_없는_번들은_조립에_실패한다() throws {
         let testBundle = Bundle(for: BundleMarker.self)
         #expect(throws: APIConfiguration.ConfigurationError.missingBaseURL) {

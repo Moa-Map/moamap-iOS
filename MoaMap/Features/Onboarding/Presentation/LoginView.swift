@@ -4,8 +4,9 @@ struct LoginView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
-    var isLoading = false
+    var loadingProvider: LoginProvider?
     var onKakaoLogin: (() -> Void)?
+    var onAppleLogin: (() -> Void)?
 
     var body: some View {
         GeometryReader { geometry in
@@ -34,11 +35,16 @@ struct LoginView: View {
                         SocialLoginButton(provider: .google)
                         SocialLoginButton(
                             provider: .kakao,
-                            isLoading: isLoading,
+                            isLoading: loadingProvider == .kakao,
                             action: onKakaoLogin
                         )
-                        SocialLoginButton(provider: .apple)
+                        SocialLoginButton(
+                            provider: .apple,
+                            isLoading: loadingProvider == .apple,
+                            action: onAppleLogin
+                        )
                     }
+                    .disabled(loadingProvider != nil)
 
                     Spacer(minLength: 24)
                 }
@@ -59,6 +65,10 @@ struct LoginView: View {
     LoginView()
 }
 
-#Preview("로그인 중") {
-    LoginView(isLoading: true)
+#Preview("카카오 로그인 중") {
+    LoginView(loadingProvider: .kakao)
+}
+
+#Preview("Apple 로그인 중") {
+    LoginView(loadingProvider: .apple)
 }

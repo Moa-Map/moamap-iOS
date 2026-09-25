@@ -43,7 +43,12 @@ nonisolated struct APIClient: Sendable {
     private func perform(_ request: APIRequest) async throws -> (data: Data, statusCode: Int) {
         try Task.checkCancellation()
         var urlRequest = try request.urlRequest(baseURL: configuration.baseURL)
-        let excludesAuth = ["/api/v1/auth/kakao/login", "/api/v1/auth/token/refresh"].contains(urlRequest.url?.path)
+        let excludesAuth = [
+            "/api/v1/auth/kakao/login",
+            "/api/v1/auth/apple/nonce",
+            "/api/v1/auth/apple/login",
+            "/api/v1/auth/token/refresh"
+        ].contains(urlRequest.url?.path)
         let session = excludesAuth ? nil : authSession
         let credentials = try await session?.credentials()
         if let credentials {
