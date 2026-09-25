@@ -11,6 +11,7 @@ final class AppContainer {
     let currentUserStore: any CurrentUserStore
     let sessionEvents: SessionEvents
     let authRepository: any AuthRepository
+    let exploreRepository: any ExploreRepository
 
     init(
         configuration: APIConfiguration,
@@ -32,6 +33,7 @@ final class AppContainer {
             client: refreshClient, kakaoLogin: kakaoLogin,
             tokenStore: tokenStore, currentUserStore: currentUserStore
         )
+        exploreRepository = ExploreRepositoryImpl(client: apiClient)
     }
 
     convenience init(bundle: Bundle) throws {
@@ -76,6 +78,10 @@ final class AppContainer {
 
     func makeLoginViewModel() -> LoginViewModel {
         LoginViewModel(repository: authRepository)
+    }
+
+    func makeExploreViewModel() -> ExploreViewModel {
+        ExploreViewModel(repository: exploreRepository)
     }
 
     func handleOpenURL(_ url: URL) {

@@ -3,11 +3,16 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(\.moaColors) private var colors
     @State private var selection: MainTab = .explore
+    @State private var exploreViewModel: ExploreViewModel
+
+    init(exploreViewModel: ExploreViewModel) {
+        _exploreViewModel = State(initialValue: exploreViewModel)
+    }
 
     var body: some View {
         TabView(selection: $selection) {
             NavigationStack {
-                ExploreView()
+                ExploreView(viewModel: exploreViewModel)
             }
             .tag(MainTab.explore)
             .toolbar(.hidden, for: .tabBar)
@@ -29,6 +34,8 @@ struct MainTabView: View {
     }
 }
 
+#if DEBUG
 #Preview("메인 탭") {
-    MainTabView()
+    MainTabView(exploreViewModel: ExploreViewModel(repository: PreviewExploreRepository()))
 }
+#endif
