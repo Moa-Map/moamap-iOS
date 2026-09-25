@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 
+/// 커뮤니티 목록만의 상태. 추천과 닉네임은 독립적으로 갱신한다.
 nonisolated enum ExploreUiState: Equatable, Sendable {
     case idle
     case loading
@@ -20,6 +21,8 @@ final class ExploreViewModel {
     private(set) var sortOrder: MapSortOrder = .popular
     private(set) var isLoadingMore = false
     private(set) var loadTask: Task<Void, Never>?
+    private(set) var recommendationTask: Task<Void, Never>?
+    private(set) var nicknameTask: Task<Void, Never>?
     private(set) var pageTask: Task<Void, Never>?
 
     private var nextPage = 0
@@ -36,33 +39,45 @@ final class ExploreViewModel {
 
     func load() {
         cancelTasks()
+        recommendationTask = Task { [weak self, repository] in
+            defer { if !Task.isCancelled { self?.recommendationTask = nil } }
+            do {
+                let maps = try await repository.fetchRecommendedMaps(size: Self.recommendationSize)
+                try Task.checkCancellation()
+                self?.recommendedMaps = maps
+            } catch {
+                // 보조 영역은 실패해도 기존 추천을 유지한다. 처음이면 비어 있어 숨겨진다.
+            }
+        }
+        nicknameTask = Task { [weak self, repository] in
+            defer { if !Task.isCancelled { self?.nicknameTask = nil } }
+            do {
+                let name = try await repository.fetchMyNickname()
+                try Task.checkCancellation()
+                self?.nickname = name
+            } catch {
+                // 이름을 읽지 못하면 화면에서 "회원"을 사용한다.
+            }
+        }
+        retryCommunity()
+    }
+
+    /// 정렬 변경과 재시도는 추천·닉네임 요청에 영향을 주지 않는다.
+    func retryCommunity() {
+        loadTask?.cancel()
+        pageTask?.cancel()
+        pageTask = nil
+        isLoadingMore = false
         uiState = .loading
         let sort = sortOrder
         loadTask = Task { [weak self, repository] in
             defer { if !Task.isCancelled { self?.loadTask = nil } }
-            // repository 가 MainActor 에 묶여 있어 async let 대신 같은 actor 의 Task 로 동시에 요청한다.
-            // 닉네임은 부가 정보라 실패해도 화면을 막지 않는다.
-            let nickname = Task { try? await repository.fetchMyNickname() }
-            let recommended = Task { try await repository.fetchRecommendedMaps(size: Self.recommendationSize) }
-            let firstPage = Task { try await repository.fetchCommunityMaps(sort: sort, page: 0, size: Self.pageSize) }
-            let cancelAll = { @Sendable in
-                nickname.cancel()
-                recommended.cancel()
-                firstPage.cancel()
-            }
             do {
-                let (maps, page, name) = try await withTaskCancellationHandler {
-                    (try await recommended.value, try await firstPage.value, await nickname.value)
-                } onCancel: {
-                    cancelAll()
-                }
+                let page = try await repository.fetchCommunityMaps(sort: sort, page: 0, size: Self.pageSize)
                 try Task.checkCancellation()
-                self?.nickname = name ?? nil
-                self?.recommendedMaps = maps
                 self?.applyFirstPage(page)
                 self?.uiState = .loaded
             } catch {
-                cancelAll()
                 guard !Task.isCancelled, !(error is CancellationError) else { return }
                 self?.uiState = .failed(Self.message(for: error))
             }
@@ -73,7 +88,7 @@ final class ExploreViewModel {
         guard order != sortOrder else { return }
         sortOrder = order
         guard uiState == .loaded else {
-            if uiState != .idle { load() }
+            if uiState != .idle { retryCommunity() }
             return
         }
         pageTask?.cancel()
@@ -113,6 +128,10 @@ final class ExploreViewModel {
     }
 
     func cancelTasks() {
+        recommendationTask?.cancel()
+        recommendationTask = nil
+        nicknameTask?.cancel()
+        nicknameTask = nil
         loadTask?.cancel()
         loadTask = nil
         pageTask?.cancel()

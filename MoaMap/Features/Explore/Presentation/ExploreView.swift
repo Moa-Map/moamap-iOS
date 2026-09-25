@@ -34,19 +34,10 @@ struct ExploreView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch viewModel.uiState {
-        case .idle, .loading:
-            ProgressView()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-        case .failed(let message):
-            failure(message)
-        case .loaded:
-            if !viewModel.recommendedMaps.isEmpty {
-                recommendedSection
-            }
-            communitySection
+        if !viewModel.recommendedMaps.isEmpty {
+            recommendedSection
         }
+        communitySection
     }
 
     private var header: some View {
@@ -115,21 +106,30 @@ struct ExploreView: View {
 
             LazyVStack(alignment: .trailing, spacing: 8) {
                 sortPicker
-                if viewModel.communityMaps.isEmpty && !viewModel.isLoadingMore {
-                    Text("아직 커뮤니티 지도가 없어요")
-                        .moaTextStyle(typography.body2)
-                        .foregroundStyle(colors.textAssistive)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                }
-                ForEach(viewModel.communityMaps) { map in
-                    CommunityMapCard(map: map)
-                        .onAppear { viewModel.loadMoreIfNeeded(after: map) }
-                }
-                if viewModel.isLoadingMore {
+                switch viewModel.uiState {
+                case .idle, .loading:
                     ProgressView()
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .padding(.vertical, 40)
+                case .failed(let message):
+                    failure(message)
+                case .loaded:
+                    if viewModel.communityMaps.isEmpty && !viewModel.isLoadingMore {
+                        Text("아직 커뮤니티 지도가 없어요")
+                            .moaTextStyle(typography.body2)
+                            .foregroundStyle(colors.textAssistive)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                    }
+                    ForEach(viewModel.communityMaps) { map in
+                        CommunityMapCard(map: map)
+                            .onAppear { viewModel.loadMoreIfNeeded(after: map) }
+                    }
+                    if viewModel.isLoadingMore {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                    }
                 }
             }
             .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
@@ -159,7 +159,7 @@ struct ExploreView: View {
                 .moaTextStyle(typography.body2)
                 .foregroundStyle(colors.textAlternative)
                 .multilineTextAlignment(.center)
-            Button("다시 시도") { viewModel.load() }
+            Button("다시 시도") { viewModel.retryCommunity() }
                 .moaTextStyle(typography.button2)
                 .foregroundStyle(colors.textNormal)
         }
