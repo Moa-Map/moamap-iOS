@@ -6,7 +6,6 @@ struct CollectionView: View {
     let viewModel: CollectionViewModel
     let onHome: () -> Void
     @State private var showsInviteDialog = false
-    @State private var inviteCode = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -26,13 +25,9 @@ struct CollectionView: View {
         .background { colors.backgroundPrimary.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
         .task { viewModel.refresh() }
-        .alert("지도 참여하기", isPresented: $showsInviteDialog) {
-            TextField("참여 코드", text: $inviteCode)
-                .textInputAutocapitalization(.characters)
-                .autocorrectionDisabled()
-            Button("닫기", role: .cancel) {}
-        } message: {
-            Text("친구에게 참여 코드를 받으세요")
+        .fullScreenCover(isPresented: $showsInviteDialog) {
+            JoinMapDialog()
+                .presentationBackground(.clear)
         }
     }
 
@@ -44,8 +39,11 @@ struct CollectionView: View {
             .accessibilityLabel("탐색 탭으로 이동")
             Spacer(minLength: 4)
             Button {
-                inviteCode = ""
-                showsInviteDialog = true
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    showsInviteDialog = true
+                }
             } label: {
                 HStack(spacing: 2) {
                     icon("key", size: 24)
