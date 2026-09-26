@@ -5,7 +5,10 @@ struct MainTabView: View {
     @State private var selection: MainTab = .explore
     @State private var exploreViewModel: ExploreViewModel
 
-    init(exploreViewModel: ExploreViewModel) {
+    @State private var collectionViewModel: CollectionViewModel
+
+    init(exploreViewModel: ExploreViewModel, collectionViewModel: CollectionViewModel) {
+        _collectionViewModel = State(initialValue: collectionViewModel)
         _exploreViewModel = State(initialValue: exploreViewModel)
     }
 
@@ -18,7 +21,7 @@ struct MainTabView: View {
             .toolbar(.hidden, for: .tabBar)
 
             NavigationStack {
-                CollectionView()
+                CollectionView(viewModel: collectionViewModel, onHome: { selection = .explore })
             }
             .tag(MainTab.collection)
             .toolbar(.hidden, for: .tabBar)
@@ -36,6 +39,6 @@ struct MainTabView: View {
 
 #if DEBUG
 #Preview("메인 탭") {
-    MainTabView(exploreViewModel: ExploreViewModel(repository: PreviewExploreRepository()))
+    MainTabView(exploreViewModel: ExploreViewModel(repository: PreviewExploreRepository()), collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository()))
 }
 #endif
