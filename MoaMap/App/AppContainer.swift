@@ -13,6 +13,7 @@ final class AppContainer {
     let sessionEvents: SessionEvents
     let authRepository: any AuthRepository
     let exploreRepository: any ExploreRepository
+    let collectionRepository: any CollectionRepository
 
     init(
         configuration: APIConfiguration,
@@ -36,6 +37,7 @@ final class AppContainer {
             tokenStore: tokenStore, currentUserStore: currentUserStore
         )
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
+        collectionRepository = CollectionRepositoryImpl(client: apiClient)
     }
 
     convenience init(bundle: Bundle) throws {
@@ -93,6 +95,10 @@ final class AppContainer {
 
     func makeExploreViewModel() -> ExploreViewModel {
         ExploreViewModel(repository: exploreRepository)
+    }
+
+    func makeCollectionViewModel() -> CollectionViewModel {
+        CollectionViewModel(repository: collectionRepository)
     }
 
     func handleOpenURL(_ url: URL) {

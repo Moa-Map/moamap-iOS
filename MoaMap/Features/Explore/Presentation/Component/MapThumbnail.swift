@@ -4,6 +4,8 @@ import SwiftUI
 struct MapThumbnail: View {
     var imageURL: URL?
     let size: CGFloat
+    var cornerRadius: CGFloat = 12
+    var placeholderHorizontalPadding: CGFloat = 25
 
     var body: some View {
         ZStack {
@@ -19,9 +21,9 @@ struct MapThumbnail: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .overlay {
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: cornerRadius)
                 .strokeBorder(.black.opacity(0.2), lineWidth: 1)
         }
         .accessibilityHidden(true)
@@ -32,7 +34,7 @@ struct MapThumbnail: View {
             .resizable()
             .scaledToFit()
             // 시안의 좌우 여백 24 에 테두리 1 을 더한 값.
-            .padding(.horizontal, 25)
+            .padding(.horizontal, placeholderHorizontalPadding)
     }
 }
 

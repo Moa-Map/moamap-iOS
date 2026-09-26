@@ -19,7 +19,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             if loginViewModel.uiState == .authenticated {
-                MainTabView(exploreViewModel: container.makeExploreViewModel())
+                MainTabView(exploreViewModel: container.makeExploreViewModel(), collectionViewModel: container.makeCollectionViewModel())
             } else {
                 LoginView(
                     loadingProvider: loginViewModel.uiState.loadingProvider,
