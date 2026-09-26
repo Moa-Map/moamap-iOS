@@ -175,8 +175,18 @@ struct CollectionView: View {
 @MainActor
 final class PreviewCollectionRepository: CollectionRepository {
     func fetchMyMaps(type: CollectionMapType) async throws -> [MyMap] {
-        (1...3).map {
-            MyMap(id: Int64($0), title: $0 == 1 && type == .private ? "나만의 지도" : "서울 팝업스토어 맵", imageURL: nil, memberCount: 24, placeCount: 116, official: false, personal: $0 == 1 && type == .private)
+        (1...3).map { (index: Int) -> MyMap in
+            let isPersonal = index == 1 && type == .private
+            let title = isPersonal ? "나만의 지도" : "서울 팝업스토어 맵"
+            return MyMap(
+                id: Int64(index),
+                title: title,
+                imageURL: nil,
+                memberCount: 24,
+                placeCount: 116,
+                official: false,
+                personal: isPersonal
+            )
         }
     }
 }
