@@ -5,11 +5,13 @@ struct ExploreView: View {
     @Environment(\.moaTypography) private var typography
 
     let viewModel: ExploreViewModel
+    var onSettingsClick: () -> Void = {}
 
     // TODO: 태그 목록 API 가 정해지면 서버 값으로 바꾸고 목록 조회에 반영한다.
     var categories = ExploreView.sampleCategories
 
     @State private var selectedCategory = "전체"
+    @State private var showsProfileMenu = false
 
     var body: some View {
         ScrollView {
@@ -28,8 +30,33 @@ struct ExploreView: View {
         }
         .scrollIndicators(.hidden)
         .background { colors.backgroundPrimary.ignoresSafeArea() }
+        .overlay(alignment: .topTrailing) {
+            if showsProfileMenu { profileMenu }
+        }
         .toolbar(.hidden, for: .navigationBar)
         .task { viewModel.loadIfNeeded() }
+        .onDisappear { showsProfileMenu = false }
+    }
+
+    private var profileMenu: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.clear
+                .contentShape(Rectangle())
+                .ignoresSafeArea()
+                .onTapGesture { showsProfileMenu = false }
+                .accessibilityHidden(true)
+            // TODO: 프로필 화면이 생기면 연결한다.
+            ProfileMenu(
+                onProfileClick: { showsProfileMenu = false },
+                onSettingsClick: {
+                    showsProfileMenu = false
+                    onSettingsClick()
+                }
+            )
+            .padding(.top, 5)
+            .padding(.trailing, MoaMapDimens.screenHorizontalPadding)
+            .accessibilityAction(.escape) { showsProfileMenu = false }
+        }
     }
 
     @ViewBuilder
@@ -48,15 +75,15 @@ struct ExploreView: View {
                 .frame(width: 73.67, height: 44)
                 .accessibilityLabel("모아맵")
             Spacer()
-            headerButton(icon: "Icons/notifications", label: "알림")
-            headerButton(icon: "Icons/person", label: "내 정보")
+            headerButton(icon: "Icons/notifications", label: "알림") {}
+            headerButton(icon: "Icons/person", label: "내 정보") { showsProfileMenu = true }
         }
         .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
         .frame(height: 52)
     }
 
-    private func headerButton(icon: String, label: String) -> some View {
-        Button {} label: {
+    private func headerButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             Image(icon)
                 .resizable()
                 .frame(width: 32, height: 32)

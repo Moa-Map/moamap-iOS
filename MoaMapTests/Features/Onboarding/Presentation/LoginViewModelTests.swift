@@ -183,7 +183,7 @@ struct LoginViewModelTests {
         sut.loginWithApple()
         let pending = sut.loadTask
         await started.wait()
-        sut.sessionExpired()
+        sut.returnToLogin()
         #expect(pending?.isCancelled == true)
         #expect(sut.loadTask == nil)
         #expect(sut.uiState == .idle)
@@ -205,7 +205,7 @@ struct LoginViewModelTests {
         let sut = LoginViewModel(repository: repository)
         sut.restoreSession()
         #expect(sut.uiState == .authenticated)
-        sut.sessionExpired()
+        sut.returnToLogin()
         #expect(sut.uiState == .idle)
     }
 }
