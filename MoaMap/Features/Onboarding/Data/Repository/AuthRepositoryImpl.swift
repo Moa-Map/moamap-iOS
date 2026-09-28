@@ -5,15 +5,18 @@ final class AuthRepositoryImpl: AuthRepository {
     private let client: APIClient
     private let kakaoLogin: () async throws -> String
     private let appleLogin: (String) async throws -> AppleLoginCredential
+    private let kakaoLogout: () async throws -> Void
     private let tokenStore: any AuthTokenStore
     private let currentUserStore: any CurrentUserStore
 
     init(client: APIClient, kakaoLogin: @escaping () async throws -> String,
          appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
+         kakaoLogout: @escaping () async throws -> Void = {},
          tokenStore: any AuthTokenStore, currentUserStore: any CurrentUserStore) {
         self.client = client
         self.kakaoLogin = kakaoLogin
         self.appleLogin = appleLogin
+        self.kakaoLogout = kakaoLogout
         self.tokenStore = tokenStore
         self.currentUserStore = currentUserStore
     }
@@ -79,6 +82,19 @@ final class AuthRepositoryImpl: AuthRepository {
             try? currentUserStore.clear()
             throw error
         }
+    }
+
+    func logout() async throws {
+        if let refreshToken = try? tokenStore.load()?.refreshToken,
+           let body = try? JSONEncoder().encode(LogoutRequest(refreshToken: refreshToken)) {
+            let request = APIRequest(path: ["api", "v1", "auth", "logout"], method: .post, jsonBody: body)
+            try? await client.sendWithoutResponse(request)
+        }
+        try? await kakaoLogout()
+
+        // 토큰을 먼저 지운다. 신원만 남으면 세션으로 읽히지 않는다.
+        try tokenStore.clear()
+        try currentUserStore.clear()
     }
 
     func hasSession() throws -> Bool {

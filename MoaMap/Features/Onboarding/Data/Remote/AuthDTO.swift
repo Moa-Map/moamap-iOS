@@ -19,3 +19,7 @@ nonisolated struct AppleLoginRequest: Encodable, Sendable {
     let nonce: String
     let fullName: String?
 }
+
+nonisolated struct LogoutRequest: Encodable, Sendable {
+    let refreshToken: String
+}

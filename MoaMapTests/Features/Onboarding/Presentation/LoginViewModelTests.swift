@@ -219,5 +219,8 @@ final class LoginRepositoryStub: AuthRepository {
     var calls: Int { kakaoCalls + appleCalls }
     func loginWithKakao() async throws { kakaoCalls += 1; try await login() }
     func loginWithApple() async throws { appleCalls += 1; try await login() }
+    var logoutHandler: () async throws -> Void = {}
+    private(set) var logoutCalls = 0
+    func logout() async throws { logoutCalls += 1; try await logoutHandler() }
     func hasSession() throws -> Bool { session }
 }
