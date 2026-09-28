@@ -111,6 +111,10 @@ final class AppContainer {
         CollectionViewModel(repository: collectionRepository)
     }
 
+    func makeSettingsViewModel() -> SettingsViewModel {
+        SettingsViewModel(repository: authRepository)
+    }
+
     func handleOpenURL(_ url: URL) {
         if AuthApi.isKakaoTalkLoginUrl(url) {
             _ = AuthController.handleOpenUrl(url: url)
