@@ -16,7 +16,7 @@ final class SettingsViewModel {
 
     init(repository: any AuthRepository) { self.repository = repository }
 
-    func logout() {
+    func logout(onLoggedOut: @escaping () -> Void = {}) {
         guard uiState != .loggingOut, uiState != .loggedOut else { return }
         loadTask?.cancel()
         uiState = .loggingOut
@@ -25,6 +25,8 @@ final class SettingsViewModel {
                 try await repository.logout()
                 try Task.checkCancellation()
                 self?.uiState = .loggedOut
+                // 화면과 ViewModel이 해제되어도 Task가 보관한 완료 콜백은 실행한다.
+                onLoggedOut()
             } catch is CancellationError {
                 if !Task.isCancelled { self?.uiState = .idle }
             } catch {

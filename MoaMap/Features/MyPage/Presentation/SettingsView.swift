@@ -35,7 +35,7 @@ struct SettingsView: View {
                         }
                     }
                     section("계정") {
-                        navigationRow("로그아웃", action: viewModel.logout)
+                        navigationRow("로그아웃") { viewModel.logout(onLoggedOut: onLoggedOut) }
                         // TODO: 회원탈퇴 API 가 생기면 연결한다.
                         navigationRow("회원탈퇴", color: colors.statusAlert, showsDivider: true)
                     }
@@ -48,9 +48,6 @@ struct SettingsView: View {
         }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
-        .onChange(of: viewModel.uiState) { _, state in
-            if state == .loggedOut { onLoggedOut() }
-        }
         .alert("로그아웃할 수 없습니다", isPresented: showsError) {
             Button("확인", role: .cancel) { viewModel.dismissError() }
         } message: {
