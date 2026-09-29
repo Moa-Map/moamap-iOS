@@ -19,7 +19,12 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             if loginViewModel.uiState == .authenticated {
-                MainTabView(exploreViewModel: container.makeExploreViewModel(), collectionViewModel: container.makeCollectionViewModel())
+                MainTabView(
+                    exploreViewModel: container.makeExploreViewModel(),
+                    collectionViewModel: container.makeCollectionViewModel(),
+                    makeSettingsViewModel: container.makeSettingsViewModel,
+                    onLoggedOut: { loginViewModel.returnToLogin() }
+                )
             } else {
                 LoginView(
                     loadingProvider: loginViewModel.uiState.loadingProvider,
@@ -32,7 +37,7 @@ struct ContentView: View {
             loginViewModel.restoreSession()
             for await _ in container.sessionEvents.sessionExpired {
                 guard !Task.isCancelled else { return }
-                loginViewModel.sessionExpired()
+                loginViewModel.returnToLogin()
             }
         }
         .alert("로그인할 수 없습니다", isPresented: showsError) {

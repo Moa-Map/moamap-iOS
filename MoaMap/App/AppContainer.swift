@@ -21,6 +21,7 @@ final class AppContainer {
         currentUserStore: any CurrentUserStore,
         kakaoLogin: @escaping () async throws -> String = { throw LoginError.notConfigured },
         appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
+        kakaoLogout: @escaping () async throws -> Void = {},
         transport: @escaping APIClient.Transport
     ) {
         self.tokenStore = tokenStore
@@ -32,8 +33,9 @@ final class AppContainer {
             refresher: AuthTokenRefresher(client: refreshClient), events: sessionEvents
         )
         apiClient = APIClient(configuration: configuration, authSession: authSession, transport: transport)
+        // 로그인 경로는 APIClient 가 인증 헤더를 붙이지 않는다. 로그아웃은 인증이 필요하다.
         authRepository = AuthRepositoryImpl(
-            client: refreshClient, kakaoLogin: kakaoLogin, appleLogin: appleLogin,
+            client: apiClient, kakaoLogin: kakaoLogin, appleLogin: appleLogin, kakaoLogout: kakaoLogout,
             tokenStore: tokenStore, currentUserStore: currentUserStore
         )
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
@@ -83,7 +85,15 @@ final class AppContainer {
                 guard isConfigured else { throw LoginError.notConfigured }
                 return try await kakaoClient.login()
             },
-            appleLogin: { nonce in try await appleClient.login(nonce: nonce) }
+            appleLogin: { nonce in try await appleClient.login(nonce: nonce) },
+            kakaoLogout: {
+                guard isConfigured else { return }
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                    UserApi.shared.logout { error in
+                        if let error { continuation.resume(throwing: error) } else { continuation.resume() }
+                    }
+                }
+            }
         ) { request in
             try await session.data(for: request)
         }
@@ -99,6 +109,10 @@ final class AppContainer {
 
     func makeCollectionViewModel() -> CollectionViewModel {
         CollectionViewModel(repository: collectionRepository)
+    }
+
+    func makeSettingsViewModel() -> SettingsViewModel {
+        SettingsViewModel(repository: authRepository)
     }
 
     func handleOpenURL(_ url: URL) {

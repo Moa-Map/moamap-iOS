@@ -183,7 +183,7 @@ struct LoginViewModelTests {
         sut.loginWithApple()
         let pending = sut.loadTask
         await started.wait()
-        sut.sessionExpired()
+        sut.returnToLogin()
         #expect(pending?.isCancelled == true)
         #expect(sut.loadTask == nil)
         #expect(sut.uiState == .idle)
@@ -205,7 +205,7 @@ struct LoginViewModelTests {
         let sut = LoginViewModel(repository: repository)
         sut.restoreSession()
         #expect(sut.uiState == .authenticated)
-        sut.sessionExpired()
+        sut.returnToLogin()
         #expect(sut.uiState == .idle)
     }
 }
@@ -219,5 +219,8 @@ final class LoginRepositoryStub: AuthRepository {
     var calls: Int { kakaoCalls + appleCalls }
     func loginWithKakao() async throws { kakaoCalls += 1; try await login() }
     func loginWithApple() async throws { appleCalls += 1; try await login() }
+    var logoutHandler: () async throws -> Void = {}
+    private(set) var logoutCalls = 0
+    func logout() async throws { logoutCalls += 1; try await logoutHandler() }
     func hasSession() throws -> Bool { session }
 }

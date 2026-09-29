@@ -102,7 +102,8 @@ final class LoginViewModel {
         if uiState.loadingProvider != nil { uiState = .idle }
     }
 
-    func sessionExpired() {
+    /// 세션 만료나 로그아웃 뒤 로그인 화면으로 돌아간다.
+    func returnToLogin() {
         cancelLogin()
         uiState = .idle
     }
