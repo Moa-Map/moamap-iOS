@@ -10,7 +10,7 @@ reviews:
     enabled: true
     drafts: false          # Draft PR은 리뷰 제외
     base_branches:
-      - "dev"
+      - "main"
   path_filters:
     - "!**/DerivedData/**"
     - "!**/Package.resolved"     # 잠금 파일. 사람이 읽을 것이 없다

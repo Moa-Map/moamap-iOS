@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [dev, main]
+    branches: [main]
 
 # 같은 PR 에 커밋을 연달아 올리면 이전 실행을 죽인다.
 concurrency:
