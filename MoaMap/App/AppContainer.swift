@@ -14,6 +14,7 @@ final class AppContainer {
     let authRepository: any AuthRepository
     let exploreRepository: any ExploreRepository
     let mapDetailRepository: any MapDetailRepository
+    let userRepository: any UserRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
 
@@ -43,6 +44,7 @@ final class AppContainer {
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
         collectionRepository = CollectionRepositoryImpl(client: apiClient)
         mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
+        userRepository = UserRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
     }
 
     convenience init(bundle: Bundle) throws {
@@ -124,6 +126,10 @@ final class AppContainer {
 
     func makeCollectionViewModel() -> CollectionViewModel {
         CollectionViewModel(repository: collectionRepository)
+    }
+
+    func makeProfileEditViewModel() -> ProfileEditViewModel {
+        ProfileEditViewModel(repository: userRepository)
     }
 
     func makeSettingsViewModel() -> SettingsViewModel {

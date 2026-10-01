@@ -5,6 +5,7 @@ struct ExploreView: View {
     @Environment(\.moaTypography) private var typography
 
     let viewModel: ExploreViewModel
+    var onProfileClick: () -> Void = {}
     var onSettingsClick: () -> Void = {}
     var onSeeAllCommunityMapsClick: () -> Void = {}
     var onMapClick: (MapSummary) -> Void = { _ in }
@@ -41,9 +42,11 @@ struct ExploreView: View {
                 .ignoresSafeArea()
                 .onTapGesture { showsProfileMenu = false }
                 .accessibilityHidden(true)
-            // TODO: 프로필 화면이 생기면 연결한다.
             ProfileMenu(
-                onProfileClick: { showsProfileMenu = false },
+                onProfileClick: {
+                    showsProfileMenu = false
+                    onProfileClick()
+                },
                 onSettingsClick: {
                     showsProfileMenu = false
                     onSettingsClick()

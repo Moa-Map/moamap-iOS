@@ -105,6 +105,14 @@ final class ExploreViewModel {
         if uiState != .idle { retryCommunity() }
     }
 
+    /// 프로필을 고친 직후 제목을 맞춘다. 서버를 다시 부르지 않고 저장 응답의 이름을 쓴다.
+    func updateNickname(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        nicknameTask?.cancel()
+        nicknameTask = nil
+        nickname = trimmed.isEmpty ? nil : trimmed
+    }
+
     func cancelTasks() {
         recommendationTask?.cancel()
         recommendationTask = nil
