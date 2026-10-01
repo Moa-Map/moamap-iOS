@@ -6,11 +6,8 @@ struct ExploreView: View {
 
     let viewModel: ExploreViewModel
     var onSettingsClick: () -> Void = {}
+    var onSeeAllCommunityMapsClick: () -> Void = {}
 
-    // TODO: 태그 목록 API 가 정해지면 서버 값으로 바꾸고 목록 조회에 반영한다.
-    var categories = ExploreView.sampleCategories
-
-    @State private var selectedCategory = "전체"
     @State private var showsProfileMenu = false
 
     var body: some View {
@@ -19,8 +16,6 @@ struct ExploreView: View {
                 header
 
                 VStack(alignment: .leading, spacing: 20) {
-                    ExploreSearchBar()
-                        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                     OfficialMapBanner()
                         .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                     content
@@ -113,85 +108,54 @@ struct ExploreView: View {
     }
 
     private var communitySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("커뮤니티 지도")
-                .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("커뮤니티 지도")
+                    .moaTextStyle(typography.title2)
+                    .foregroundStyle(colors.textNormal)
+                Spacer()
+                Button(action: onSeeAllCommunityMapsClick) {
+                    HStack(spacing: 2) {
+                        Text("전체보기")
+                            .moaTextStyle(typography.button2)
+                        Image("Icons/arrow-right")
+                            .renderingMode(.template)
+                            .resizable()
+                            .frame(width: 20, height: 20)
+                            .accessibilityHidden(true)
+                    }
+                    .foregroundStyle(colors.textAlternative)
+                }
+                .buttonStyle(.plain)
+            }
 
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(categories, id: \.self) { category in
-                        CategoryChip(title: category, isSelected: category == selectedCategory) {
-                            selectedCategory = category
+            VStack(alignment: .leading, spacing: 12) {
+                CommunityMapSortRow(selected: viewModel.sortOrder) { viewModel.changeSort($0) }
+
+                VStack(spacing: 8) {
+                    switch viewModel.uiState {
+                    case .idle, .loading:
+                        CommunityMapsPlaceholder { ProgressView() }
+                    case .failed(let message):
+                        CommunityMapsPlaceholder {
+                            CommunityMapsError(message: message) { viewModel.retryCommunity() }
+                        }
+                    case .loaded:
+                        if viewModel.communityMaps.isEmpty {
+                            CommunityMapsPlaceholder {
+                                Text("아직 등록된 지도가 없어요")
+                                    .moaTextStyle(typography.body2)
+                                    .foregroundStyle(colors.textAssistive)
+                            }
+                        }
+                        ForEach(viewModel.communityMaps) { map in
+                            CommunityMapCard(map: map)
                         }
                     }
                 }
-                .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-                .padding(.vertical, 8)
-            }
-            .scrollIndicators(.hidden)
-            .padding(.vertical, -8)
-
-            LazyVStack(alignment: .trailing, spacing: 8) {
-                sortPicker
-                switch viewModel.uiState {
-                case .idle, .loading:
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                case .failed(let message):
-                    failure(message)
-                case .loaded:
-                    if viewModel.communityMaps.isEmpty && !viewModel.isLoadingMore {
-                        Text("아직 커뮤니티 지도가 없어요")
-                            .moaTextStyle(typography.body2)
-                            .foregroundStyle(colors.textAssistive)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 40)
-                    }
-                    ForEach(viewModel.communityMaps) { map in
-                        CommunityMapCard(map: map)
-                            .onAppear { viewModel.loadMoreIfNeeded(after: map) }
-                    }
-                    if viewModel.isLoadingMore {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                    }
-                }
-            }
-            .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-        }
-    }
-
-    private var sortPicker: some View {
-        HStack(spacing: 8) {
-            ForEach(MapSortOrder.allCases) { order in
-                let isSelected = order == viewModel.sortOrder
-                Button {
-                    viewModel.changeSort(order)
-                } label: {
-                    Text(order.title)
-                        .moaTextStyle(isSelected ? typography.button2 : typography.button3)
-                        .foregroundStyle(isSelected ? colors.textNormal : colors.textAssistive)
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
-    }
-
-    private func failure(_ message: String) -> some View {
-        VStack(spacing: 12) {
-            Text(message)
-                .moaTextStyle(typography.body2)
-                .foregroundStyle(colors.textAlternative)
-                .multilineTextAlignment(.center)
-            Button("다시 시도") { viewModel.retryCommunity() }
-                .moaTextStyle(typography.button2)
-                .foregroundStyle(colors.textNormal)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
     }
 
     private func sectionTitle(_ title: String) -> some View {
@@ -202,19 +166,6 @@ struct ExploreView: View {
     }
 }
 
-private extension MapSortOrder {
-    var title: String {
-        switch self {
-        case .popular: "인기순"
-        case .latest: "최신순"
-        }
-    }
-}
-
-extension ExploreView {
-    static let sampleCategories = ["전체", "맛집", "카페", "데이트", "여행", "팝업"]
-}
-
 #if DEBUG
 @MainActor
 final class PreviewExploreRepository: ExploreRepository {
@@ -223,7 +174,7 @@ final class PreviewExploreRepository: ExploreRepository {
     }
 
     func fetchRecommendedMaps(size: Int) async throws -> [MapSummary] { Self.maps }
-    func fetchCommunityMaps(sort: MapSortOrder, page: Int, size: Int) async throws -> MapPage {
+    func fetchCommunityMaps(tag: String?, sort: MapSortOrder, page: Int, size: Int) async throws -> MapPage {
         MapPage(maps: Self.maps, isLast: true)
     }
     func fetchMyNickname() async throws -> String? { "00" }
