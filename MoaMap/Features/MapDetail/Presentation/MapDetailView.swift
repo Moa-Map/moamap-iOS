@@ -5,12 +5,24 @@ struct MapDetailView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.openURL) private var openURL
 
-    let viewModel: MapDetailViewModel
-    let locationProvider: any LocationProvider
+    @State private var viewModel: MapDetailViewModel
+    private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
-    var initialTitle = ""
+    private let initialTitle: String
     /// 이 화면에서 참여했는지를 함께 넘긴다. 어디까지 되돌릴지는 내비게이션이 정한다.
-    let onBack: (_ joinedHere: Bool) -> Void
+    private let onBack: (_ joinedHere: Bool) -> Void
+
+    init(
+        viewModel: MapDetailViewModel,
+        locationProvider: any LocationProvider,
+        initialTitle: String = "",
+        onBack: @escaping (_ joinedHere: Bool) -> Void
+    ) {
+        _viewModel = State(initialValue: viewModel)
+        self.locationProvider = locationProvider
+        self.initialTitle = initialTitle
+        self.onBack = onBack
+    }
 
     @State private var selectedTab: MapDetailTab = .places
     @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: .init())

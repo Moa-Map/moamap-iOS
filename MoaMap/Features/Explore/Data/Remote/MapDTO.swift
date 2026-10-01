@@ -7,6 +7,7 @@ nonisolated struct MapSummaryResponse: Decodable, Sendable {
     let tags: [String]?
     let memberCount: Int?
     let placeCount: Int?
+    let joined: Bool?
 }
 
 nonisolated struct MapPageResponse: Decodable, Sendable {
@@ -29,18 +30,18 @@ nonisolated struct MyPageResponse: Decodable, Sendable {
 nonisolated extension MapSummaryResponse {
     /// 식별자나 이름이 없는 항목은 화면에 그릴 수 없어 버린다.
     func toDomain() -> MapSummary? {
-        MapSummary(id: id, name: name, imageUrl: imageUrl, tags: tags, memberCount: memberCount, placeCount: placeCount ?? 0)
+        MapSummary(id: id, name: name, imageUrl: imageUrl, tags: tags, memberCount: memberCount, placeCount: placeCount ?? 0, joined: joined ?? false)
     }
 }
 
 nonisolated extension MapRecommendationResponse {
     func toDomain() -> MapSummary? {
-        MapSummary(id: id, name: name, imageUrl: imageUrl, tags: tags, memberCount: memberCount, placeCount: nil)
+        MapSummary(id: id, name: name, imageUrl: imageUrl, tags: tags, memberCount: memberCount, placeCount: nil, joined: false)
     }
 }
 
 private nonisolated extension MapSummary {
-    init?(id: Int64?, name: String?, imageUrl: String?, tags: [String]?, memberCount: Int?, placeCount: Int?) {
+    init?(id: Int64?, name: String?, imageUrl: String?, tags: [String]?, memberCount: Int?, placeCount: Int?, joined: Bool) {
         guard let id, let name, !name.isEmpty else { return nil }
         self.init(
             id: id,
@@ -48,7 +49,8 @@ private nonisolated extension MapSummary {
             imageURL: imageUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) },
             tags: tags ?? [],
             memberCount: memberCount ?? 0,
-            placeCount: placeCount
+            placeCount: placeCount,
+            joined: joined
         )
     }
 }

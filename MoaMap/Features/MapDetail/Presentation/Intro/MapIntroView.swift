@@ -6,13 +6,25 @@ struct MapIntroView: View {
     @Environment(\.moaTypography) private var typography
     @Environment(\.dismiss) private var dismiss
 
-    let viewModel: MapIntroViewModel
-    let onPreview: () -> Void
-    let onJoined: () -> Void
+    @State private var viewModel: MapIntroViewModel
+    private let onPreview: (_ title: String) -> Void
+    private let onJoined: (_ title: String) -> Void
 
     @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: .init())
     /// 장소가 도착하면 처음 한 번만 맞추고 그다음은 사용자가 움직인 대로 둔다.
     @State private var cameraSettled = false
+
+    init(
+        viewModel: MapIntroViewModel,
+        onPreview: @escaping (_ title: String) -> Void,
+        onJoined: @escaping (_ title: String) -> Void
+    ) {
+        _viewModel = State(initialValue: viewModel)
+        self.onPreview = onPreview
+        self.onJoined = onJoined
+    }
+
+    private var title: String { viewModel.uiState.map.map?.title ?? "" }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -34,7 +46,7 @@ struct MapIntroView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { viewModel.refresh() }
         .onChange(of: viewModel.uiState.joined) { _, joined in
-            if joined { onJoined() }
+            if joined { onJoined(title) }
         }
         .alert("참여하지 못했어요", isPresented: showsError) {
             Button("확인", role: .cancel) { viewModel.consumeErrorMessage() }
@@ -123,7 +135,7 @@ struct MapIntroView: View {
             }
             if viewModel.uiState.hasMorePlaces {
                 // 전체 장소 목록 화면이 없어 미리보기와 같이 상세로 보낸다.
-                Button(action: onPreview) {
+                Button { onPreview(title) } label: {
                     Text("더보기")
                         .moaTextStyle(typography.caption0)
                         .underline()
@@ -137,7 +149,7 @@ struct MapIntroView: View {
     }
 
     private var previewButton: some View {
-        Button(action: onPreview) {
+        Button { onPreview(title) } label: {
             Text("미리보기")
                 .moaTextStyle(typography.button2)
                 .foregroundStyle(colors.textWhite)
@@ -224,8 +236,8 @@ final class PreviewMapDetailRepository: MapDetailRepository {
     NavigationStack {
         MapIntroView(
             viewModel: MapIntroViewModel(mapID: 1, repository: PreviewMapDetailRepository()),
-            onPreview: {},
-            onJoined: {}
+            onPreview: { _ in },
+            onJoined: { _ in }
         )
     }
 }

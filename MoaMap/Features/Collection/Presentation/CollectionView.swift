@@ -5,6 +5,7 @@ struct CollectionView: View {
     @Environment(\.moaTypography) private var typography
     let viewModel: CollectionViewModel
     let onHome: () -> Void
+    var onMapClick: (MyMap) -> Void = { _ in }
     @State private var showsInviteDialog = false
 
     var body: some View {
@@ -120,7 +121,10 @@ struct CollectionView: View {
 
     private func mapList(_ maps: [MyMap], showsMembers: Bool) -> some View {
         LazyVStack(spacing: 8) {
-            ForEach(maps) { map in CollectionMapCard(map: map, showsMembers: showsMembers) }
+            ForEach(maps) { map in
+                Button { onMapClick(map) } label: { CollectionMapCard(map: map, showsMembers: showsMembers) }
+                    .buttonStyle(.plain)
+            }
         }
     }
 

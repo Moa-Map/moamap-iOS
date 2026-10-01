@@ -7,6 +7,7 @@ struct ExploreView: View {
     let viewModel: ExploreViewModel
     var onSettingsClick: () -> Void = {}
     var onSeeAllCommunityMapsClick: () -> Void = {}
+    var onMapClick: (MapSummary) -> Void = { _ in }
 
     @State private var showsProfileMenu = false
 
@@ -95,7 +96,8 @@ struct ExploreView: View {
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     ForEach(viewModel.recommendedMaps) { map in
-                        RecommendedMapCard(map: map)
+                        Button { onMapClick(map) } label: { RecommendedMapCard(map: map) }
+                            .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
@@ -149,7 +151,8 @@ struct ExploreView: View {
                             }
                         }
                         ForEach(viewModel.communityMaps) { map in
-                            CommunityMapCard(map: map)
+                            Button { onMapClick(map) } label: { CommunityMapCard(map: map) }
+                                .buttonStyle(.plain)
                         }
                     }
                 }

@@ -22,7 +22,7 @@ struct ExploreRepositoryTests {
     @Test func 커뮤니티_지도_목록을_정렬과_페이지로_요청하고_변환한다() async throws {
         let sut = try repository(body: #"""
         {"success":true,"data":{"content":[
-          {"id":5,"name":"분좋카","imageUrl":null,"tags":["카페"],"memberCount":3,"placeCount":2},
+          {"id":5,"name":"분좋카","imageUrl":null,"tags":["카페"],"memberCount":3,"placeCount":2,"joined":true},
           {"id":4,"name":"카공족","imageUrl":"https://example.com/a.png","memberCount":1,"placeCount":5}
         ],"page":1,"size":2,"last":false}}
         """#) { request in
@@ -33,7 +33,7 @@ struct ExploreRepositoryTests {
         let page = try await sut.fetchCommunityMaps(tag: nil, sort: .latest, page: 1, size: 2)
         #expect(page.isLast == false)
         #expect(page.maps == [
-            MapSummary(id: 5, title: "분좋카", imageURL: nil, tags: ["카페"], memberCount: 3, placeCount: 2),
+            MapSummary(id: 5, title: "분좋카", imageURL: nil, tags: ["카페"], memberCount: 3, placeCount: 2, joined: true),
             MapSummary(id: 4, title: "카공족", imageURL: URL(string: "https://example.com/a.png"), tags: [], memberCount: 1, placeCount: 5)
         ])
     }
