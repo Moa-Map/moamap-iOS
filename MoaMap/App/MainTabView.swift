@@ -2,6 +2,7 @@ import CoreLocation
 import SwiftUI
 
 private enum MainRoute: Hashable {
+    case profileEdit
     case settings
     case communityMaps
     case mapIntro(mapID: Int64)
@@ -18,6 +19,7 @@ struct MainTabView: View {
     @State private var collectionPath: [MainRoute] = []
 
     private let makeSettingsViewModel: () -> SettingsViewModel
+    private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let makeMapIntroViewModel: (Int64) -> MapIntroViewModel
     private let makeMapDetailViewModel: (Int64) -> MapDetailViewModel
@@ -28,6 +30,7 @@ struct MainTabView: View {
         exploreViewModel: ExploreViewModel,
         collectionViewModel: CollectionViewModel,
         makeSettingsViewModel: @escaping () -> SettingsViewModel,
+        makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeMapIntroViewModel: @escaping (Int64) -> MapIntroViewModel,
         makeMapDetailViewModel: @escaping (Int64) -> MapDetailViewModel,
@@ -37,6 +40,7 @@ struct MainTabView: View {
         _collectionViewModel = State(initialValue: collectionViewModel)
         _exploreViewModel = State(initialValue: exploreViewModel)
         self.makeSettingsViewModel = makeSettingsViewModel
+        self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.makeMapIntroViewModel = makeMapIntroViewModel
         self.makeMapDetailViewModel = makeMapDetailViewModel
@@ -49,6 +53,7 @@ struct MainTabView: View {
             NavigationStack(path: $explorePath) {
                 ExploreView(
                     viewModel: exploreViewModel,
+                    onProfileClick: { explorePath.append(.profileEdit) },
                     onSettingsClick: { explorePath.append(.settings) },
                     onSeeAllCommunityMapsClick: { explorePath.append(.communityMaps) },
                     onMapClick: { explorePath.append(.map($0)) }
@@ -86,6 +91,10 @@ struct MainTabView: View {
     @ViewBuilder
     private func destination(_ route: MainRoute, path: Binding<[MainRoute]>) -> some View {
         switch route {
+        case .profileEdit:
+            ProfileEditView(viewModel: makeProfileEditViewModel()) { profile in
+                exploreViewModel.updateNickname(profile.nickname)
+            }
         case .settings:
             SettingsView(viewModel: makeSettingsViewModel(), onLoggedOut: onLoggedOut)
         case .communityMaps:
@@ -137,6 +146,7 @@ private final class PreviewLocationProvider: LocationProvider {
         exploreViewModel: ExploreViewModel(repository: PreviewExploreRepository()),
         collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository()),
         makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository()) },
+        makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
         makeMapIntroViewModel: { MapIntroViewModel(mapID: $0, repository: PreviewMapDetailRepository()) },
         makeMapDetailViewModel: { MapDetailViewModel(mapID: $0, repository: PreviewMapDetailRepository()) },

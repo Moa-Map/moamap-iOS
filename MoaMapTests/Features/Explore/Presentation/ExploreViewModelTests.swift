@@ -271,4 +271,31 @@ struct ExploreViewModelTests {
         #expect(sut.communityMaps == [map(9)])
         #expect(sut.uiState == .loaded)
     }
+
+    @Test func 프로필을_고치면_제목의_이름을_바로_맞춘다() async {
+        let repository = ExploreRepositoryStub()
+        repository.nickname = { "모아" }
+        let sut = ExploreViewModel(repository: repository)
+        sut.refresh()
+        await sut.nicknameTask?.value
+        sut.updateNickname(" 새이름 ")
+        #expect(sut.nickname == "새이름")
+        #expect(repository.nicknameCalls == 1)
+    }
+
+    @Test func 늦게_온_이전_이름은_고친_이름을_덮지_않는다() async {
+        let repository = ExploreRepositoryStub()
+        let release = AsyncGate()
+        repository.nickname = {
+            await release.wait()
+            return "이전"
+        }
+        let sut = ExploreViewModel(repository: repository)
+        sut.refresh()
+        let old = sut.nicknameTask
+        sut.updateNickname("새이름")
+        await release.open()
+        await old?.value
+        #expect(sut.nickname == "새이름")
+    }
 }

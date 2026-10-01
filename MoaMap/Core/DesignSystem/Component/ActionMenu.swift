@@ -14,6 +14,8 @@ struct ActionMenu: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
+    static let width: CGFloat = 172
+
     let items: [ActionMenuItem]
     var cornerRadius: CGFloat = 12
 
@@ -29,7 +31,7 @@ struct ActionMenu: View {
             }
         }
         .padding(.horizontal, 4)
-        .frame(width: 172)
+        .frame(width: Self.width)
         .background(colors.backgroundSecondary, in: shape)
         .overlay { shape.strokeBorder(MoaMapPrimitiveColors.blue600, lineWidth: 1) }
         .shadow(color: .black.opacity(0.04), radius: 4)

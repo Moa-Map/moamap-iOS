@@ -128,6 +128,10 @@ final class AppContainer {
         CollectionViewModel(repository: collectionRepository)
     }
 
+    func makeProfileEditViewModel() -> ProfileEditViewModel {
+        ProfileEditViewModel(repository: userRepository)
+    }
+
     func makeSettingsViewModel() -> SettingsViewModel {
         SettingsViewModel(repository: authRepository)
     }
