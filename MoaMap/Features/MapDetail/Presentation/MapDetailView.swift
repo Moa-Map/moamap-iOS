@@ -1,3 +1,4 @@
+import CoreLocation
 import MapboxMaps
 import SwiftUI
 
