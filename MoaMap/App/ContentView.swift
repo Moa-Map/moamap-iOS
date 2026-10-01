@@ -23,6 +23,7 @@ struct ContentView: View {
                     exploreViewModel: container.makeExploreViewModel(),
                     collectionViewModel: container.makeCollectionViewModel(),
                     makeSettingsViewModel: container.makeSettingsViewModel,
+                    makeCommunityMapListViewModel: container.makeCommunityMapListViewModel,
                     onLoggedOut: { loginViewModel.returnToLogin() }
                 )
             } else {

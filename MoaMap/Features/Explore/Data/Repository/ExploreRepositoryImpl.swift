@@ -17,15 +17,14 @@ final class ExploreRepositoryImpl: ExploreRepository {
         return response.compactMap { $0.toDomain() }
     }
 
-    func fetchCommunityMaps(sort: MapSortOrder, page: Int, size: Int) async throws -> MapPage {
-        let request = APIRequest(
-            path: ["api", "v1", "maps"],
-            queryItems: [
-                URLQueryItem(name: "sort", value: sort.queryValue),
-                URLQueryItem(name: "page", value: String(page)),
-                URLQueryItem(name: "size", value: String(size))
-            ]
-        )
+    func fetchCommunityMaps(tag: String?, sort: MapSortOrder, page: Int, size: Int) async throws -> MapPage {
+        var queryItems = [
+            URLQueryItem(name: "sort", value: sort.queryValue),
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "size", value: String(size))
+        ]
+        if let tag { queryItems.append(URLQueryItem(name: "tag", value: tag)) }
+        let request = APIRequest(path: ["api", "v1", "maps"], queryItems: queryItems)
         let response = try await client.send(request, as: MapPageResponse.self)
         let maps = (response.content ?? []).compactMap { $0.toDomain() }
         // last 가 없으면 더 받을 수 없는 것으로 보고 반복 요청을 막는다.

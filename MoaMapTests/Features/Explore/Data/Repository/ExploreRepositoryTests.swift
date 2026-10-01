@@ -30,7 +30,7 @@ struct ExploreRepositoryTests {
             #expect(request.url?.path == "/api/v1/maps")
             #expect(Self.query(request) == ["sort": "LATEST", "page": "1", "size": "2"])
         }
-        let page = try await sut.fetchCommunityMaps(sort: .latest, page: 1, size: 2)
+        let page = try await sut.fetchCommunityMaps(tag: nil, sort: .latest, page: 1, size: 2)
         #expect(page.isLast == false)
         #expect(page.maps == [
             MapSummary(id: 5, title: "분좋카", imageURL: nil, tags: ["카페"], memberCount: 3, placeCount: 2),
@@ -38,17 +38,24 @@ struct ExploreRepositoryTests {
         ])
     }
 
+    @Test func 태그를_고르면_함께_요청한다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"content":[],"last":true}}"#) { request in
+            #expect(Self.query(request) == ["tag": "카페", "sort": "POPULAR", "page": "0", "size": "20"])
+        }
+        _ = try await sut.fetchCommunityMaps(tag: "카페", sort: .popular, page: 0, size: 20)
+    }
+
     @Test func 식별자나_이름이_없는_지도는_버린다() async throws {
         let sut = try repository(body: #"""
         {"success":true,"data":{"content":[{"name":"이름만"},{"id":2,"name":""},{"id":3,"name":"정상"}],"last":true}}
         """#)
-        let page = try await sut.fetchCommunityMaps(sort: .popular, page: 0, size: 20)
+        let page = try await sut.fetchCommunityMaps(tag: nil, sort: .popular, page: 0, size: 20)
         #expect(page.maps.map(\.id) == [3])
     }
 
     @Test func last_가_없으면_마지막_페이지로_본다() async throws {
         let sut = try repository(body: #"{"success":true,"data":{"content":[]}}"#)
-        let page = try await sut.fetchCommunityMaps(sort: .popular, page: 0, size: 20)
+        let page = try await sut.fetchCommunityMaps(tag: nil, sort: .popular, page: 0, size: 20)
         #expect(page.isLast)
     }
 

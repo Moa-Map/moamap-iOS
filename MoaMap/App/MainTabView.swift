@@ -2,6 +2,7 @@ import SwiftUI
 
 private enum ExploreRoute: Hashable {
     case settings
+    case communityMaps
 }
 
 struct MainTabView: View {
@@ -13,30 +14,39 @@ struct MainTabView: View {
     @State private var collectionViewModel: CollectionViewModel
 
     private let makeSettingsViewModel: () -> SettingsViewModel
+    private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let onLoggedOut: () -> Void
 
     init(
         exploreViewModel: ExploreViewModel,
         collectionViewModel: CollectionViewModel,
         makeSettingsViewModel: @escaping () -> SettingsViewModel,
+        makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         onLoggedOut: @escaping () -> Void
     ) {
         _collectionViewModel = State(initialValue: collectionViewModel)
         _exploreViewModel = State(initialValue: exploreViewModel)
         self.makeSettingsViewModel = makeSettingsViewModel
+        self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.onLoggedOut = onLoggedOut
     }
 
     var body: some View {
         TabView(selection: $selection) {
             NavigationStack(path: $explorePath) {
-                ExploreView(viewModel: exploreViewModel, onSettingsClick: { explorePath.append(.settings) })
-                    .navigationDestination(for: ExploreRoute.self) { route in
-                        switch route {
-                        case .settings:
-                            SettingsView(viewModel: makeSettingsViewModel(), onLoggedOut: onLoggedOut)
-                        }
+                ExploreView(
+                    viewModel: exploreViewModel,
+                    onSettingsClick: { explorePath.append(.settings) },
+                    onSeeAllCommunityMapsClick: { explorePath.append(.communityMaps) }
+                )
+                .navigationDestination(for: ExploreRoute.self) { route in
+                    switch route {
+                    case .settings:
+                        SettingsView(viewModel: makeSettingsViewModel(), onLoggedOut: onLoggedOut)
+                    case .communityMaps:
+                        CommunityMapListView(viewModel: makeCommunityMapListViewModel())
                     }
+                }
             }
             .tag(MainTab.explore)
             .toolbar(.hidden, for: .tabBar)
@@ -67,6 +77,7 @@ struct MainTabView: View {
         exploreViewModel: ExploreViewModel(repository: PreviewExploreRepository()),
         collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository()),
         makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository()) },
+        makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
         onLoggedOut: {}
     )
 }

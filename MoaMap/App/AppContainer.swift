@@ -107,6 +107,10 @@ final class AppContainer {
         ExploreViewModel(repository: exploreRepository)
     }
 
+    func makeCommunityMapListViewModel() -> CommunityMapListViewModel {
+        CommunityMapListViewModel(repository: exploreRepository)
+    }
+
     func makeCollectionViewModel() -> CollectionViewModel {
         CollectionViewModel(repository: collectionRepository)
     }
