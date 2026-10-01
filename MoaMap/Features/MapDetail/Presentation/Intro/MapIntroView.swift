@@ -1,3 +1,4 @@
+import MapboxMaps
 import SwiftUI
 
 struct MapIntroView: View {
@@ -8,6 +9,10 @@ struct MapIntroView: View {
     let viewModel: MapIntroViewModel
     let onPreview: () -> Void
     let onJoined: () -> Void
+
+    @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: 0)
+    /// 장소가 도착하면 처음 한 번만 맞추고 그다음은 사용자가 움직인 대로 둔다.
+    @State private var cameraSettled = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -89,14 +94,23 @@ struct MapIntroView: View {
     private var mapSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             MapIntroSectionTitle(text: "지도")
-            // TODO: 장소 마커 지도로 바꾼다.
-            MoaMapPrimitiveColors.blue50
+            // 참여 전에는 장소 상세도, 묶음 펼치기도 열지 않는다. 그릴 뿐이다.
+            PlaceMarkerMap(places: viewModel.uiState.places, viewport: $viewport, allowsRotation: false)
                 .frame(height: 236)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(alignment: .bottomTrailing) {
                     previewButton.padding(10)
                 }
+                .onAppear(perform: settleCamera)
+                .onChange(of: viewModel.uiState.places) { settleCamera() }
         }
+    }
+
+    private func settleCamera() {
+        let places = viewModel.uiState.places
+        guard !cameraSettled, !places.isEmpty else { return }
+        viewport = .initial(InitialCamera(places: places, deviceLocation: nil), padding: 32)
+        cameraSettled = true
     }
 
     private var placesSection: some View {
