@@ -5,10 +5,17 @@ struct CommunityMapListView: View {
     @Environment(\.moaTypography) private var typography
     @Environment(\.dismiss) private var dismiss
 
-    let viewModel: CommunityMapListViewModel
+    @State private var viewModel: CommunityMapListViewModel
+    private let onMapClick: (MapSummary) -> Void
 
     /// 끝에서 이만큼 남으면 다음 페이지를 부른다.
     private static let loadMoreThreshold = 4
+
+    /// 부모가 다시 그려져도 처음 받은 ViewModel 을 쓴다. 바뀌면 받아 둔 목록이 사라진다.
+    init(viewModel: CommunityMapListViewModel, onMapClick: @escaping (MapSummary) -> Void) {
+        _viewModel = State(initialValue: viewModel)
+        self.onMapClick = onMapClick
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -96,7 +103,8 @@ struct CommunityMapListView: View {
             }
         case .loaded(let maps):
             ForEach(Array(maps.enumerated()), id: \.element.id) { index, map in
-                CommunityMapCard(map: map)
+                Button { onMapClick(map) } label: { CommunityMapCard(map: map) }
+                    .buttonStyle(.plain)
                     .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                     .padding(.bottom, 8)
                     .onAppear {
@@ -129,7 +137,7 @@ struct CommunityMapListView: View {
 #if DEBUG
 #Preview {
     NavigationStack {
-        CommunityMapListView(viewModel: CommunityMapListViewModel(repository: PreviewExploreRepository()))
+        CommunityMapListView(viewModel: CommunityMapListViewModel(repository: PreviewExploreRepository()), onMapClick: { _ in })
     }
 }
 #endif

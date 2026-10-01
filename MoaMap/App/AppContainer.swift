@@ -13,6 +13,8 @@ final class AppContainer {
     let sessionEvents: SessionEvents
     let authRepository: any AuthRepository
     let exploreRepository: any ExploreRepository
+    let mapDetailRepository: any MapDetailRepository
+    let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
 
     init(
@@ -40,6 +42,7 @@ final class AppContainer {
         )
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
         collectionRepository = CollectionRepositoryImpl(client: apiClient)
+        mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
     }
 
     convenience init(bundle: Bundle) throws {
@@ -109,6 +112,14 @@ final class AppContainer {
 
     func makeCommunityMapListViewModel() -> CommunityMapListViewModel {
         CommunityMapListViewModel(repository: exploreRepository)
+    }
+
+    func makeMapIntroViewModel(mapID: Int64) -> MapIntroViewModel {
+        MapIntroViewModel(mapID: mapID, repository: mapDetailRepository)
+    }
+
+    func makeMapDetailViewModel(mapID: Int64) -> MapDetailViewModel {
+        MapDetailViewModel(mapID: mapID, repository: mapDetailRepository)
     }
 
     func makeCollectionViewModel() -> CollectionViewModel {
