@@ -13,6 +13,7 @@ final class AppContainer {
     let sessionEvents: SessionEvents
     let authRepository: any AuthRepository
     let exploreRepository: any ExploreRepository
+    let mapDetailRepository: any MapDetailRepository
     let collectionRepository: any CollectionRepository
 
     init(
@@ -40,6 +41,7 @@ final class AppContainer {
         )
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
         collectionRepository = CollectionRepositoryImpl(client: apiClient)
+        mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
     }
 
     convenience init(bundle: Bundle) throws {
