@@ -38,7 +38,7 @@ git checkout -b chore/#23/github-flow
 
 ```bash
 git add .
-git commit -m "[CHORE] 브랜치 전략을 GitHub Flow로 전환 #23"
+git commit -m "chore: 브랜치 전략을 GitHub Flow로 전환 #23"
 git push origin chore/#23/github-flow
 ```
 
@@ -63,3 +63,35 @@ fix/#31/token-expiration
 refactor/#18/place-dto
 chore/#23/github-flow
 ```
+
+## Commit 컨벤션
+
+```text
+type: 작업 내용 #Issue번호
+```
+
+- `type`은 소문자로 쓰고, 콜론(`:`) 뒤에 한 칸 띄웁니다.
+- 이슈 제목과 PR 제목은 `[TYPE]` 형식을 그대로 사용합니다.
+
+예시:
+
+```text
+feat: 카카오 로그인 구현 #12
+fix: JWT 만료 검증 수정 #31
+refactor: Place DTO 분리 #18
+chore: GitHub Actions 설정 #9
+docs: README 문서 작성 #9
+```
+
+### type
+
+| type | 설명 |
+| --- | --- |
+| `init` | 프로젝트 초기 설정 |
+| `feat` | 기능 추가 |
+| `fix` | 기능 수정, 버그 수정 |
+| `refactor` | 리팩터링 |
+| `chore` | 설정, 빌드, 의존성, 기타 작업 |
+| `docs` | 문서 작업 |
+| `test` | 테스트 코드 |
+| `release` | 배포 준비 |
