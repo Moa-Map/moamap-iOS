@@ -28,24 +28,26 @@ final class ExploreViewModel {
 
     init(repository: any ExploreRepository) { self.repository = repository }
 
-    /// 처음 화면에 들어올 때만 불러온다. 탭을 오가도 다시 요청하지 않는다.
-    func loadIfNeeded() {
-        guard uiState == .idle else { return }
-        load()
+    /// 화면이 보일 때마다 부른다. 지도에 참여하고 돌아오면 그 지도가 목록에서 빠져야 한다.
+    /// 처음이면 전부 읽고, 그다음은 보던 목록을 둔 채 커뮤니티와 추천만 다시 읽는다.
+    func refresh() {
+        switch uiState {
+        case .idle:
+            load()
+        case .loading:
+            return
+        case .loaded:
+            loadRecommendations()
+            loadCommunity(keepCurrent: true)
+        case .failed:
+            loadRecommendations()
+            loadCommunity(keepCurrent: false)
+        }
     }
 
     func load() {
         cancelTasks()
-        recommendationTask = Task { [weak self, repository] in
-            defer { if !Task.isCancelled { self?.recommendationTask = nil } }
-            do {
-                let maps = try await repository.fetchRecommendedMaps(size: Self.recommendationSize)
-                try Task.checkCancellation()
-                self?.recommendedMaps = maps
-            } catch {
-                // 보조 영역은 실패해도 기존 추천을 유지한다. 처음이면 비어 있어 숨겨진다.
-            }
-        }
+        loadRecommendations()
         nicknameTask = Task { [weak self, repository] in
             defer { if !Task.isCancelled { self?.nicknameTask = nil } }
             do {
@@ -61,8 +63,13 @@ final class ExploreViewModel {
 
     /// 정렬 변경과 재시도는 추천·닉네임 요청에 영향을 주지 않는다.
     func retryCommunity() {
+        loadCommunity(keepCurrent: false)
+    }
+
+    /// `keepCurrent` 면 로딩으로 되돌리지 않고, 실패해도 보던 목록을 지우지 않는다.
+    private func loadCommunity(keepCurrent: Bool) {
         loadTask?.cancel()
-        uiState = .loading
+        if !keepCurrent { uiState = .loading }
         let sort = sortOrder
         loadTask = Task { [weak self, repository] in
             defer { if !Task.isCancelled { self?.loadTask = nil } }
@@ -72,8 +79,22 @@ final class ExploreViewModel {
                 self?.communityMaps = page.maps
                 self?.uiState = .loaded
             } catch {
-                guard !Task.isCancelled, !(error is CancellationError) else { return }
+                guard !Task.isCancelled, !(error is CancellationError), !keepCurrent else { return }
                 self?.uiState = .failed(Self.message(for: error))
+            }
+        }
+    }
+
+    private func loadRecommendations() {
+        recommendationTask?.cancel()
+        recommendationTask = Task { [weak self, repository] in
+            defer { if !Task.isCancelled { self?.recommendationTask = nil } }
+            do {
+                let maps = try await repository.fetchRecommendedMaps(size: Self.recommendationSize)
+                try Task.checkCancellation()
+                self?.recommendedMaps = maps
+            } catch {
+                // 보조 영역은 실패해도 기존 추천을 유지한다. 처음이면 비어 있어 숨겨진다.
             }
         }
     }

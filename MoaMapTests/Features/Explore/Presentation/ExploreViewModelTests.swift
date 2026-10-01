@@ -14,7 +14,7 @@ struct ExploreViewModelTests {
         repository.community = { _, _ in MapPage(maps: [map(2), map(3)], isLast: true) }
         repository.nickname = { "모아" }
         let sut = ExploreViewModel(repository: repository)
-        sut.loadIfNeeded()
+        sut.refresh()
         #expect(sut.uiState == .loading)
         await sut.loadTask?.value
         await sut.recommendationTask?.value
@@ -26,14 +26,64 @@ struct ExploreViewModelTests {
         #expect(repository.communityRequests == [.init(tag: nil, sort: .popular, page: 0, size: 5)])
     }
 
-    @Test func 이미_불러왔으면_다시_요청하지_않는다() async {
+    @Test func 처음_읽는_중에_다시_보여도_또_요청하지_않는다() async {
         let repository = ExploreRepositoryStub()
         let sut = ExploreViewModel(repository: repository)
-        sut.loadIfNeeded()
-        await sut.loadTask?.value
-        sut.loadIfNeeded()
+        sut.refresh()
+        sut.refresh()
         await sut.loadTask?.value
         #expect(repository.communityCalls.count == 1)
+    }
+
+    @Test func 돌아오면_보던_목록을_둔_채_커뮤니티와_추천만_다시_읽는다() async {
+        let repository = ExploreRepositoryStub()
+        repository.community = { _, _ in MapPage(maps: [map(1), map(2)], isLast: true) }
+        let sut = ExploreViewModel(repository: repository)
+        sut.refresh()
+        await sut.loadTask?.value
+        await sut.recommendationTask?.value
+        await sut.nicknameTask?.value
+
+        // 참여한 지도는 서버가 목록에서 뺀다.
+        repository.community = { _, _ in MapPage(maps: [map(2)], isLast: true) }
+        sut.refresh()
+        #expect(sut.uiState == .loaded)
+        #expect(sut.communityMaps == [map(1), map(2)])
+        await sut.loadTask?.value
+        await sut.recommendationTask?.value
+        #expect(sut.communityMaps == [map(2)])
+        #expect(repository.communityCalls.count == 2)
+        #expect(repository.recommendationCalls == 2)
+        #expect(repository.nicknameCalls == 1)
+    }
+
+    @Test func 돌아와서_다시_읽기가_실패해도_보던_목록을_지우지_않는다() async {
+        let repository = ExploreRepositoryStub()
+        repository.community = { _, _ in MapPage(maps: [map(1)], isLast: true) }
+        let sut = ExploreViewModel(repository: repository)
+        sut.refresh()
+        await sut.loadTask?.value
+
+        repository.community = { _, _ in throw NetworkError.http(statusCode: 500) }
+        sut.refresh()
+        await sut.loadTask?.value
+        #expect(sut.uiState == .loaded)
+        #expect(sut.communityMaps == [map(1)])
+    }
+
+    @Test func 실패한_채로_돌아오면_다시_시도한다() async {
+        let repository = ExploreRepositoryStub()
+        repository.community = { _, _ in throw NetworkError.http(statusCode: 500) }
+        let sut = ExploreViewModel(repository: repository)
+        sut.refresh()
+        await sut.loadTask?.value
+        guard case .failed = sut.uiState else { Issue.record("오류 상태가 필요하다"); return }
+
+        repository.community = { _, _ in MapPage(maps: [map(1)], isLast: true) }
+        sut.refresh()
+        #expect(sut.uiState == .loading)
+        await sut.loadTask?.value
+        #expect(sut.communityMaps == [map(1)])
     }
 
     @Test func 닉네임_실패는_화면을_막지_않는다() async {

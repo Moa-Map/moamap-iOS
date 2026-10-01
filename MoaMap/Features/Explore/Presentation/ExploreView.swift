@@ -30,7 +30,7 @@ struct ExploreView: View {
             if showsProfileMenu { profileMenu }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .task { viewModel.loadIfNeeded() }
+        .onAppear { viewModel.refresh() }
         .onDisappear { showsProfileMenu = false }
     }
 
