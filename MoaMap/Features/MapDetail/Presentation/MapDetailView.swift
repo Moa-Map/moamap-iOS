@@ -51,10 +51,14 @@ struct MapDetailView: View {
                 onJoin: { viewModel.join() }
             )
             ZStack(alignment: .top) {
-                switch selectedTab {
-                case .places: placesContent
-                // TODO: 로그 탭(게시물 목록·달력)을 옮긴다.
-                case .logs: colors.backgroundSecondary
+                // 로그 탭에 가도 지도를 내리지 않는다. 다시 만들면 보던 카메라 자리를 잃는다.
+                placesContent
+                    .opacity(selectedTab == .places ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .places)
+                    .accessibilityHidden(selectedTab != .places)
+                if selectedTab == .logs {
+                    // TODO: 로그 탭(게시물 목록·달력)을 옮긴다.
+                    colors.backgroundSecondary
                 }
                 MapDetailTabBar(selection: selectedTab) { selectedTab = $0 }
                     .padding(.horizontal, 20)

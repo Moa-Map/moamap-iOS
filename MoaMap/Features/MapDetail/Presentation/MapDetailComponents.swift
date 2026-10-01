@@ -85,15 +85,16 @@ struct MapDetailTabBar: View {
     let onSelect: (MapDetailTab) -> Void
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(MapDetailTab.allCases, id: \.self) { tab in
                 let selected = tab == selection
                 Button { onSelect(tab) } label: {
                     Text(tab.title)
-                        .moaTextStyle(selected ? typography.subtitle1 : typography.subtitle2)
+                        .moaTextStyle(selected ? typography.button0 : typography.button1)
                         .foregroundStyle(selected ? MoaMapPrimitiveColors.yellow900 : colors.textAssistive)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
                         .background(selected ? MoaMapPrimitiveColors.yellow100 : MoaMapPrimitiveColors.yellow50, in: Capsule())
                         .contentShape(Capsule())
                 }
@@ -103,7 +104,6 @@ struct MapDetailTabBar: View {
         }
         .padding(4)
         .background(MoaMapPrimitiveColors.yellow50, in: Capsule())
-        .shadow(color: .black.opacity(0.1), radius: 5)
     }
 }
 
