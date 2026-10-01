@@ -33,3 +33,21 @@ nonisolated enum MapRole: Sendable {
     case member
     case none
 }
+
+nonisolated extension MapDetail {
+    /// 지도명 아래 역할 배지. 프라이빗·공식 지도는 역할이 뜻을 갖지 않아 띄우지 않는다.
+    var roleBadge: String? {
+        guard type == .community else { return nil }
+        return switch role {
+        case .owner: "방장"
+        case .admin: "관리자"
+        case .member: "멤버"
+        case .none: nil
+        }
+    }
+
+    /// 상단바에 참여하기를 띄울지. 서버의 참여 API 는 공개 지도 전용이고 프라이빗은 초대 코드로만 합류한다.
+    var canJoin: Bool {
+        !joined && !personal && type != .private
+    }
+}

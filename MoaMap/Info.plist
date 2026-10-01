@@ -22,6 +22,8 @@
 		<string>kakaokompassauth</string>
 		<string>kakaolink</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>지도에서 현재 위치를 보여 주고, 내 주변으로 지도를 옮기는 데 사용해요.</string>
 	<key>MBXAccessToken</key>
 	<string>$(MAPBOX_PUBLIC_TOKEN)</string>
 	<key>UIAppFonts</key>

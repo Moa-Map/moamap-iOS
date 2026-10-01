@@ -7,6 +7,8 @@ struct PlaceMarkerMap: View {
     @Binding var viewport: Viewport
     /// 미리보기처럼 되돌릴 버튼이 없는 화면에서는 회전과 기울기를 닫는다.
     var allowsRotation = true
+    var shows3DObjects = false
+    var onCameraChanged: ((CameraState) -> Void)?
     var onMarkerTap: ((Int64) -> Void)?
     var onClusterTap: ((MarkerCluster) -> Void)?
 
@@ -24,7 +26,7 @@ struct PlaceMarkerMap: View {
                     .variableAnchors([ViewAnnotationAnchorConfig(anchor: .bottom)])
                 }
             }
-            .mapStyle(.standard(lightPreset: .day, show3dObjects: false))
+            .mapStyle(.standard(lightPreset: .day, show3dObjects: shows3DObjects))
             // 축척과 나침반은 띄우지 않는다. 로고와 저작권 표시는 약관상 남긴다.
             .ornamentOptions(OrnamentOptions(
                 scaleBar: ScaleBarViewOptions(visibility: .hidden),
@@ -34,6 +36,7 @@ struct PlaceMarkerMap: View {
             .onCameraChanged { event in
                 let key = ClusterCameraKey(zoom: event.cameraState.zoom, center: event.cameraState.center)
                 if key != cameraKey { cameraKey = key }
+                onCameraChanged?(event.cameraState)
             }
         }
     }
@@ -54,14 +57,10 @@ struct PlaceMarkerMap: View {
 
 extension Viewport {
     /// 처음 카메라. 여러 곳이면 전부 담기게 맞추되 `maxZoom` 보다 당기지 않는다.
-    static func initial(_ camera: InitialCamera, padding: CGFloat, maxZoom: Double = MapCameraDefaults.zoom) -> Viewport {
+    static func initial(_ camera: InitialCamera, padding: SwiftUI.EdgeInsets, maxZoom: Double = MapCameraDefaults.zoom) -> Viewport {
         switch camera {
         case .fit(let points):
-            .overview(
-                geometry: MultiPoint(points),
-                geometryPadding: SwiftUI.EdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding),
-                maxZoom: maxZoom
-            )
+            .overview(geometry: MultiPoint(points), geometryPadding: padding, maxZoom: maxZoom)
         case .center(let point):
             .camera(center: point, zoom: maxZoom)
         }

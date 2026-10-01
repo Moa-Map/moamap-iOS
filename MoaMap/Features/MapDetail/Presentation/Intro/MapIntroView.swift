@@ -10,7 +10,7 @@ struct MapIntroView: View {
     let onPreview: () -> Void
     let onJoined: () -> Void
 
-    @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: 0)
+    @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: .init())
     /// 장소가 도착하면 처음 한 번만 맞추고 그다음은 사용자가 움직인 대로 둔다.
     @State private var cameraSettled = false
 
@@ -109,7 +109,7 @@ struct MapIntroView: View {
     private func settleCamera() {
         let places = viewModel.uiState.places
         guard !cameraSettled, !places.isEmpty else { return }
-        viewport = .initial(InitialCamera(places: places, deviceLocation: nil), padding: 32)
+        viewport = .initial(InitialCamera(places: places, deviceLocation: nil), padding: .init(top: 32, leading: 32, bottom: 32, trailing: 32))
         cameraSettled = true
     }
 
