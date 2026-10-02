@@ -10,6 +10,7 @@ struct MapDetailView: View {
     @State private var personalMapViewModel: PersonalMapAddViewModel
     @State private var reviewViewModel: PlaceReviewViewModel
     @State private var addPlaceViewModel: AddPlaceViewModel
+    @State private var memberViewModel: MemberViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
     private let initialTitle: String
@@ -26,6 +27,7 @@ struct MapDetailView: View {
         _personalMapViewModel = State(initialValue: viewModels.personalMap)
         _reviewViewModel = State(initialValue: viewModels.review)
         _addPlaceViewModel = State(initialValue: viewModels.addPlace)
+        _memberViewModel = State(initialValue: viewModels.member)
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
         self.onBack = onBack
@@ -52,6 +54,7 @@ struct MapDetailView: View {
     @State private var expandedClusterIDs: [Int64] = []
     @State private var selectedPlaceID: Int64?
     @State private var addPlaceVisible = false
+    @State private var membersVisible = false
     /// 장소 등록 완료처럼 지도 위에 잠깐 띄우는 안내.
     @State private var notice: String?
 
@@ -120,6 +123,16 @@ struct MapDetailView: View {
                         // 장소 수가 늘었다. 상단과 시트 제목이 옛 값을 들고 있으면 안 된다.
                         viewModel.refresh()
                     }
+                )
+            }
+        }
+        .overlay {
+            if membersVisible, let map = viewModel.uiState.map.map {
+                MemberView(
+                    viewModel: memberViewModel,
+                    roleDisplay: map.memberRoleDisplay,
+                    canGrantRole: map.canGrantRole,
+                    onBack: { membersVisible = false }
                 )
             }
         }
@@ -217,7 +230,10 @@ struct MapDetailView: View {
                 .accessibilityHidden(true)
             MapDetailMenu(
                 canLeave: viewModel.uiState.canLeave,
-                onMembers: { menuVisible = false },
+                onMembers: {
+                    menuVisible = false
+                    membersVisible = true
+                },
                 onManage: { menuVisible = false },
                 onLeave: {
                     menuVisible = false

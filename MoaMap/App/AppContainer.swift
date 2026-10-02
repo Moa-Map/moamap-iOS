@@ -18,6 +18,7 @@ final class AppContainer {
     let placeReviewRepository: any PlaceReviewRepository
     let placeSearchRepository: any PlaceSearchRepository
     let placeAddRepository: any PlaceAddRepository
+    let mapMemberRepository: any MapMemberRepository
     let userRepository: any UserRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
@@ -50,6 +51,7 @@ final class AppContainer {
         collectionRepository = CollectionRepositoryImpl(client: apiClient)
         mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
         personalMapRepository = PersonalMapRepositoryImpl(client: apiClient)
+        mapMemberRepository = MapMemberRepositoryImpl(client: apiClient)
         placeAddRepository = PlaceAddRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
         // 카카오 로컬 API 는 우리 서버 인증을 붙이지 않는다.
         let kakaoLocalClient = APIClient(configuration: Self.kakaoLocalConfiguration, transport: transport)
@@ -144,7 +146,8 @@ final class AppContainer {
             addPlace: AddPlaceViewModel(
                 mapID: mapID, searchRepository: placeSearchRepository, addRepository: placeAddRepository,
                 sleep: { try await Task.sleep(for: $0) }
-            )
+            ),
+            member: MemberViewModel(mapID: mapID, repository: mapMemberRepository)
         )
     }
 

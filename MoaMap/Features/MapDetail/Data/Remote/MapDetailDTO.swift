@@ -99,7 +99,7 @@ private nonisolated extension MapType {
     }
 }
 
-private nonisolated extension MapRole {
+nonisolated extension MapRole {
     /// 모르는 값은 권한이 없는 쪽으로 본다.
     init(serverValue: String?) {
         self = switch serverValue {

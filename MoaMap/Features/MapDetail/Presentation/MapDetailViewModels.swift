@@ -7,6 +7,7 @@ struct MapDetailViewModels {
     let personalMap: PersonalMapAddViewModel
     let review: PlaceReviewViewModel
     let addPlace: AddPlaceViewModel
+    let member: MemberViewModel
 }
 
 #if DEBUG
@@ -43,6 +44,18 @@ final class PreviewPlaceAddRepository: PlaceAddRepository {
     func addPlace(mapID: Int64, newPlace: NewPlace) async throws {}
 }
 
+@MainActor
+final class PreviewMapMemberRepository: MapMemberRepository {
+    func fetchMembers(mapID: Int64) async throws -> [MapMember] {
+        [
+            MapMember(id: 1, name: "김도현", imageURL: nil, role: .owner, placeCount: 12),
+            MapMember(id: 2, name: "이서연", imageURL: nil, role: .admin, placeCount: 5),
+            MapMember(id: 3, name: "박지훈", imageURL: nil, role: .member, placeCount: 0)
+        ]
+    }
+    func grantAdmin(mapID: Int64, userID: Int64) async throws {}
+}
+
 nonisolated struct PreviewCurrentUserStore: CurrentUserStore {
     func load() throws -> Int64? { 1 }
     func save(userId: Int64) throws {}
@@ -60,7 +73,8 @@ extension MapDetailViewModels {
             addPlace: AddPlaceViewModel(
                 mapID: mapID, searchRepository: PreviewPlaceSearchRepository(), addRepository: PreviewPlaceAddRepository(),
                 sleep: { try await Task.sleep(for: $0) }
-            )
+            ),
+            member: MemberViewModel(mapID: mapID, repository: PreviewMapMemberRepository())
         )
     }
 }
