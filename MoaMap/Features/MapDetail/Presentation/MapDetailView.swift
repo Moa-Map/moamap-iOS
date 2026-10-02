@@ -7,6 +7,7 @@ struct MapDetailView: View {
     @Environment(\.openURL) private var openURL
 
     @State private var viewModel: MapDetailViewModel
+    @State private var personalMapViewModel: PersonalMapAddViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
     private let initialTitle: String
@@ -14,12 +15,13 @@ struct MapDetailView: View {
     private let onBack: (_ joinedHere: Bool) -> Void
 
     init(
-        viewModel: MapDetailViewModel,
+        viewModels: MapDetailViewModels,
         locationProvider: any LocationProvider,
         initialTitle: String = "",
         onBack: @escaping (_ joinedHere: Bool) -> Void
     ) {
-        _viewModel = State(initialValue: viewModel)
+        _viewModel = State(initialValue: viewModels.main)
+        _personalMapViewModel = State(initialValue: viewModels.personalMap)
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
         self.onBack = onBack
@@ -44,6 +46,7 @@ struct MapDetailView: View {
     @State private var sheetCollapsedHeight = MapDetailPlaceSheet.defaultCollapsedHeight
     /// 펼친 묶음 마커의 장소. 비어 있으면 목록을 띄우지 않는다.
     @State private var expandedClusterIDs: [Int64] = []
+    @State private var selectedPlaceID: Int64?
 
     private static let pitch3D: CGFloat = 55
     /// 마커를 맞출 때 가장자리 여백. 위는 탭 바, 아래는 접힌 시트를 피한다.
@@ -84,6 +87,16 @@ struct MapDetailView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
                 }
+            }
+        }
+        .overlay {
+            // 펼치면 상단바까지 덮는다.
+            if selectedTab == .places { placeSheet }
+        }
+        .overlay {
+            // 검색으로 목록에서 빠진 장소라도, 마커로 눌러 열어 둔 상세는 닫히면 안 된다.
+            if let place = viewModel.uiState.places.first(where: { $0.id == selectedPlaceID }) {
+                placeDetail(place)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -129,9 +142,13 @@ struct MapDetailView: View {
             ClusterPlacesSheet(
                 places: expandedClusterPlaces,
                 showsReactions: !viewModel.uiState.isOfficial,
-                onPlaceClick: { _ in expandedClusterIDs = [] },
+                onPlaceClick: selectPlace,
                 onLikeClick: { viewModel.toggleLike(placeID: $0) }
             )
+        }
+        .onChange(of: selectedPlaceID) { _, placeID in
+            // 나만의 지도 추가 안내는 장소마다 새로 시작한다.
+            if let placeID { personalMapViewModel.open(placeID: placeID) } else { personalMapViewModel.close() }
         }
         .onChange(of: viewModel.uiState.isOfficial) { _, official in
             if official { selectedTab = .places }
@@ -178,6 +195,78 @@ struct MapDetailView: View {
         }
     }
 
+    private var placeSheet: some View {
+        GeometryReader { proxy in
+            MapDetailPlaceSheet(
+                places: visiblePlaces,
+                placeCount: viewModel.uiState.map.map?.placeCount,
+                official: viewModel.uiState.isOfficial,
+                categoryFilters: PlaceCategoryFilter.available(in: viewModel.uiState.places),
+                selectedCategory: selectedCategory,
+                searchQuery: $searchQuery,
+                expanded: $sheetExpanded,
+                collapsedHeight: $sheetCollapsedHeight,
+                expandedHeight: proxy.size.height + proxy.safeAreaInsets.top - MapDetailPlaceSheet.expandedTopInset,
+                onCategorySelect: { selectedCategory = $0 },
+                onPlaceClick: selectPlace,
+                onLikeClick: { viewModel.toggleLike(placeID: $0) }
+            )
+            .frame(maxHeight: .infinity, alignment: .bottom)
+        }
+    }
+
+    private func placeDetail(_ place: MapPlace) -> some View {
+        // 나만의 지도를 보고 있으면 담을 곳이 자기 자신이라 버튼을 뺀다. 지도를 아직 못 읽었으면 띄우지 않는다.
+        let personalAction: PersonalMapAction? = if viewModel.uiState.map.map?.personal != false {
+            nil
+        } else if personalMapViewModel.uiState.placeID != place.id {
+            PersonalMapAction()
+        } else {
+            PersonalMapAction(
+                adding: personalMapViewModel.uiState.adding,
+                message: personalMapViewModel.uiState.message,
+                failed: personalMapViewModel.uiState.failed
+            )
+        }
+        return PlaceDetailView(
+            place: place,
+            personalMapAction: personalAction,
+            showsReactions: !viewModel.uiState.isOfficial,
+            onBack: { selectedPlaceID = nil },
+            onClose: resetToInitial,
+            onExternalLink: { openKakaoMap(place) },
+            onAddToPersonalMap: { personalMapViewModel.add() },
+            onLike: { viewModel.toggleLike(placeID: place.id) }
+        )
+    }
+
+    /// 묶음 목록에서 골랐으면 그 목록은 닫는다.
+    private func selectPlace(_ placeID: Int64) {
+        expandedClusterIDs = []
+        selectedPlaceID = placeID
+    }
+
+    /// 지도 상세에 처음 들어왔을 때로 되돌린다.
+    private func resetToInitial() {
+        selectedPlaceID = nil
+        selectedTab = .places
+        searchQuery = ""
+        selectedCategory = .all
+        sheetExpanded = false
+    }
+
+    /// 앱이 없으면 웹으로 넘어간다.
+    private func openKakaoMap(_ place: MapPlace) {
+        let web = KakaoMapLink.webURL(kakaoPlaceID: place.kakaoPlaceID, placeName: place.name)
+        guard let app = KakaoMapLink.appURL(kakaoPlaceID: place.kakaoPlaceID) else {
+            if let web { openURL(web) }
+            return
+        }
+        openURL(app) { accepted in
+            if !accepted, let web { openURL(web) }
+        }
+    }
+
     private var visiblePlaces: [MapPlace] {
         viewModel.uiState.places.filtered(by: selectedCategory, query: searchQuery)
     }
@@ -195,44 +284,25 @@ struct MapDetailView: View {
     }
 
     private var placesContent: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .bottom) {
-                PlaceMarkerMap(
-                    // 목록과 같은 결과를 지도에도 그린다.
-                    places: visiblePlaces,
-                    viewport: $viewport,
-                    shows3DObjects: is3D,
-                    ornamentBottomInset: sheetCollapsedHeight,
-                    onCameraChanged: { currentZoom = $0.zoom },
-                    onMarkerTap: { _ in },
-                    // 좌표가 같은 장소는 확대해도 갈라지지 않아 목록으로 펼친다.
-                    onClusterTap: { cluster in expandedClusterIDs = cluster.members.map(\.id) }
-                )
-                .overlay(alignment: .bottom) {
-                    HStack(alignment: .bottom) {
-                        MyLocationButton(inProgress: locating, action: moveToMyLocation)
-                        Spacer()
-                        MapDimensionToggle(is3D: is3D, onToggle: toggle3D)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, sheetCollapsedHeight + 16)
-                }
-
-                MapDetailPlaceSheet(
-                    places: visiblePlaces,
-                    placeCount: viewModel.uiState.map.map?.placeCount,
-                    official: viewModel.uiState.isOfficial,
-                    categoryFilters: PlaceCategoryFilter.available(in: viewModel.uiState.places),
-                    selectedCategory: selectedCategory,
-                    searchQuery: $searchQuery,
-                    expanded: $sheetExpanded,
-                    collapsedHeight: $sheetCollapsedHeight,
-                    maxHeight: proxy.size.height,
-                    onCategorySelect: { selectedCategory = $0 },
-                    onPlaceClick: { _ in },
-                    onLikeClick: { viewModel.toggleLike(placeID: $0) }
-                )
+        PlaceMarkerMap(
+            // 목록과 같은 결과를 지도에도 그린다.
+            places: visiblePlaces,
+            viewport: $viewport,
+            shows3DObjects: is3D,
+            ornamentBottomInset: sheetCollapsedHeight,
+            onCameraChanged: { currentZoom = $0.zoom },
+            onMarkerTap: selectPlace,
+            // 좌표가 같은 장소는 확대해도 갈라지지 않아 목록으로 펼친다.
+            onClusterTap: { cluster in expandedClusterIDs = cluster.members.map(\.id) }
+        )
+        .overlay(alignment: .bottom) {
+            HStack(alignment: .bottom) {
+                MyLocationButton(inProgress: locating, action: moveToMyLocation)
+                Spacer()
+                MapDimensionToggle(is3D: is3D, onToggle: toggle3D)
             }
+            .padding(.horizontal, 20)
+            .padding(.bottom, sheetCollapsedHeight + 16)
         }
         .overlay {
             if case .failed(let message) = viewModel.uiState.map {
@@ -330,7 +400,7 @@ private final class PreviewLocationProvider: LocationProvider {
 
 #Preview {
     MapDetailView(
-        viewModel: MapDetailViewModel(mapID: 1, repository: PreviewMapDetailRepository()),
+        viewModels: .preview(mapID: 1),
         locationProvider: PreviewLocationProvider(),
         onBack: { _ in }
     )

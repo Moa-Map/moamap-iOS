@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 지도 위에 늘 떠 있는 장소 목록 시트. 접으면 칩 줄까지만 보인다.
+/// 지도 위에 늘 떠 있는 장소 목록 시트. 접으면 칩 줄까지만 보이고, 펼치면 뒤를 어둡게 덮는다.
 struct MapDetailPlaceSheet: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
@@ -16,13 +16,16 @@ struct MapDetailPlaceSheet: View {
     @Binding var expanded: Bool
     /// 접힌 높이. 지도 컨트롤이 이 위에 놓인다.
     @Binding var collapsedHeight: CGFloat
-    let maxHeight: CGFloat
+    /// 끝까지 올렸을 때의 높이.
+    let expandedHeight: CGFloat
     let onCategorySelect: (PlaceCategoryFilter) -> Void
     let onPlaceClick: (Int64) -> Void
     let onLikeClick: (Int64) -> Void
 
-    static let expandedHeight: CGFloat = 698
-    static let defaultCollapsedHeight: CGFloat = 237
+    static let defaultCollapsedHeight: CGFloat = 253
+    /// 끝까지 올렸을 때 화면 위에서 시트까지의 거리.
+    static let expandedTopInset: CGFloat = 80
+    private static let dimOpacity = 0.75
     /// 칩 줄 아래로 남기는 여백. 목록 첫 줄이 살짝 비쳐 더 있다는 걸 알린다.
     private static let headerBottomGap: CGFloat = 12
     /// 공식지도는 제목만 보이면 비어 보여 첫 카드가 다 보이게 둔다.
@@ -31,12 +34,32 @@ struct MapDetailPlaceSheet: View {
     @GestureState private var dragOffset: CGFloat = 0
     @FocusState private var searchFocused: Bool
 
-    private var fullHeight: CGFloat { min(Self.expandedHeight, maxHeight) }
-
     var body: some View {
+        let fullHeight = max(expandedHeight, collapsedHeight)
         let base = expanded ? fullHeight : collapsedHeight
         let height = min(max(base - dragOffset, collapsedHeight), fullHeight)
+        let progress = fullHeight > collapsedHeight ? (height - collapsedHeight) / (fullHeight - collapsedHeight) : 0
 
+        ZStack(alignment: .bottom) {
+            Color.black
+                .opacity(Self.dimOpacity * progress)
+                .ignoresSafeArea()
+                .allowsHitTesting(progress > 0)
+                .onTapGesture { expanded = false }
+                .accessibilityHidden(true)
+            sheet(height: height)
+        }
+        .animation(.easeOut(duration: 0.25), value: expanded)
+        .onChange(of: searchFocused) { _, focused in
+            // 접힌 시트에서는 목록이 안 보인다. 검색창을 누른 김에 끝까지 올린다.
+            if focused { expanded = true }
+        }
+        .onChange(of: expanded) { _, isExpanded in
+            if !isExpanded { searchFocused = false }
+        }
+    }
+
+    private func sheet(height: CGFloat) -> some View {
         VStack(spacing: 0) {
             header
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight in
@@ -50,27 +73,17 @@ struct MapDetailPlaceSheet: View {
         .background(alignment: .top) {
             UnevenRoundedRectangle(topLeadingRadius: 38, topTrailingRadius: 38)
                 .fill(colors.backgroundSecondary)
-                .shadow(color: .black.opacity(0.12), radius: 10)
+                .shadow(color: .black.opacity(0.18), radius: 18.75, y: 15)
                 .ignoresSafeArea(edges: .bottom)
-        }
-        .animation(.easeOut(duration: 0.25), value: expanded)
-        .onChange(of: searchFocused) { _, focused in
-            // 접힌 시트에서는 목록이 안 보인다. 검색창을 누른 김에 끝까지 올린다.
-            if focused { expanded = true }
-        }
-        .onChange(of: expanded) { _, isExpanded in
-            if !isExpanded { searchFocused = false }
         }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
-                Capsule()
-                    .fill(MoaMapPrimitiveColors.gray100)
-                    .frame(width: 35, height: 5)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 25)
+                SheetGrabber()
+                    .padding(.top, 10)
+                    .padding(.bottom, 18)
                 Text(placeCount.map { "장소 \($0)곳" } ?? "장소")
                     .moaTextStyle(typography.title3)
                     .foregroundStyle(colors.textNormal)
@@ -85,9 +98,9 @@ struct MapDetailPlaceSheet: View {
 
             if !official {
                 searchField
-                    .padding(.top, 16)
+                    .padding(.top, 20)
                 chips
-                    .padding(.top, 12)
+                    .padding(.top, 16)
             }
         }
     }
@@ -102,11 +115,11 @@ struct MapDetailPlaceSheet: View {
     }
 
     private var searchField: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             Image("Icons/search")
                 .renderingMode(.template)
                 .resizable()
-                .frame(width: 16, height: 16)
+                .frame(width: 20, height: 20)
                 .foregroundStyle(colors.textAssistive)
                 .accessibilityHidden(true)
             TextField("", text: $searchQuery, prompt: Text("장소를 검색해보세요").foregroundStyle(colors.textAssistive))
@@ -118,7 +131,7 @@ struct MapDetailPlaceSheet: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 44)
-        .background(colors.textWhite, in: Capsule())
+        .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.04), radius: 4)
         .padding(.horizontal, 20)
     }
@@ -172,6 +185,16 @@ struct MapDetailPlaceSheet: View {
         if !searchQuery.trimmingCharacters(in: .whitespaces).isEmpty { return "검색 결과가 없어요" }
         if selectedCategory != .all { return "이 카테고리의 장소가 없어요" }
         return "아직 등록된 장소가 없어요"
+    }
+}
+
+/// iOS 시스템 시트 손잡이.
+private struct SheetGrabber: View {
+    var body: some View {
+        Capsule()
+            .fill(Color(red: 0.8, green: 0.8, blue: 0.8))
+            .frame(width: 36, height: 5)
+            .frame(maxWidth: .infinity)
     }
 }
 
@@ -244,7 +267,7 @@ struct ClusterPlacesSheet: View {
         MapDetailPlaceSheet(
             places: places, placeCount: 4, official: false,
             categoryFilters: PlaceCategoryFilter.available(in: places), selectedCategory: .all,
-            searchQuery: $query, expanded: $expanded, collapsedHeight: $collapsed, maxHeight: 700,
+            searchQuery: $query, expanded: $expanded, collapsedHeight: $collapsed, expandedHeight: 700,
             onCategorySelect: { _ in }, onPlaceClick: { _ in }, onLikeClick: { _ in }
         )
     }

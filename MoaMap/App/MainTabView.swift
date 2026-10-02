@@ -22,7 +22,7 @@ struct MainTabView: View {
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let makeMapIntroViewModel: (Int64) -> MapIntroViewModel
-    private let makeMapDetailViewModel: (Int64) -> MapDetailViewModel
+    private let makeMapDetailViewModels: (Int64) -> MapDetailViewModels
     private let locationProvider: any LocationProvider
     private let onLoggedOut: () -> Void
 
@@ -33,7 +33,7 @@ struct MainTabView: View {
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeMapIntroViewModel: @escaping (Int64) -> MapIntroViewModel,
-        makeMapDetailViewModel: @escaping (Int64) -> MapDetailViewModel,
+        makeMapDetailViewModels: @escaping (Int64) -> MapDetailViewModels,
         locationProvider: any LocationProvider,
         onLoggedOut: @escaping () -> Void
     ) {
@@ -43,7 +43,7 @@ struct MainTabView: View {
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.makeMapIntroViewModel = makeMapIntroViewModel
-        self.makeMapDetailViewModel = makeMapDetailViewModel
+        self.makeMapDetailViewModels = makeMapDetailViewModels
         self.locationProvider = locationProvider
         self.onLoggedOut = onLoggedOut
     }
@@ -112,7 +112,7 @@ struct MainTabView: View {
             )
         case .mapDetail(let mapID, let title):
             MapDetailView(
-                viewModel: makeMapDetailViewModel(mapID),
+                viewModels: makeMapDetailViewModels(mapID),
                 locationProvider: locationProvider,
                 initialTitle: title,
                 onBack: { joinedHere in
@@ -149,7 +149,7 @@ private final class PreviewLocationProvider: LocationProvider {
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
         makeMapIntroViewModel: { MapIntroViewModel(mapID: $0, repository: PreviewMapDetailRepository()) },
-        makeMapDetailViewModel: { MapDetailViewModel(mapID: $0, repository: PreviewMapDetailRepository()) },
+        makeMapDetailViewModels: { MapDetailViewModels.preview(mapID: $0) },
         locationProvider: PreviewLocationProvider(),
         onLoggedOut: {}
     )
