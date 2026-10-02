@@ -19,6 +19,8 @@ final class AppContainer {
     let placeSearchRepository: any PlaceSearchRepository
     let placeAddRepository: any PlaceAddRepository
     let mapMemberRepository: any MapMemberRepository
+    let mapActivityRepository: any MapActivityRepository
+    let pendingPlaceRepository: any PendingPlaceRepository
     let userRepository: any UserRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
@@ -52,6 +54,8 @@ final class AppContainer {
         mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
         personalMapRepository = PersonalMapRepositoryImpl(client: apiClient)
         mapMemberRepository = MapMemberRepositoryImpl(client: apiClient)
+        mapActivityRepository = MapActivityRepositoryImpl(client: apiClient, timeZone: .current)
+        pendingPlaceRepository = PendingPlaceRepositoryImpl(client: apiClient, timeZone: .current)
         placeAddRepository = PlaceAddRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
         // 카카오 로컬 API 는 우리 서버 인증을 붙이지 않는다.
         let kakaoLocalClient = APIClient(configuration: Self.kakaoLocalConfiguration, transport: transport)
@@ -147,7 +151,9 @@ final class AppContainer {
                 mapID: mapID, searchRepository: placeSearchRepository, addRepository: placeAddRepository,
                 sleep: { try await Task.sleep(for: $0) }
             ),
-            member: MemberViewModel(mapID: mapID, repository: mapMemberRepository)
+            member: MemberViewModel(mapID: mapID, repository: mapMemberRepository),
+            activity: MapActivityViewModel(mapID: mapID, repository: mapActivityRepository, now: Date.init),
+            pending: PendingRequestViewModel(mapID: mapID, repository: pendingPlaceRepository)
         )
     }
 

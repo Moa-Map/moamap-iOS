@@ -11,6 +11,8 @@ struct MapDetailView: View {
     @State private var reviewViewModel: PlaceReviewViewModel
     @State private var addPlaceViewModel: AddPlaceViewModel
     @State private var memberViewModel: MemberViewModel
+    @State private var activityViewModel: MapActivityViewModel
+    @State private var pendingViewModel: PendingRequestViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
     private let initialTitle: String
@@ -28,6 +30,8 @@ struct MapDetailView: View {
         _reviewViewModel = State(initialValue: viewModels.review)
         _addPlaceViewModel = State(initialValue: viewModels.addPlace)
         _memberViewModel = State(initialValue: viewModels.member)
+        _activityViewModel = State(initialValue: viewModels.activity)
+        _pendingViewModel = State(initialValue: viewModels.pending)
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
         self.onBack = onBack
@@ -55,6 +59,7 @@ struct MapDetailView: View {
     @State private var selectedPlaceID: Int64?
     @State private var addPlaceVisible = false
     @State private var membersVisible = false
+    @State private var manageVisible = false
     /// 장소 등록 완료처럼 지도 위에 잠깐 띄우는 안내.
     @State private var notice: String?
 
@@ -136,6 +141,16 @@ struct MapDetailView: View {
                 )
             }
         }
+        .overlay {
+            if manageVisible, let map = viewModel.uiState.map.map {
+                MapManageView(
+                    activityViewModel: activityViewModel,
+                    pendingViewModel: pendingViewModel,
+                    canReviewRequests: map.canReviewRequests,
+                    onBack: { manageVisible = false }
+                )
+            }
+        }
         .overlay(alignment: .topTrailing) {
             // 나가서 참여가 풀리면 메뉴도 함께 닫힌다.
             if menuVisible && viewModel.uiState.showsMenu { menu }
@@ -198,6 +213,10 @@ struct MapDetailView: View {
             // 댓글 수가 달라졌다. 목록이 옛 값을 들고 있으면 안 된다.
             viewModel.refresh()
         }
+        .onChange(of: pendingViewModel.uiState.approvedCount) {
+            // 수락한 장소는 지도에 새로 떠야 한다.
+            viewModel.refresh()
+        }
         .onChange(of: viewModel.uiState.isOfficial) { _, official in
             if official { selectedTab = .places }
         }
@@ -234,7 +253,10 @@ struct MapDetailView: View {
                     menuVisible = false
                     membersVisible = true
                 },
-                onManage: { menuVisible = false },
+                onManage: {
+                    menuVisible = false
+                    manageVisible = true
+                },
                 onLeave: {
                     menuVisible = false
                     leaveDialogVisible = true

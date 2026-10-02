@@ -8,6 +8,8 @@ struct MapDetailViewModels {
     let review: PlaceReviewViewModel
     let addPlace: AddPlaceViewModel
     let member: MemberViewModel
+    let activity: MapActivityViewModel
+    let pending: PendingRequestViewModel
 }
 
 #if DEBUG
@@ -56,6 +58,25 @@ final class PreviewMapMemberRepository: MapMemberRepository {
     func grantAdmin(mapID: Int64, userID: Int64) async throws {}
 }
 
+@MainActor
+final class PreviewMapActivityRepository: MapActivityRepository {
+    func fetchActivities(mapID: Int64) async throws -> [MapActivity] {
+        [
+            MapActivity(type: .placeAdded, occurredAt: nil, actorName: "민지", actorImageURL: nil, placeID: 1, placeName: "커피나무"),
+            MapActivity(type: .reviewCreated, occurredAt: nil, actorName: "준호", actorImageURL: nil, placeID: 1, placeName: "커피나무")
+        ]
+    }
+}
+
+@MainActor
+final class PreviewPendingPlaceRepository: PendingPlaceRepository {
+    func fetchPendingPlaces(mapID: Int64) async throws -> [PendingPlace] {
+        [PendingPlace(id: 1, placeName: "달빛정원", requesterName: "서연", requesterImageURL: nil, requestedAt: nil)]
+    }
+    func approve(placeID: Int64) async throws {}
+    func reject(placeID: Int64) async throws {}
+}
+
 nonisolated struct PreviewCurrentUserStore: CurrentUserStore {
     func load() throws -> Int64? { 1 }
     func save(userId: Int64) throws {}
@@ -74,7 +95,9 @@ extension MapDetailViewModels {
                 mapID: mapID, searchRepository: PreviewPlaceSearchRepository(), addRepository: PreviewPlaceAddRepository(),
                 sleep: { try await Task.sleep(for: $0) }
             ),
-            member: MemberViewModel(mapID: mapID, repository: PreviewMapMemberRepository())
+            member: MemberViewModel(mapID: mapID, repository: PreviewMapMemberRepository()),
+            activity: MapActivityViewModel(mapID: mapID, repository: PreviewMapActivityRepository(), now: Date.init),
+            pending: PendingRequestViewModel(mapID: mapID, repository: PreviewPendingPlaceRepository())
         )
     }
 }
