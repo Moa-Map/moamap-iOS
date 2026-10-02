@@ -118,17 +118,7 @@ struct MapDetailView: View {
         .overlay {
             // 지도를 아직 못 읽었으면 열지 않는다. 버튼 글씨가 지도 정보에 달려 있다.
             if addPlaceVisible, let map = viewModel.uiState.map.map {
-                AddPlaceView(
-                    viewModel: addPlaceViewModel,
-                    map: map,
-                    onClose: { addPlaceVisible = false },
-                    onAdded: { message in
-                        addPlaceVisible = false
-                        notice = message
-                        // 장소 수가 늘었다. 상단과 시트 제목이 옛 값을 들고 있으면 안 된다.
-                        viewModel.refresh()
-                    }
-                )
+                AddPlaceView(viewModel: addPlaceViewModel, map: map, onClose: { addPlaceVisible = false })
             }
         }
         .overlay {
@@ -211,6 +201,14 @@ struct MapDetailView: View {
         }
         .onChange(of: reviewViewModel.uiState.submittedCount + reviewViewModel.uiState.deletedCount) {
             // 댓글 수가 달라졌다. 목록이 옛 값을 들고 있으면 안 된다.
+            viewModel.refresh()
+        }
+        // 등록 중에 화면을 닫아도 결과를 받도록 부모가 지켜본다.
+        .onChange(of: addPlaceViewModel.uiState.addedMessage) { _, message in
+            guard let message else { return }
+            addPlaceVisible = false
+            notice = message
+            // 장소 수가 늘었다. 상단과 시트 제목이 옛 값을 들고 있으면 안 된다.
             viewModel.refresh()
         }
         .onChange(of: pendingViewModel.uiState.approvedCount) {

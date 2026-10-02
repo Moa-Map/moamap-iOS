@@ -9,8 +9,6 @@ struct AddPlaceView: View {
     let map: MapDetail
     /// 어느 단계든 닫는다.
     let onClose: () -> Void
-    /// 등록이 끝났다. 안내 문구를 넘긴다.
-    let onAdded: (String) -> Void
 
     @State private var showsSourceMenu = false
     @State private var errorMessage: String?
@@ -58,9 +56,6 @@ struct AddPlaceView: View {
             guard let message else { return }
             errorMessage = message
             viewModel.consumeErrorMessage()
-        }
-        .onChange(of: state.addedMessage) { _, message in
-            if let message { onAdded(message) }
         }
     }
 
@@ -398,7 +393,7 @@ struct AddPlaceFormContent: View {
 #if DEBUG
 #Preview {
     let viewModels = MapDetailViewModels.preview(mapID: 1)
-    AddPlaceView(viewModel: viewModels.addPlace, map: .previewJoined, onClose: {}, onAdded: { _ in })
+    AddPlaceView(viewModel: viewModels.addPlace, map: .previewJoined, onClose: {})
 }
 
 extension MapDetail {
