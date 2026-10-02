@@ -49,3 +49,23 @@ struct CameraPicker: UIViewControllerRepresentable {
         }
     }
 }
+
+/// 카메라를 열 수 없을 때의 안내.
+enum CameraAlert {
+    case unavailable
+    case denied
+
+    var title: String {
+        switch self {
+        case .unavailable: "카메라를 사용할 수 없어요"
+        case .denied: "카메라 권한이 필요해요"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .unavailable: "이 기기에서는 카메라를 쓸 수 없어요. 갤러리에서 사진을 골라주세요."
+        case .denied: "설정에서 카메라 접근을 허용하면 사진을 찍을 수 있어요."
+        }
+    }
+}

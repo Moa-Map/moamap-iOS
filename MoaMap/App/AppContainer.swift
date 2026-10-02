@@ -15,6 +15,7 @@ final class AppContainer {
     let exploreRepository: any ExploreRepository
     let mapDetailRepository: any MapDetailRepository
     let personalMapRepository: any PersonalMapRepository
+    let placeReviewRepository: any PlaceReviewRepository
     let userRepository: any UserRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
@@ -46,6 +47,9 @@ final class AppContainer {
         collectionRepository = CollectionRepositoryImpl(client: apiClient)
         mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
         personalMapRepository = PersonalMapRepositoryImpl(client: apiClient)
+        placeReviewRepository = PlaceReviewRepositoryImpl(
+            client: apiClient, uploader: PresignedImageUploader(transport: transport), timeZone: .current
+        )
         userRepository = UserRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
     }
 
@@ -125,7 +129,8 @@ final class AppContainer {
     func makeMapDetailViewModels(mapID: Int64) -> MapDetailViewModels {
         MapDetailViewModels(
             main: MapDetailViewModel(mapID: mapID, repository: mapDetailRepository),
-            personalMap: PersonalMapAddViewModel(repository: personalMapRepository)
+            personalMap: PersonalMapAddViewModel(repository: personalMapRepository),
+            review: PlaceReviewViewModel(repository: placeReviewRepository, currentUserStore: currentUserStore, now: Date.init)
         )
     }
 

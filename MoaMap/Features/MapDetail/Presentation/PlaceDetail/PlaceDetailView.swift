@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 /// 「나만의 지도에 추가」 버튼 상태. 결과 안내는 버튼 아래에 띄운다.
@@ -11,18 +12,35 @@ struct PersonalMapAction: Equatable {
 struct PlaceDetailView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
+    @Environment(\.openURL) private var openURL
 
     let place: MapPlace
     /// nil 이면 버튼을 띄우지 않는다. 나만의 지도를 보고 있을 때다.
     let personalMapAction: PersonalMapAction?
-    /// false 면 하트·신고하기·댓글을 뺀다. 공식지도다.
-    let showsReactions: Bool
+    /// nil 이면 하트·신고하기·댓글을 뺀다. 공식지도다.
+    let reviews: PlaceReviewViewModel?
+    /// 참여 중인 지도에만 댓글을 남길 수 있다.
+    let canWriteReview: Bool
     let onBack: () -> Void
     /// 지도 상세에 처음 들어왔을 때의 화면으로 돌아간다.
     let onClose: () -> Void
     let onExternalLink: () -> Void
     let onAddToPersonalMap: () -> Void
     let onLike: () -> Void
+
+    private var showsReactions: Bool { reviews != nil }
+
+    @State private var reviewText = ""
+    @State private var reviewPhoto: UploadImage?
+    /// 밀어 버튼이 드러난 댓글. 한 번에 한 줄만 연다.
+    @State private var openReviewID: Int64?
+    @State private var deleteTargetID: Int64?
+    @State private var showsSourceMenu = false
+    @State private var showsGallery = false
+    @State private var showsCamera = false
+    @State private var photoItem: PhotosPickerItem?
+    @State private var cameraAlert: CameraAlert?
+    @FocusState private var composerFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,22 +51,144 @@ struct PlaceDetailView: View {
                         .padding(.top, 20)
                     actions
                         .padding(.top, 12)
-                    if showsReactions {
+                    if let reviews {
                         Rectangle()
                             .fill(colors.lineNormal)
                             .frame(height: 0.5)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
+                        PlaceReviewList(
+                            state: reviews.uiState,
+                            swipeEnabled: canWriteReview,
+                            relativeTime: reviews.relativeTime(of:),
+                            openReviewID: $openReviewID,
+                            onRetry: reviews.retry,
+                            onEdit: { id in
+                                openReviewID = nil
+                                reviews.startEdit(reviewID: id)
+                            },
+                            onDelete: { id in
+                                openReviewID = nil
+                                deleteTargetID = id
+                            }
+                        )
                     }
                 }
                 .padding(.bottom, 16)
             }
             .scrollDismissesKeyboard(.interactively)
+            if let reviews {
+                PlaceReviewComposer(
+                    state: reviews.uiState,
+                    canWrite: canWriteReview,
+                    text: $reviewText,
+                    photo: reviewPhoto,
+                    onAddPhoto: {
+                        composerFocused = false
+                        showsSourceMenu = true
+                    },
+                    onRemovePhoto: { reviewPhoto = nil },
+                    // 입력은 여기서 비우지 않는다. 서버가 받아들였는지는 아직 모른다.
+                    onSubmit: { reviews.submit(content: reviewText, photo: reviewPhoto) },
+                    onCancelEdit: reviews.cancelEdit
+                )
+                .focused($composerFocused)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(colors.backgroundSecondary)
         // 뒤에 깔린 지도로 터치가 새지 않게 한다.
         .contentShape(Rectangle())
+        .overlay {
+            if showsSourceMenu { sourceMenu }
+        }
+        .overlay {
+            if let id = deleteTargetID, let reviews {
+                MoaMapConfirmDialog(
+                    title: "댓글을 삭제하시겠습니까?",
+                    message: "삭제한 댓글은 되돌릴 수 없습니다",
+                    dismissText: "취소하기",
+                    dismissColor: MoaMapPrimitiveColors.gray100,
+                    confirmText: "삭제",
+                    onConfirm: {
+                        deleteTargetID = nil
+                        reviews.delete(reviewID: id)
+                    },
+                    onDismiss: { deleteTargetID = nil }
+                )
+            }
+        }
+        .photosPicker(isPresented: $showsGallery, selection: $photoItem, matching: .images)
+        .fullScreenCover(isPresented: $showsCamera) {
+            CameraPicker { data in reviewPhoto = reviews?.preparePhoto(data: data, type: .jpeg) }
+                .ignoresSafeArea()
+        }
+        .alert(cameraAlert?.title ?? "", isPresented: showsCameraAlert, presenting: cameraAlert) { alert in
+            if alert == .denied {
+                Button("설정 열기") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                }
+                Button("취소", role: .cancel) {}
+            } else {
+                Button("확인", role: .cancel) {}
+            }
+        } message: { alert in
+            Text(alert.message)
+        }
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            photoItem = nil
+            Task {
+                let data = try? await item.loadTransferable(type: Data.self)
+                reviewPhoto = reviews?.preparePhoto(data: data, type: item.supportedContentTypes.first)
+            }
+        }
+        .onChange(of: reviews?.uiState.editingReviewID) { _, editingID in
+            // 고치기 시작하면 원래 글을 채우고 고른 사진은 뺀다. 사진은 고치지 않는다.
+            if let editing = reviews?.uiState.editingReview, editing.id == editingID {
+                reviewText = editing.content
+                reviewPhoto = nil
+                composerFocused = true
+            } else {
+                reviewText = ""
+            }
+        }
+        .onChange(of: reviews?.uiState.submittedCount) {
+            reviewText = ""
+            reviewPhoto = nil
+        }
+    }
+
+    private var sourceMenu: some View {
+        ZStack {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { showsSourceMenu = false }
+                .accessibilityHidden(true)
+            ActionMenu(items: [
+                ActionMenuItem(icon: "photo-camera", label: "카메라", action: openCamera),
+                ActionMenuItem(icon: "gallery", label: "갤러리") {
+                    showsSourceMenu = false
+                    showsGallery = true
+                }
+            ])
+            .accessibilityAction(.escape) { showsSourceMenu = false }
+        }
+    }
+
+    private func openCamera() {
+        showsSourceMenu = false
+        guard CameraPicker.isAvailable else {
+            cameraAlert = .unavailable
+            return
+        }
+        Task {
+            if await CameraPicker.requestAccess() { showsCamera = true } else { cameraAlert = .denied }
+        }
+    }
+
+    private var showsCameraAlert: Binding<Bool> {
+        Binding(get: { cameraAlert != nil }, set: { if !$0 { cameraAlert = nil } })
     }
 
     private var header: some View {
@@ -231,7 +371,8 @@ struct BackCloseControls: View {
             likeCount: 12, liked: true
         ),
         personalMapAction: PersonalMapAction(message: "나만의 지도에 추가했어요"),
-        showsReactions: true,
+        reviews: nil,
+        canWriteReview: true,
         onBack: {}, onClose: {}, onExternalLink: {}, onAddToPersonalMap: {}, onLike: {}
     )
 }

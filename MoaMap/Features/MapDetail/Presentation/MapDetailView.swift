@@ -8,6 +8,7 @@ struct MapDetailView: View {
 
     @State private var viewModel: MapDetailViewModel
     @State private var personalMapViewModel: PersonalMapAddViewModel
+    @State private var reviewViewModel: PlaceReviewViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
     private let initialTitle: String
@@ -22,6 +23,7 @@ struct MapDetailView: View {
     ) {
         _viewModel = State(initialValue: viewModels.main)
         _personalMapViewModel = State(initialValue: viewModels.personalMap)
+        _reviewViewModel = State(initialValue: viewModels.review)
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
         self.onBack = onBack
@@ -96,7 +98,8 @@ struct MapDetailView: View {
         .overlay {
             // 검색으로 목록에서 빠진 장소라도, 마커로 눌러 열어 둔 상세는 닫히면 안 된다.
             if let place = viewModel.uiState.places.first(where: { $0.id == selectedPlaceID }) {
-                placeDetail(place)
+                // 장소마다 입력 중인 글과 사진을 새로 시작한다.
+                placeDetail(place).id(place.id)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -147,8 +150,18 @@ struct MapDetailView: View {
             )
         }
         .onChange(of: selectedPlaceID) { _, placeID in
-            // 나만의 지도 추가 안내는 장소마다 새로 시작한다.
-            if let placeID { personalMapViewModel.open(placeID: placeID) } else { personalMapViewModel.close() }
+            // 나만의 지도 추가 안내와 댓글은 장소마다 새로 시작한다. 공식지도에는 댓글이 없다.
+            if let placeID {
+                personalMapViewModel.open(placeID: placeID)
+                if !viewModel.uiState.isOfficial { reviewViewModel.open(placeID: placeID) }
+            } else {
+                personalMapViewModel.close()
+                reviewViewModel.close()
+            }
+        }
+        .onChange(of: reviewViewModel.uiState.submittedCount + reviewViewModel.uiState.deletedCount) {
+            // 댓글 수가 달라졌다. 목록이 옛 값을 들고 있으면 안 된다.
+            viewModel.refresh()
         }
         .onChange(of: viewModel.uiState.isOfficial) { _, official in
             if official { selectedTab = .places }
@@ -231,7 +244,9 @@ struct MapDetailView: View {
         return PlaceDetailView(
             place: place,
             personalMapAction: personalAction,
-            showsReactions: !viewModel.uiState.isOfficial,
+            reviews: viewModel.uiState.isOfficial ? nil : reviewViewModel,
+            // 서버도 같은 기준으로 막는다.
+            canWriteReview: viewModel.uiState.canAddPlace,
             onBack: { selectedPlaceID = nil },
             onClose: resetToInitial,
             onExternalLink: { openKakaoMap(place) },

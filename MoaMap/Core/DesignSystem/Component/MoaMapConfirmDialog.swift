@@ -12,6 +12,8 @@ struct MoaMapConfirmDialog: View {
     var titleSuffix = ""
     let message: String
     var dismissText = "닫기"
+    /// 시안마다 다르다(나가기 확인 Gray200, 댓글 삭제 Gray100).
+    var dismissColor = MoaMapPrimitiveColors.gray200
     var confirmText = "확인"
     let onConfirm: () -> Void
     let onDismiss: () -> Void
@@ -36,7 +38,7 @@ struct MoaMapConfirmDialog: View {
                         .frame(maxWidth: .infinity)
                 }
                 HStack(spacing: 4) {
-                    button(dismissText, color: MoaMapPrimitiveColors.gray200, action: onDismiss)
+                    button(dismissText, color: dismissColor, action: onDismiss)
                     button(confirmText, color: MoaMapPrimitiveColors.blue500, action: onConfirm)
                 }
             }
