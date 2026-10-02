@@ -16,6 +16,11 @@ final class AppContainer {
     let mapDetailRepository: any MapDetailRepository
     let personalMapRepository: any PersonalMapRepository
     let placeReviewRepository: any PlaceReviewRepository
+    let placeSearchRepository: any PlaceSearchRepository
+    let placeAddRepository: any PlaceAddRepository
+    let mapMemberRepository: any MapMemberRepository
+    let mapActivityRepository: any MapActivityRepository
+    let pendingPlaceRepository: any PendingPlaceRepository
     let userRepository: any UserRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
@@ -27,6 +32,7 @@ final class AppContainer {
         kakaoLogin: @escaping () async throws -> String = { throw LoginError.notConfigured },
         appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
         kakaoLogout: @escaping () async throws -> Void = {},
+        kakaoRestAPIKey: String = "",
         transport: @escaping APIClient.Transport
     ) {
         self.tokenStore = tokenStore
@@ -47,6 +53,13 @@ final class AppContainer {
         collectionRepository = CollectionRepositoryImpl(client: apiClient)
         mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
         personalMapRepository = PersonalMapRepositoryImpl(client: apiClient)
+        mapMemberRepository = MapMemberRepositoryImpl(client: apiClient)
+        mapActivityRepository = MapActivityRepositoryImpl(client: apiClient, timeZone: .current)
+        pendingPlaceRepository = PendingPlaceRepositoryImpl(client: apiClient, timeZone: .current)
+        placeAddRepository = PlaceAddRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
+        // 카카오 로컬 API 는 우리 서버 인증을 붙이지 않는다.
+        let kakaoLocalClient = APIClient(configuration: Self.kakaoLocalConfiguration, transport: transport)
+        placeSearchRepository = KakaoPlaceSearchRepository(client: kakaoLocalClient, restAPIKey: kakaoRestAPIKey)
         placeReviewRepository = PlaceReviewRepositoryImpl(
             client: apiClient, uploader: PresignedImageUploader(transport: transport), timeZone: .current
         )
@@ -66,6 +79,8 @@ final class AppContainer {
         let appKey = (bundle.object(forInfoDictionaryKey: "KAKAO_NATIVE_APP_KEY") as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let isConfigured = !appKey.isEmpty && !appKey.contains("$(")
+        let restAPIKey = (bundle.object(forInfoDictionaryKey: "KAKAO_REST_API_KEY") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if isConfigured { KakaoSDK.initSDK(appKey: appKey) }
         let kakaoClient = KakaoAuthClient(
             isTalkAvailable: { UserApi.isKakaoTalkLoginAvailable() },
@@ -104,7 +119,8 @@ final class AppContainer {
                         if let error { continuation.resume(throwing: error) } else { continuation.resume() }
                     }
                 }
-            }
+            },
+            kakaoRestAPIKey: restAPIKey
         ) { request in
             try await session.data(for: request)
         }
@@ -130,7 +146,14 @@ final class AppContainer {
         MapDetailViewModels(
             main: MapDetailViewModel(mapID: mapID, repository: mapDetailRepository),
             personalMap: PersonalMapAddViewModel(repository: personalMapRepository),
-            review: PlaceReviewViewModel(repository: placeReviewRepository, currentUserStore: currentUserStore, now: Date.init)
+            review: PlaceReviewViewModel(repository: placeReviewRepository, currentUserStore: currentUserStore, now: Date.init),
+            addPlace: AddPlaceViewModel(
+                mapID: mapID, searchRepository: placeSearchRepository, addRepository: placeAddRepository,
+                sleep: { try await Task.sleep(for: $0) }
+            ),
+            member: MemberViewModel(mapID: mapID, repository: mapMemberRepository),
+            activity: MapActivityViewModel(mapID: mapID, repository: mapActivityRepository, now: Date.init),
+            pending: PendingRequestViewModel(mapID: mapID, repository: pendingPlaceRepository)
         )
     }
 
@@ -151,6 +174,9 @@ final class AppContainer {
             _ = AuthController.handleOpenUrl(url: url)
         }
     }
+
+    // 고정 주소라 실패할 수 없다.
+    private static let kakaoLocalConfiguration = try! APIConfiguration(infoDictionary: ["BASE_URL": "https://dapi.kakao.com/"])
 
     private nonisolated static func kakaoResult(accessToken: String?, error: (any Error)?) -> Result<String, any Error> {
         if let error {

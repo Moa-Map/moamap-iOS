@@ -204,6 +204,30 @@ struct MapDimensionToggle: View {
     }
 }
 
+/// 장소 추가. 참여하지 않은 지도에서는 누를 수 없다.
+struct AddPlaceButton: View {
+    @Environment(\.moaColors) private var colors
+
+    let enabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image("Icons/add")
+                .renderingMode(.template)
+                .resizable()
+                .frame(width: 32, height: 32)
+                .foregroundStyle(enabled ? colors.textWhite : MoaMapPrimitiveColors.gray50)
+                .padding(8)
+                .background(enabled ? MoaMapPrimitiveColors.blue500 : MoaMapPrimitiveColors.gray100, in: Circle())
+                .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .accessibilityLabel("장소 추가")
+    }
+}
+
 /// 내 위치로 이동. 좌표를 찾는 동안에는 눌리지 않는다. 연타로 조회가 겹치면 카메라가 두 번 튄다.
 struct MyLocationButton: View {
     @Environment(\.moaColors) private var colors
@@ -251,6 +275,8 @@ struct MyLocationButton: View {
         HStack(spacing: 40) {
             MyLocationButton(inProgress: false) {}
             MapDimensionToggle(is3D: false) {}
+            AddPlaceButton(enabled: true) {}
+            AddPlaceButton(enabled: false) {}
         }
     }
     .background(Color.gray.opacity(0.2))
