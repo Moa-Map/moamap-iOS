@@ -70,6 +70,40 @@ struct MapDetailView: View {
     }
 
     var body: some View {
+        observingChildren(screen)
+            .task {
+                if viewModel.uiState.map == .loading, viewModel.loadTask == nil { viewModel.retry() }
+                if locationProvider.authorization == .notDetermined {
+                    _ = await locationProvider.requestAuthorization()
+                }
+                permissionAnswered = true
+                settleCamera()
+            }
+            .sheet(isPresented: clusterSheetPresented) {
+                ClusterPlacesSheet(
+                    places: expandedClusterPlaces,
+                    showsReactions: !viewModel.uiState.isOfficial,
+                    onPlaceClick: selectPlace,
+                    onLikeClick: { viewModel.toggleLike(placeID: $0) }
+                )
+            }
+            .alert(alert?.title ?? "", isPresented: showsAlert, presenting: alert) { alert in
+                switch alert {
+                case .locationDenied:
+                    Button("설정 열기") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                    }
+                    Button("취소", role: .cancel) {}
+                case .locationUnavailable, .error:
+                    Button("확인", role: .cancel) {}
+                }
+            } message: { alert in
+                if let message = alert.message { Text(message) }
+            }
+    }
+
+    /// 상단바·지도와 그 위에 겹치는 화면들.
+    private var screen: some View {
         VStack(spacing: 0) {
             MapDetailTopBar(
                 title: title,
@@ -104,24 +138,31 @@ struct MapDetailView: View {
                 }
             }
         }
-        .overlay {
+        // 뒤에 둔 것이 위에 그려진다.
+        .overlay { overlays }
+        .moaSnackbar($notice)
+        .background(colors.backgroundSecondary)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    /// 지도 상세 위에 겹치는 시트·화면·팝업.
+    @ViewBuilder
+    private var overlays: some View {
+        ZStack {
             // 펼치면 상단바까지 덮는다.
             if selectedTab == .places { placeSheet }
-        }
-        .overlay {
+
             // 검색으로 목록에서 빠진 장소라도, 마커로 눌러 열어 둔 상세는 닫히면 안 된다.
             if let place = viewModel.uiState.places.first(where: { $0.id == selectedPlaceID }) {
                 // 장소마다 입력 중인 글과 사진을 새로 시작한다.
                 placeDetail(place).id(place.id)
             }
-        }
-        .overlay {
+
             // 지도를 아직 못 읽었으면 열지 않는다. 버튼 글씨가 지도 정보에 달려 있다.
             if addPlaceVisible, let map = viewModel.uiState.map.map {
                 AddPlaceView(viewModel: addPlaceViewModel, map: map, onClose: { addPlaceVisible = false })
             }
-        }
-        .overlay {
+
             if membersVisible, let map = viewModel.uiState.map.map {
                 MemberView(
                     viewModel: memberViewModel,
@@ -130,8 +171,7 @@ struct MapDetailView: View {
                     onBack: { membersVisible = false }
                 )
             }
-        }
-        .overlay {
+
             if manageVisible, let map = viewModel.uiState.map.map {
                 MapManageView(
                     activityViewModel: activityViewModel,
@@ -140,18 +180,15 @@ struct MapDetailView: View {
                     onBack: { manageVisible = false }
                 )
             }
-        }
-        .overlay(alignment: .topTrailing) {
+
             // 나가서 참여가 풀리면 메뉴도 함께 닫힌다.
             if menuVisible && viewModel.uiState.showsMenu { menu }
-        }
-        .overlay {
+
             // 나가기로 자격을 잃으면 같이 닫힌다.
             if inviteCodeVisible, let code = viewModel.uiState.inviteCode {
                 MapInviteCodeDialog(mapName: title, inviteCode: code) { inviteCodeVisible = false }
             }
-        }
-        .overlay {
+
             // 나갈 수 없는 상태가 되면 같이 닫힌다.
             if leaveDialogVisible, let outcome = viewModel.uiState.leaveOutcome {
                 MoaMapConfirmDialog(
@@ -166,75 +203,48 @@ struct MapDetailView: View {
                 )
             }
         }
-        .moaSnackbar($notice)
-        .background(colors.backgroundSecondary)
-        .toolbar(.hidden, for: .navigationBar)
-        .task {
-            if viewModel.uiState.map == .loading, viewModel.loadTask == nil { viewModel.retry() }
-            if locationProvider.authorization == .notDetermined {
-                _ = await locationProvider.requestAuthorization()
+    }
+
+    /// 다른 ViewModel 의 신호를 받아 지도 상세를 맞춘다.
+    private func observingChildren(_ content: some View) -> some View {
+        content
+            .onChange(of: viewModel.uiState.map) { settleCamera() }
+            .onChange(of: viewModel.uiState.errorMessage) { _, message in
+                if let message { alert = .error(message) }
             }
-            permissionAnswered = true
-            settleCamera()
-        }
-        .onChange(of: viewModel.uiState.map) { settleCamera() }
-        .onChange(of: viewModel.uiState.errorMessage) { _, message in
-            if let message { alert = .error(message) }
-        }
-        .sheet(isPresented: clusterSheetPresented) {
-            ClusterPlacesSheet(
-                places: expandedClusterPlaces,
-                showsReactions: !viewModel.uiState.isOfficial,
-                onPlaceClick: selectPlace,
-                onLikeClick: { viewModel.toggleLike(placeID: $0) }
-            )
-        }
-        .onChange(of: selectedPlaceID) { _, placeID in
-            // 나만의 지도 추가 안내와 댓글은 장소마다 새로 시작한다. 공식지도에는 댓글이 없다.
-            if let placeID {
-                personalMapViewModel.open(placeID: placeID)
-                if !viewModel.uiState.isOfficial { reviewViewModel.open(placeID: placeID) }
-            } else {
-                personalMapViewModel.close()
-                reviewViewModel.close()
-            }
-        }
-        .onChange(of: reviewViewModel.uiState.submittedCount + reviewViewModel.uiState.deletedCount) {
-            // 댓글 수가 달라졌다. 목록이 옛 값을 들고 있으면 안 된다.
-            viewModel.refresh()
-        }
-        // 등록 중에 화면을 닫아도 결과를 받도록 부모가 지켜본다.
-        .onChange(of: addPlaceViewModel.uiState.addedMessage) { _, message in
-            guard let message else { return }
-            addPlaceVisible = false
-            notice = message
-            // 장소 수가 늘었다. 상단과 시트 제목이 옛 값을 들고 있으면 안 된다.
-            viewModel.refresh()
-        }
-        .onChange(of: pendingViewModel.uiState.approvedCount) {
-            // 수락한 장소는 지도에 새로 떠야 한다.
-            viewModel.refresh()
-        }
-        .onChange(of: viewModel.uiState.isOfficial) { _, official in
-            if official { selectedTab = .places }
-        }
-        .onChange(of: viewModel.uiState.left) { _, left in
-            // 나간 뒤에는 멤버가 아니라 소개 화면이 남아 있으면 그쪽으로 돌아간다.
-            if left { onBack(false) }
-        }
-        .alert(alert?.title ?? "", isPresented: showsAlert, presenting: alert) { alert in
-            switch alert {
-            case .locationDenied:
-                Button("설정 열기") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+            .onChange(of: selectedPlaceID) { _, placeID in
+                // 나만의 지도 추가 안내와 댓글은 장소마다 새로 시작한다. 공식지도에는 댓글이 없다.
+                if let placeID {
+                    personalMapViewModel.open(placeID: placeID)
+                    if !viewModel.uiState.isOfficial { reviewViewModel.open(placeID: placeID) }
+                } else {
+                    personalMapViewModel.close()
+                    reviewViewModel.close()
                 }
-                Button("취소", role: .cancel) {}
-            case .locationUnavailable, .error:
-                Button("확인", role: .cancel) {}
             }
-        } message: { alert in
-            if let message = alert.message { Text(message) }
-        }
+            .onChange(of: reviewViewModel.uiState.submittedCount + reviewViewModel.uiState.deletedCount) {
+                // 댓글 수가 달라졌다. 목록이 옛 값을 들고 있으면 안 된다.
+                viewModel.refresh()
+            }
+            // 등록 중에 화면을 닫아도 결과를 받도록 부모가 지켜본다.
+            .onChange(of: addPlaceViewModel.uiState.addedMessage) { _, message in
+                guard let message else { return }
+                addPlaceVisible = false
+                notice = message
+                // 장소 수가 늘었다. 상단과 시트 제목이 옛 값을 들고 있으면 안 된다.
+                viewModel.refresh()
+            }
+            .onChange(of: pendingViewModel.uiState.approvedCount) {
+                // 수락한 장소는 지도에 새로 떠야 한다.
+                viewModel.refresh()
+            }
+            .onChange(of: viewModel.uiState.isOfficial) { _, official in
+                if official { selectedTab = .places }
+            }
+            .onChange(of: viewModel.uiState.left) { _, left in
+                // 나간 뒤에는 멤버가 아니라 소개 화면이 남아 있으면 그쪽으로 돌아간다.
+                if left { onBack(false) }
+            }
     }
 
     private var title: String { viewModel.uiState.map.map?.title ?? initialTitle }
