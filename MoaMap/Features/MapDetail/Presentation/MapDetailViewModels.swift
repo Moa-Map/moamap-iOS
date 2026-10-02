@@ -6,6 +6,7 @@ struct MapDetailViewModels {
     let main: MapDetailViewModel
     let personalMap: PersonalMapAddViewModel
     let review: PlaceReviewViewModel
+    let addPlace: AddPlaceViewModel
 }
 
 #if DEBUG
@@ -24,6 +25,24 @@ final class PreviewPlaceReviewRepository: PlaceReviewRepository {
     func deleteReview(placeID: Int64, reviewID: Int64) async throws {}
 }
 
+@MainActor
+final class PreviewPlaceSearchRepository: PlaceSearchRepository {
+    func search(query: String) async throws -> [PlaceCandidate] {
+        (1...3).map {
+            PlaceCandidate(
+                kakaoPlaceID: "\($0)", name: "커피나무 \($0)호점", address: "서울 동작구 상도동 \($0)",
+                roadAddress: "서울시 동작구 369", latitude: 37.4963, longitude: 126.9574, category: "음식점 > 카페", placeURL: nil
+            )
+        }
+    }
+}
+
+@MainActor
+final class PreviewPlaceAddRepository: PlaceAddRepository {
+    func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] { [] }
+    func addPlace(mapID: Int64, newPlace: NewPlace) async throws {}
+}
+
 nonisolated struct PreviewCurrentUserStore: CurrentUserStore {
     func load() throws -> Int64? { 1 }
     func save(userId: Int64) throws {}
@@ -37,6 +56,10 @@ extension MapDetailViewModels {
             personalMap: PersonalMapAddViewModel(repository: PreviewPersonalMapRepository()),
             review: PlaceReviewViewModel(
                 repository: PreviewPlaceReviewRepository(), currentUserStore: PreviewCurrentUserStore(), now: Date.init
+            ),
+            addPlace: AddPlaceViewModel(
+                mapID: mapID, searchRepository: PreviewPlaceSearchRepository(), addRepository: PreviewPlaceAddRepository(),
+                sleep: { try await Task.sleep(for: $0) }
             )
         )
     }

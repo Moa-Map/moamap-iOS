@@ -85,6 +85,9 @@ nonisolated extension MapDetail {
 
     /// 공식지도는 공공데이터라 사용자가 장소를 더하지 않는다.
     var canAddPlace: Bool { joined && (type == .private || type == .community) }
+
+    /// 버튼 글씨와 완료 안내만 고른다. 실제 등록 상태(승인 대기 여부)는 서버가 정한다.
+    var addsPlaceDirectly: Bool { type == .private || role == .owner || role == .admin }
 }
 
 nonisolated enum MapDetailAction: Sendable {
