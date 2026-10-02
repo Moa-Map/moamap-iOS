@@ -44,6 +44,22 @@ final class MapDetailRepositoryImpl: MapDetailRepository {
         try await client.sendWithoutResponse(request)
     }
 
+    func leaveMap(mapID: Int64) async throws {
+        let request = APIRequest(path: ["api", "v1", "maps", String(mapID), "members", "me"], method: .delete)
+        try await client.sendWithoutResponse(request)
+    }
+
+    func deleteMap(mapID: Int64) async throws {
+        let request = APIRequest(path: ["api", "v1", "maps", String(mapID)], method: .delete)
+        try await client.sendWithoutResponse(request)
+    }
+
+    func setPlaceLiked(placeID: Int64, liked: Bool) async throws -> PlaceLike {
+        let request = APIRequest(path: ["api", "v1", "places", String(placeID), "likes"], method: liked ? .post : .delete)
+        let response = try await client.send(request, as: PlaceLikeResponse.self)
+        return PlaceLike(liked: response.liked ?? liked, likeCount: response.likeCount ?? 0)
+    }
+
     /// 곁들이는 정보라 실패를 삼킨다. 이름 한 줄 때문에 지도를 못 여는 게 더 나쁘다.
     private func fetchOwnerName(_ ownerID: Int64?) async throws -> String? {
         guard let ownerID, ownerID > 0 else { return nil }

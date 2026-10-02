@@ -26,7 +26,7 @@ struct ContentView: View {
                     makeProfileEditViewModel: container.makeProfileEditViewModel,
                     makeCommunityMapListViewModel: container.makeCommunityMapListViewModel,
                     makeMapIntroViewModel: container.makeMapIntroViewModel(mapID:),
-                    makeMapDetailViewModel: container.makeMapDetailViewModel(mapID:),
+                    makeMapDetailViewModels: container.makeMapDetailViewModels(mapID:),
                     locationProvider: container.locationProvider,
                     onLoggedOut: { loginViewModel.returnToLogin() }
                 )

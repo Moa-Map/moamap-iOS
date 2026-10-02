@@ -12,18 +12,23 @@ nonisolated enum MapDetailTab: CaseIterable, Sendable {
     }
 }
 
-/// 지도 상세 상단바. 참여 전에는 우측에 참여하기가 뜬다.
+/// 지도 상세 상단바. 우측은 참여 전에는 참여하기, 참여한 뒤에는 메뉴다.
 struct MapDetailTopBar: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
     let title: String
     let roleBadge: String?
-    let showsJoin: Bool
+    let action: MapDetailAction
+    let showsMenu: Bool
+    /// nil 이면 초대코드 버튼을 띄우지 않는다.
+    let inviteCode: String?
     /// 요청이 도는 동안 잠근다. 라벨은 그대로 두고 누를 수만 없게 한다.
-    let joinEnabled: Bool
+    let actionEnabled: Bool
     let onBack: () -> Void
-    let onJoin: () -> Void
+    let onAction: () -> Void
+    var onInviteCode: () -> Void = {}
+    var onMenu: () -> Void = {}
 
     var body: some View {
         ZStack {
@@ -42,10 +47,10 @@ struct MapDetailTopBar: View {
                         .overlay { Capsule().strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 1) }
                 }
             }
-            // 좌우 버튼과 겹치지 않도록 안쪽으로 밀어 둔다.
-            .padding(.horizontal, 72)
+            // 좌우 버튼과 겹치지 않도록 안쪽으로 밀어 둔다. 초대코드가 붙으면 그만큼 더 민다.
+            .padding(.horizontal, inviteCode == nil ? 72 : 132)
 
-            HStack {
+            HStack(spacing: 12) {
                 Button(action: onBack) {
                     Image("Icons/arrow-left")
                         .renderingMode(.template)
@@ -58,22 +63,78 @@ struct MapDetailTopBar: View {
                 .accessibilityLabel("뒤로가기")
                 .padding(.leading, 6)
                 Spacer()
-                if showsJoin {
-                    Button(action: onJoin) {
-                        Text("참여하기")
-                            .moaTextStyle(typography.button2)
-                            .foregroundStyle(joinEnabled ? MoaMapPrimitiveColors.blue600 : colors.textDisable)
-                            .frame(minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .disabled(!joinEnabled)
-                    .padding(.trailing, 20)
+                if inviteCode != nil {
+                    textAction("초대코드", color: MoaMapPrimitiveColors.blue600, enabled: true, action: onInviteCode)
                 }
+                trailingAction
             }
+            .padding(.trailing, 20)
             .buttonStyle(.plain)
         }
         .frame(height: 58)
         .background(colors.backgroundSecondary)
+    }
+
+    @ViewBuilder
+    private var trailingAction: some View {
+        if action == .join {
+            textAction("참여하기", color: MoaMapPrimitiveColors.blue600, enabled: actionEnabled, action: onAction)
+        } else if showsMenu {
+            // 나가기가 도는 동안에도 잠근다. 메뉴를 다시 열어 두 번 누를 수 없게 한다.
+            Button(action: onMenu) {
+                Image("Icons/menu")
+                    .renderingMode(.template)
+                    .resizable()
+                    .frame(width: 32, height: 32)
+                    .foregroundStyle(actionEnabled ? colors.textNormal : colors.textDisable)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .disabled(!actionEnabled)
+            .accessibilityLabel("지도 메뉴")
+        } else if action == .leave {
+            textAction("나가기", color: colors.statusAlert, enabled: actionEnabled, action: onAction)
+        }
+    }
+
+    private func textAction(_ label: String, color: Color, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .moaTextStyle(typography.button2)
+                .foregroundStyle(enabled ? color : colors.textDisable)
+                .lineLimit(1)
+                .fixedSize()
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .disabled(!enabled)
+    }
+}
+
+/// 상단바 메뉴. 나갈 수 없는 사람에게는 나가기 줄을 넣지 않는다.
+struct MapDetailMenu: View {
+    let canLeave: Bool
+    let onMembers: () -> Void
+    let onManage: () -> Void
+    let onLeave: () -> Void
+
+    var body: some View {
+        var items = [
+            ActionMenuItem(icon: "person", label: "멤버 관리", action: onMembers),
+            ActionMenuItem(icon: "map", label: "지도 관리", action: onManage)
+        ]
+        if canLeave { items.append(ActionMenuItem(icon: "out", label: "나가기", action: onLeave)) }
+        return ActionMenu(items: items)
+    }
+}
+
+nonisolated extension LeaveOutcome {
+    var confirmMessage: String {
+        switch self {
+        case .leave: "나가시면 모음 탭에서 지도가 사라집니다"
+        case .leaveNeedsInviteCode: "나가시면 모음 탭에서 지도가 사라집니다\n다시 들어오려면 초대코드가 필요합니다"
+        case .deleteMap: "혼자 남은 지도라 나가면 지도가 삭제됩니다\n되돌릴 수 없습니다"
+        }
     }
 }
 
@@ -169,8 +230,23 @@ struct MyLocationButton: View {
 
 #Preview {
     VStack(spacing: 20) {
-        MapDetailTopBar(title: "서울 데이트 지도", roleBadge: "방장", showsJoin: false, joinEnabled: true, onBack: {}, onJoin: {})
-        MapDetailTopBar(title: "성수 카페 투어", roleBadge: nil, showsJoin: true, joinEnabled: true, onBack: {}, onJoin: {})
+        MapDetailTopBar(
+            title: "서울 데이트 지도", roleBadge: "방장", action: .leaveDisabled, showsMenu: true,
+            inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
+        )
+        MapDetailTopBar(
+            title: "성수 카페 투어", roleBadge: nil, action: .join, showsMenu: false,
+            inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
+        )
+        MapDetailTopBar(
+            title: "우리끼리만 아는 성수동 맛집 모음", roleBadge: nil, action: .leave, showsMenu: true,
+            inviteCode: "A1B2C3", actionEnabled: true, onBack: {}, onAction: {}
+        )
+        MapDetailTopBar(
+            title: "서울 무장애 여행지", roleBadge: nil, action: .leave, showsMenu: false,
+            inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
+        )
+        MapDetailMenu(canLeave: true, onMembers: {}, onManage: {}, onLeave: {})
         MapDetailTabBar(selection: .places) { _ in }.padding(.horizontal, 20)
         HStack(spacing: 40) {
             MyLocationButton(inProgress: false) {}

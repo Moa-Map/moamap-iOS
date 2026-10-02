@@ -14,6 +14,9 @@ nonisolated enum MapLoadState: Equatable, Sendable {
 nonisolated enum MapDetailMessage {
     static let loadFailed = "지도를 불러오지 못했어요"
     static let joinFailed = "지도에 참여하지 못했어요"
+    static let leaveFailed = "지도에서 나가지 못했어요"
+    static let likeFailed = "하트를 반영하지 못했어요"
+    static let likeNeedsJoin = "지도에 참여하면 하트를 누를 수 있어요"
 
     /// 서버 원문은 내보내지 않는다. 연결 실패만 따로 안내한다.
     static func userMessage(for error: any Error, fallback: String) -> String {

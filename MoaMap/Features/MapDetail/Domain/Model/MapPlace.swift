@@ -18,3 +18,16 @@ nonisolated struct MapPlace: Identifiable, Equatable, Sendable {
     var likeCount = 0
     var liked = false
 }
+
+nonisolated extension MapPlace {
+    /// 분류 경로의 마지막 토막. `"커피전문점"`
+    var categoryLabel: String {
+        category.split(separator: ">").last?.trimmingCharacters(in: .whitespaces) ?? ""
+    }
+}
+
+/// 하트를 누르거나 취소한 뒤 서버가 확정한 상태.
+nonisolated struct PlaceLike: Equatable, Sendable {
+    let liked: Bool
+    let likeCount: Int
+}

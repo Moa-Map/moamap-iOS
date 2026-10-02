@@ -31,6 +31,29 @@ nonisolated enum PlaceCategoryGroup: CaseIterable, Sendable {
         (["의료,건강", "약국"], .pharmacy)
     ]
 
+    var label: String {
+        switch self {
+        case .mart: "대형마트"
+        case .convenienceStore: "편의점"
+        case .childcare: "어린이집·유치원"
+        case .school: "학교"
+        case .academy: "학원"
+        case .parking: "주차장"
+        case .gasStation: "주유소"
+        case .subway: "지하철역"
+        case .bank: "은행"
+        case .culture: "문화시설"
+        case .realEstate: "중개업소"
+        case .publicOffice: "공공기관"
+        case .attraction: "관광명소"
+        case .lodging: "숙박"
+        case .restaurant: "음식점"
+        case .cafe: "카페"
+        case .hospital: "병원"
+        case .pharmacy: "약국"
+        }
+    }
+
     /// `"음식점 > 카페 > 커피전문점"` 같은 경로가 속한 그룹. 어디에도 들지 않으면 nil.
     init?(categoryPath: String) {
         let segments = categoryPath.split(separator: ">").map { $0.trimmingCharacters(in: .whitespaces) }

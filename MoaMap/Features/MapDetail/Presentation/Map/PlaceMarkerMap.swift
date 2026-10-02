@@ -8,6 +8,8 @@ struct PlaceMarkerMap: View {
     /// 미리보기처럼 되돌릴 버튼이 없는 화면에서는 회전과 기울기를 닫는다.
     var allowsRotation = true
     var shows3DObjects = false
+    /// 지도 아래를 덮는 시트 높이. 로고와 저작권 표시를 그 위로 올린다.
+    var ornamentBottomInset: CGFloat = 0
     var onCameraChanged: ((CameraState) -> Void)?
     var onMarkerTap: ((Int64) -> Void)?
     var onClusterTap: ((MarkerCluster) -> Void)?
@@ -30,7 +32,9 @@ struct PlaceMarkerMap: View {
             // 축척과 나침반은 띄우지 않는다. 로고와 저작권 표시는 약관상 남긴다.
             .ornamentOptions(OrnamentOptions(
                 scaleBar: ScaleBarViewOptions(visibility: .hidden),
-                compass: CompassViewOptions(visibility: .hidden)
+                compass: CompassViewOptions(visibility: .hidden),
+                logo: LogoViewOptions(margins: CGPoint(x: 8, y: 8 + ornamentBottomInset)),
+                attributionButton: AttributionButtonOptions(margins: CGPoint(x: 8, y: 8 + ornamentBottomInset))
             ))
             .gestureOptions(GestureOptions(rotateEnabled: allowsRotation, pitchEnabled: allowsRotation))
             .onCameraChanged { event in
