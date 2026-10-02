@@ -13,6 +13,7 @@ final class AppContainer {
     let sessionEvents: SessionEvents
     let authRepository: any AuthRepository
     let exploreRepository: any ExploreRepository
+    let officialMapRepository: any OfficialMapRepository
     let mapDetailRepository: any MapDetailRepository
     let personalMapRepository: any PersonalMapRepository
     let placeReviewRepository: any PlaceReviewRepository
@@ -50,6 +51,7 @@ final class AppContainer {
             tokenStore: tokenStore, currentUserStore: currentUserStore
         )
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
+        officialMapRepository = OfficialMapRepositoryImpl(client: apiClient)
         collectionRepository = CollectionRepositoryImpl(client: apiClient)
         mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
         personalMapRepository = PersonalMapRepositoryImpl(client: apiClient)
@@ -136,6 +138,10 @@ final class AppContainer {
 
     func makeCommunityMapListViewModel() -> CommunityMapListViewModel {
         CommunityMapListViewModel(repository: exploreRepository)
+    }
+
+    func makeOfficialMapListViewModel() -> OfficialMapListViewModel {
+        OfficialMapListViewModel(repository: officialMapRepository)
     }
 
     func makeMapIntroViewModel(mapID: Int64) -> MapIntroViewModel {

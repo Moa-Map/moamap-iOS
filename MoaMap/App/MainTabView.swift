@@ -5,6 +5,7 @@ private enum MainRoute: Hashable {
     case profileEdit
     case settings
     case communityMaps
+    case officialMaps
     case mapIntro(mapID: Int64)
     case mapDetail(mapID: Int64, title: String)
 }
@@ -21,6 +22,7 @@ struct MainTabView: View {
     private let makeSettingsViewModel: () -> SettingsViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
+    private let makeOfficialMapListViewModel: () -> OfficialMapListViewModel
     private let makeMapIntroViewModel: (Int64) -> MapIntroViewModel
     private let makeMapDetailViewModels: (Int64) -> MapDetailViewModels
     private let locationProvider: any LocationProvider
@@ -32,6 +34,7 @@ struct MainTabView: View {
         makeSettingsViewModel: @escaping () -> SettingsViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
+        makeOfficialMapListViewModel: @escaping () -> OfficialMapListViewModel,
         makeMapIntroViewModel: @escaping (Int64) -> MapIntroViewModel,
         makeMapDetailViewModels: @escaping (Int64) -> MapDetailViewModels,
         locationProvider: any LocationProvider,
@@ -42,6 +45,7 @@ struct MainTabView: View {
         self.makeSettingsViewModel = makeSettingsViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
+        self.makeOfficialMapListViewModel = makeOfficialMapListViewModel
         self.makeMapIntroViewModel = makeMapIntroViewModel
         self.makeMapDetailViewModels = makeMapDetailViewModels
         self.locationProvider = locationProvider
@@ -56,6 +60,7 @@ struct MainTabView: View {
                     onProfileClick: { explorePath.append(.profileEdit) },
                     onSettingsClick: { explorePath.append(.settings) },
                     onSeeAllCommunityMapsClick: { explorePath.append(.communityMaps) },
+                    onOfficialMapsClick: { explorePath.append(.officialMaps) },
                     onMapClick: { explorePath.append(.map($0)) }
                 )
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $explorePath) }
@@ -99,6 +104,10 @@ struct MainTabView: View {
             SettingsView(viewModel: makeSettingsViewModel(), onLoggedOut: onLoggedOut)
         case .communityMaps:
             CommunityMapListView(viewModel: makeCommunityMapListViewModel()) { path.wrappedValue.append(.map($0)) }
+        case .officialMaps:
+            OfficialMapListView(viewModel: makeOfficialMapListViewModel()) {
+                path.wrappedValue.append(.map(id: $0.id, title: $0.title, joined: $0.joined))
+            }
         case .mapIntro(let mapID):
             MapIntroView(
                 viewModel: makeMapIntroViewModel(mapID),
@@ -128,7 +137,11 @@ struct MainTabView: View {
 private extension MainRoute {
     /// 참여한 지도는 소개를 다시 볼 이유가 없어 바로 상세로 간다.
     static func map(_ map: MapSummary) -> MainRoute {
-        map.joined ? .mapDetail(mapID: map.id, title: map.title) : .mapIntro(mapID: map.id)
+        .map(id: map.id, title: map.title, joined: map.joined)
+    }
+
+    static func map(id: Int64, title: String, joined: Bool) -> MainRoute {
+        joined ? .mapDetail(mapID: id, title: title) : .mapIntro(mapID: id)
     }
 }
 
@@ -148,6 +161,7 @@ private final class PreviewLocationProvider: LocationProvider {
         makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
+        makeOfficialMapListViewModel: { OfficialMapListViewModel(repository: PreviewOfficialMapRepository()) },
         makeMapIntroViewModel: { MapIntroViewModel(mapID: $0, repository: PreviewMapDetailRepository()) },
         makeMapDetailViewModels: { MapDetailViewModels.preview(mapID: $0) },
         locationProvider: PreviewLocationProvider(),
