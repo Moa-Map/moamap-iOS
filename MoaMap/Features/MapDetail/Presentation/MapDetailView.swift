@@ -9,6 +9,7 @@ struct MapDetailView: View {
     @State private var viewModel: MapDetailViewModel
     @State private var personalMapViewModel: PersonalMapAddViewModel
     @State private var reviewViewModel: PlaceReviewViewModel
+    @State private var addPlaceViewModel: AddPlaceViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
     private let initialTitle: String
@@ -24,6 +25,7 @@ struct MapDetailView: View {
         _viewModel = State(initialValue: viewModels.main)
         _personalMapViewModel = State(initialValue: viewModels.personalMap)
         _reviewViewModel = State(initialValue: viewModels.review)
+        _addPlaceViewModel = State(initialValue: viewModels.addPlace)
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
         self.onBack = onBack
@@ -49,6 +51,9 @@ struct MapDetailView: View {
     /// 펼친 묶음 마커의 장소. 비어 있으면 목록을 띄우지 않는다.
     @State private var expandedClusterIDs: [Int64] = []
     @State private var selectedPlaceID: Int64?
+    @State private var addPlaceVisible = false
+    /// 장소 등록 완료처럼 지도 위에 잠깐 띄우는 안내.
+    @State private var notice: String?
 
     private static let pitch3D: CGFloat = 55
     /// 마커를 맞출 때 가장자리 여백. 위는 탭 바, 아래는 접힌 시트를 피한다.
@@ -102,6 +107,22 @@ struct MapDetailView: View {
                 placeDetail(place).id(place.id)
             }
         }
+        .overlay {
+            // 지도를 아직 못 읽었으면 열지 않는다. 버튼 글씨가 지도 정보에 달려 있다.
+            if addPlaceVisible, let map = viewModel.uiState.map.map {
+                AddPlaceView(
+                    viewModel: addPlaceViewModel,
+                    map: map,
+                    onClose: { addPlaceVisible = false },
+                    onAdded: { message in
+                        addPlaceVisible = false
+                        notice = message
+                        // 장소 수가 늘었다. 상단과 시트 제목이 옛 값을 들고 있으면 안 된다.
+                        viewModel.refresh()
+                    }
+                )
+            }
+        }
         .overlay(alignment: .topTrailing) {
             // 나가서 참여가 풀리면 메뉴도 함께 닫힌다.
             if menuVisible && viewModel.uiState.showsMenu { menu }
@@ -127,6 +148,7 @@ struct MapDetailView: View {
                 )
             }
         }
+        .moaSnackbar($notice)
         .background(colors.backgroundSecondary)
         .toolbar(.hidden, for: .navigationBar)
         .task {
@@ -314,7 +336,14 @@ struct MapDetailView: View {
             HStack(alignment: .bottom) {
                 MyLocationButton(inProgress: locating, action: moveToMyLocation)
                 Spacer()
-                MapDimensionToggle(is3D: is3D, onToggle: toggle3D)
+                VStack(alignment: .trailing, spacing: 12) {
+                    MapDimensionToggle(is3D: is3D, onToggle: toggle3D)
+                    AddPlaceButton(enabled: viewModel.uiState.canAddPlace) {
+                        // 닫아도 ViewModel 은 살아남는다. 지우지 않으면 직전에 등록한 장소의 폼이 보인다.
+                        addPlaceViewModel.reset()
+                        addPlaceVisible = true
+                    }
+                }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, sheetCollapsedHeight + 16)

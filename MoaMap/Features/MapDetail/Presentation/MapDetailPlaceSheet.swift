@@ -70,6 +70,9 @@ struct MapDetailPlaceSheet: View {
         .frame(height: height, alignment: .top)
         .frame(maxWidth: .infinity)
         .clipped()
+        // 빈 곳을 누르면 키보드를 내린다.
+        .contentShape(Rectangle())
+        .onTapGesture { searchFocused = false }
         .background(alignment: .top) {
             UnevenRoundedRectangle(topLeadingRadius: 38, topTrailingRadius: 38)
                 .fill(colors.backgroundSecondary)
