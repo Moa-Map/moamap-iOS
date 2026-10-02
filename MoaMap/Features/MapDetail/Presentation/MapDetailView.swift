@@ -46,7 +46,7 @@ struct MapDetailView: View {
                 title: viewModel.uiState.map.map?.title ?? initialTitle,
                 roleBadge: viewModel.uiState.roleBadge,
                 showsJoin: viewModel.uiState.canJoin,
-                joinEnabled: !viewModel.uiState.joining,
+                joinEnabled: !viewModel.uiState.actionInProgress,
                 onBack: { onBack(viewModel.uiState.joinedHere) },
                 onJoin: { viewModel.join() }
             )

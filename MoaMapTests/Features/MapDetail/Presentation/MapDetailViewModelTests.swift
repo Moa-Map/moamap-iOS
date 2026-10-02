@@ -78,9 +78,9 @@ struct MapDetailViewModelTests {
 
         repository.detail = { MapDetail.fixture(id: $0, joined: true) }
         sut.join()
-        #expect(sut.uiState.joining)
-        await sut.joinTask?.value
-        #expect(!sut.uiState.joining)
+        #expect(sut.uiState.actionInProgress)
+        await sut.actionTask?.value
+        #expect(!sut.uiState.actionInProgress)
         #expect(sut.uiState.joinedHere)
         #expect(!sut.uiState.canJoin)
         #expect(repository.detailCalls == 2)
@@ -94,7 +94,7 @@ struct MapDetailViewModelTests {
         sut.join()
         sut.join()
         await release.open()
-        await sut.joinTask?.value
+        await sut.actionTask?.value
         #expect(repository.joinCalls == 1)
     }
 
@@ -103,11 +103,126 @@ struct MapDetailViewModelTests {
         repository.join = { _ in throw NetworkError.connection(.notConnectedToInternet) }
         let sut = MapDetailViewModel(mapID: 7, repository: repository)
         sut.join()
-        await sut.joinTask?.value
-        #expect(!sut.uiState.joining)
+        await sut.actionTask?.value
+        #expect(!sut.uiState.actionInProgress)
         #expect(!sut.uiState.joinedHere)
         #expect(sut.uiState.errorMessage == "네트워크에 연결할 수 없어요")
         sut.consumeErrorMessage()
         #expect(sut.uiState.errorMessage == nil)
+    }
+
+    @Test func 나가면_이전_화면으로_돌아가라는_신호를_남긴다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: true, role: .member) }
+        let sut = await loaded(repository)
+        sut.leave()
+        await sut.actionTask?.value
+        #expect(repository.leaveCalls == 1)
+        #expect(repository.deleteCalls == 0)
+        #expect(sut.uiState.left)
+    }
+
+    @Test func 프라이빗_지도에_혼자_남은_방장이_나가면_지도를_삭제한다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: true, type: .private, role: .owner) }
+        let sut = await loaded(repository)
+        #expect(sut.uiState.leaveOutcome == .deleteMap)
+        sut.leave()
+        await sut.actionTask?.value
+        #expect(repository.deleteCalls == 1)
+        #expect(repository.leaveCalls == 0)
+    }
+
+    @Test func 나갈_수_없는_방장은_요청을_보내지_않는다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: true, role: .owner) }
+        let sut = await loaded(repository)
+        sut.leave()
+        #expect(sut.actionTask == nil)
+        #expect(repository.leaveCalls + repository.deleteCalls == 0)
+    }
+
+    @Test func 공식지도는_나가도_화면에_남아_상세를_다시_읽는다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: true, type: .official, role: .member) }
+        let sut = await loaded(repository)
+        #expect(sut.uiState.showsLeaveButton)
+        repository.detail = { MapDetail.fixture(id: $0, type: .official) }
+        sut.leave()
+        await sut.actionTask?.value
+        #expect(!sut.uiState.left)
+        #expect(sut.uiState.canJoin)
+    }
+
+    @Test func 나가기에_실패하면_안내하고_잠금을_푼다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: true, role: .member) }
+        repository.leave = { _ in throw NetworkError.server(code: "MAP_001", statusCode: 400) }
+        let sut = await loaded(repository)
+        sut.leave()
+        await sut.actionTask?.value
+        #expect(!sut.uiState.actionInProgress)
+        #expect(!sut.uiState.left)
+        #expect(sut.uiState.errorMessage == "지도에서 나가지 못했어요")
+    }
+
+    @Test func 하트는_바로_반영하고_서버_값으로_확정한다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: true, role: .member) }
+        repository.places = { _ in [MapPlace.fixture(id: 1)] }
+        repository.like = { _, liked in PlaceLike(liked: liked, likeCount: 5) }
+        let sut = await loaded(repository)
+        sut.toggleLike(placeID: 1)
+        #expect(sut.uiState.places[0].liked)
+        #expect(sut.uiState.places[0].likeCount == 1)
+        await sut.likeTask?.value
+        #expect(sut.uiState.places[0].likeCount == 5)
+    }
+
+    @Test func 하트_요청이_실패하면_되돌린다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: true, role: .member) }
+        repository.places = { _ in [MapPlace.fixture(id: 1)] }
+        repository.like = { _, _ in throw NetworkError.http(statusCode: 500) }
+        let sut = await loaded(repository)
+        sut.toggleLike(placeID: 1)
+        await sut.likeTask?.value
+        #expect(!sut.uiState.places[0].liked)
+        #expect(sut.uiState.places[0].likeCount == 0)
+        #expect(sut.uiState.errorMessage == "하트를 반영하지 못했어요")
+    }
+
+    @Test func 같은_장소의_하트는_응답_전에_다시_보내지_않는다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: true, role: .member) }
+        repository.places = { _ in [MapPlace.fixture(id: 1)] }
+        let release = AsyncGate()
+        repository.like = { _, liked in
+            await release.wait()
+            return PlaceLike(liked: liked, likeCount: 1)
+        }
+        let sut = await loaded(repository)
+        sut.toggleLike(placeID: 1)
+        sut.toggleLike(placeID: 1)
+        await release.open()
+        await sut.likeTask?.value
+        #expect(repository.likeCalls == 1)
+        #expect(sut.uiState.places[0].liked)
+    }
+
+    @Test func 참여하지_않은_지도의_하트는_안내만_한다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.places = { _ in [MapPlace.fixture(id: 1)] }
+        let sut = await loaded(repository)
+        sut.toggleLike(placeID: 1)
+        #expect(repository.likeCalls == 0)
+        #expect(sut.uiState.errorMessage == "지도에 참여하면 하트를 누를 수 있어요")
+    }
+
+    private func loaded(_ repository: MapDetailRepositoryStub) async -> MapDetailViewModel {
+        let sut = MapDetailViewModel(mapID: 7, repository: repository)
+        sut.retry()
+        await sut.loadTask?.value
+        return sut
     }
 }

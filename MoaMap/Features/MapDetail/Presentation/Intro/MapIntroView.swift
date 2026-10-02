@@ -230,6 +230,11 @@ final class PreviewMapDetailRepository: MapDetailRepository {
     }
 
     func joinMap(mapID: Int64) async throws {}
+    func leaveMap(mapID: Int64) async throws {}
+    func deleteMap(mapID: Int64) async throws {}
+    func setPlaceLiked(placeID: Int64, liked: Bool) async throws -> PlaceLike {
+        PlaceLike(liked: liked, likeCount: liked ? 1 : 0)
+    }
 }
 
 #Preview {

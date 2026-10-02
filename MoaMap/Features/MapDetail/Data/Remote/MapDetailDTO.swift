@@ -37,6 +37,11 @@ nonisolated struct PlaceResponse: Decodable, Sendable {
     let photoUrls: [String]?
 }
 
+nonisolated struct PlaceLikeResponse: Decodable, Sendable {
+    let likeCount: Int?
+    let liked: Bool?
+}
+
 nonisolated struct UserProfileResponse: Decodable, Sendable {
     let id: Int64?
     let nickname: String?

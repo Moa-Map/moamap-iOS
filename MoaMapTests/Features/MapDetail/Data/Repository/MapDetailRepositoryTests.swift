@@ -96,6 +96,33 @@ struct MapDetailRepositoryTests {
         try await sut.joinMap(mapID: 7)
     }
 
+    @Test func 나가기는_내_멤버십을_DELETE_한다() async throws {
+        let sut = try repository(responses: { _ in #"{"success":true}"# }) { request in
+            #expect(request.httpMethod == "DELETE")
+            #expect(request.url?.path == "/api/v1/maps/7/members/me")
+        }
+        try await sut.leaveMap(mapID: 7)
+    }
+
+    @Test func 지도_삭제는_지도를_DELETE_한다() async throws {
+        let sut = try repository(responses: { _ in #"{"success":true}"# }) { request in
+            #expect(request.httpMethod == "DELETE")
+            #expect(request.url?.path == "/api/v1/maps/7")
+        }
+        try await sut.deleteMap(mapID: 7)
+    }
+
+    @Test(arguments: [(true, "POST"), (false, "DELETE")])
+    func 하트는_누르면_POST_취소하면_DELETE_한다(liked: Bool, method: String) async throws {
+        let sut = try repository(responses: { _ in
+            #"{"success":true,"data":{"placeId":3,"likeCount":4,"liked":\#(liked)}}"#
+        }) { request in
+            #expect(request.httpMethod == method)
+            #expect(request.url?.path == "/api/v1/places/3/likes")
+        }
+        #expect(try await sut.setPlaceLiked(placeID: 3, liked: liked) == PlaceLike(liked: liked, likeCount: 4))
+    }
+
     @Test func 상세_조회_오류를_전파한다() async throws {
         let sut = try repository { _ in nil }
         await #expect(throws: NetworkError.self) { try await sut.fetchMapDetail(mapID: 7) }
