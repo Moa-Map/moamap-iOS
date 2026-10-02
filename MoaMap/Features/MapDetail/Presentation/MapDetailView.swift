@@ -35,6 +35,9 @@ struct MapDetailView: View {
     @State private var currentZoom: Double?
     @State private var locating = false
     @State private var alert: MapDetailAlert?
+    @State private var menuVisible = false
+    @State private var inviteCodeVisible = false
+    @State private var leaveDialogVisible = false
 
     private static let pitch3D: CGFloat = 55
     /// 마커를 맞출 때 가장자리 여백. 위는 탭 바를 피한다.
@@ -43,12 +46,19 @@ struct MapDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             MapDetailTopBar(
-                title: viewModel.uiState.map.map?.title ?? initialTitle,
+                title: title,
                 roleBadge: viewModel.uiState.roleBadge,
-                showsJoin: viewModel.uiState.canJoin,
-                joinEnabled: !viewModel.uiState.actionInProgress,
+                action: viewModel.uiState.map.map?.topBarAction ?? .none,
+                showsMenu: viewModel.uiState.showsMenu,
+                inviteCode: viewModel.uiState.inviteCode,
+                actionEnabled: !viewModel.uiState.actionInProgress,
                 onBack: { onBack(viewModel.uiState.joinedHere) },
-                onJoin: { viewModel.join() }
+                onAction: {
+                    // 메뉴가 없는 공식지도의 나가기도 같은 확인을 거친다.
+                    if viewModel.uiState.canJoin { viewModel.join() } else { leaveDialogVisible = true }
+                },
+                onInviteCode: { inviteCodeVisible = true },
+                onMenu: { menuVisible = true }
             )
             ZStack(alignment: .top) {
                 // 로그 탭에 가도 지도를 내리지 않는다. 다시 만들면 보던 카메라 자리를 잃는다.
@@ -65,6 +75,31 @@ struct MapDetailView: View {
                     .padding(.top, 16)
             }
         }
+        .overlay(alignment: .topTrailing) {
+            // 나가서 참여가 풀리면 메뉴도 함께 닫힌다.
+            if menuVisible && viewModel.uiState.showsMenu { menu }
+        }
+        .overlay {
+            // 나가기로 자격을 잃으면 같이 닫힌다.
+            if inviteCodeVisible, let code = viewModel.uiState.inviteCode {
+                MapInviteCodeDialog(mapName: title, inviteCode: code) { inviteCodeVisible = false }
+            }
+        }
+        .overlay {
+            // 나갈 수 없는 상태가 되면 같이 닫힌다.
+            if leaveDialogVisible, let outcome = viewModel.uiState.leaveOutcome {
+                MoaMapConfirmDialog(
+                    title: title,
+                    titleSuffix: "에서 나가시겠습니까?",
+                    message: outcome.confirmMessage,
+                    onConfirm: {
+                        leaveDialogVisible = false
+                        viewModel.leave()
+                    },
+                    onDismiss: { leaveDialogVisible = false }
+                )
+            }
+        }
         .background(colors.backgroundSecondary)
         .toolbar(.hidden, for: .navigationBar)
         .task {
@@ -79,17 +114,45 @@ struct MapDetailView: View {
         .onChange(of: viewModel.uiState.errorMessage) { _, message in
             if let message { alert = .error(message) }
         }
+        .onChange(of: viewModel.uiState.left) { _, left in
+            // 나간 뒤에는 멤버가 아니라 소개 화면이 남아 있으면 그쪽으로 돌아간다.
+            if left { onBack(false) }
+        }
         .alert(alert?.title ?? "", isPresented: showsAlert, presenting: alert) { alert in
-            if alert == .locationDenied {
+            switch alert {
+            case .locationDenied:
                 Button("설정 열기") {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }
                 Button("취소", role: .cancel) {}
-            } else {
+            case .locationUnavailable, .error:
                 Button("확인", role: .cancel) {}
             }
         } message: { alert in
             if let message = alert.message { Text(message) }
+        }
+    }
+
+    private var title: String { viewModel.uiState.map.map?.title ?? initialTitle }
+
+    private var menu: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { menuVisible = false }
+                .accessibilityHidden(true)
+            MapDetailMenu(
+                canLeave: viewModel.uiState.canLeave,
+                onMembers: { menuVisible = false },
+                onManage: { menuVisible = false },
+                onLeave: {
+                    menuVisible = false
+                    leaveDialogVisible = true
+                }
+            )
+            .padding(.top, 58)
+            .padding(.trailing, MoaMapDimens.screenHorizontalPadding)
+            .accessibilityAction(.escape) { menuVisible = false }
         }
     }
 

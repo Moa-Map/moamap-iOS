@@ -22,8 +22,6 @@ nonisolated struct MapDetailUiState: Equatable, Sendable {
     var inviteCode: String? { map.map?.shareableInviteCode }
     var canAddPlace: Bool { map.map?.canAddPlace ?? false }
     var isOfficial: Bool { map.map?.type == .official }
-    /// 메뉴가 없는 공식지도는 상단바에 나가기 글자를 둔다.
-    var showsLeaveButton: Bool { isOfficial && map.map?.topBarAction == .leave }
 }
 
 @MainActor @Observable

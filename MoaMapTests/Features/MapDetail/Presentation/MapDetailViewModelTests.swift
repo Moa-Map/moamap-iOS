@@ -146,7 +146,7 @@ struct MapDetailViewModelTests {
         let repository = MapDetailRepositoryStub()
         repository.detail = { MapDetail.fixture(id: $0, joined: true, type: .official, role: .member) }
         let sut = await loaded(repository)
-        #expect(sut.uiState.showsLeaveButton)
+        #expect(sut.uiState.leaveOutcome == .leave)
         repository.detail = { MapDetail.fixture(id: $0, type: .official) }
         sut.leave()
         await sut.actionTask?.value
