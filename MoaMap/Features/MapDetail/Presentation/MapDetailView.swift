@@ -38,10 +38,18 @@ struct MapDetailView: View {
     @State private var menuVisible = false
     @State private var inviteCodeVisible = false
     @State private var leaveDialogVisible = false
+    @State private var searchQuery = ""
+    @State private var selectedCategory: PlaceCategoryFilter = .all
+    @State private var sheetExpanded = false
+    @State private var sheetCollapsedHeight = MapDetailPlaceSheet.defaultCollapsedHeight
+    /// 펼친 묶음 마커의 장소. 비어 있으면 목록을 띄우지 않는다.
+    @State private var expandedClusterIDs: [Int64] = []
 
     private static let pitch3D: CGFloat = 55
-    /// 마커를 맞출 때 가장자리 여백. 위는 탭 바를 피한다.
-    private static let fitPadding = SwiftUI.EdgeInsets(top: 80, leading: 40, bottom: 80, trailing: 40)
+    /// 마커를 맞출 때 가장자리 여백. 위는 탭 바, 아래는 접힌 시트를 피한다.
+    private var fitPadding: SwiftUI.EdgeInsets {
+        SwiftUI.EdgeInsets(top: 80, leading: 40, bottom: sheetCollapsedHeight + 40, trailing: 40)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -70,9 +78,12 @@ struct MapDetailView: View {
                     // TODO: 로그 탭(게시물 목록·달력)을 옮긴다.
                     colors.backgroundSecondary
                 }
-                MapDetailTabBar(selection: selectedTab) { selectedTab = $0 }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                // 공식지도는 로그 탭이 없다.
+                if !viewModel.uiState.isOfficial {
+                    MapDetailTabBar(selection: selectedTab) { selectedTab = $0 }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                }
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -113,6 +124,17 @@ struct MapDetailView: View {
         .onChange(of: viewModel.uiState.map) { settleCamera() }
         .onChange(of: viewModel.uiState.errorMessage) { _, message in
             if let message { alert = .error(message) }
+        }
+        .sheet(isPresented: clusterSheetPresented) {
+            ClusterPlacesSheet(
+                places: expandedClusterPlaces,
+                showsReactions: !viewModel.uiState.isOfficial,
+                onPlaceClick: { _ in expandedClusterIDs = [] },
+                onLikeClick: { viewModel.toggleLike(placeID: $0) }
+            )
+        }
+        .onChange(of: viewModel.uiState.isOfficial) { _, official in
+            if official { selectedTab = .places }
         }
         .onChange(of: viewModel.uiState.left) { _, left in
             // 나간 뒤에는 멤버가 아니라 소개 화면이 남아 있으면 그쪽으로 돌아간다.
@@ -156,22 +178,61 @@ struct MapDetailView: View {
         }
     }
 
-    private var placesContent: some View {
-        PlaceMarkerMap(
-            places: viewModel.uiState.places,
-            viewport: $viewport,
-            shows3DObjects: is3D,
-            onCameraChanged: { currentZoom = $0.zoom }
+    private var visiblePlaces: [MapPlace] {
+        viewModel.uiState.places.filtered(by: selectedCategory, query: searchQuery)
+    }
+
+    private var expandedClusterPlaces: [MapPlace] {
+        let byID = Dictionary(viewModel.uiState.places.map { ($0.id, $0) }) { first, _ in first }
+        return expandedClusterIDs.compactMap { byID[$0] }
+    }
+
+    private var clusterSheetPresented: Binding<Bool> {
+        Binding(
+            get: { !expandedClusterPlaces.isEmpty },
+            set: { if !$0 { expandedClusterIDs = [] } }
         )
-        .overlay(alignment: .bottom) {
-            HStack(alignment: .bottom) {
-                MyLocationButton(inProgress: locating, action: moveToMyLocation)
-                Spacer()
-                MapDimensionToggle(is3D: is3D, onToggle: toggle3D)
+    }
+
+    private var placesContent: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .bottom) {
+                PlaceMarkerMap(
+                    // 목록과 같은 결과를 지도에도 그린다.
+                    places: visiblePlaces,
+                    viewport: $viewport,
+                    shows3DObjects: is3D,
+                    ornamentBottomInset: sheetCollapsedHeight,
+                    onCameraChanged: { currentZoom = $0.zoom },
+                    onMarkerTap: { _ in },
+                    // 좌표가 같은 장소는 확대해도 갈라지지 않아 목록으로 펼친다.
+                    onClusterTap: { cluster in expandedClusterIDs = cluster.members.map(\.id) }
+                )
+                .overlay(alignment: .bottom) {
+                    HStack(alignment: .bottom) {
+                        MyLocationButton(inProgress: locating, action: moveToMyLocation)
+                        Spacer()
+                        MapDimensionToggle(is3D: is3D, onToggle: toggle3D)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, sheetCollapsedHeight + 16)
+                }
+
+                MapDetailPlaceSheet(
+                    places: visiblePlaces,
+                    placeCount: viewModel.uiState.map.map?.placeCount,
+                    official: viewModel.uiState.isOfficial,
+                    categoryFilters: PlaceCategoryFilter.available(in: viewModel.uiState.places),
+                    selectedCategory: selectedCategory,
+                    searchQuery: $searchQuery,
+                    expanded: $sheetExpanded,
+                    collapsedHeight: $sheetCollapsedHeight,
+                    maxHeight: proxy.size.height,
+                    onCategorySelect: { selectedCategory = $0 },
+                    onPlaceClick: { _ in },
+                    onLikeClick: { viewModel.toggleLike(placeID: $0) }
+                )
             }
-            .padding(.horizontal, 20)
-            // 왼쪽 아래 Mapbox 로고를 가리지 않게 띄운다.
-            .padding(.bottom, 40)
         }
         .overlay {
             if case .failed(let message) = viewModel.uiState.map {
@@ -199,7 +260,7 @@ struct MapDetailView: View {
         let places = viewModel.uiState.places
         guard !places.isEmpty || permissionAnswered else { return }
         let location = places.isEmpty ? locationProvider.lastKnownLocation : nil
-        viewport = .initial(InitialCamera(places: places, deviceLocation: location), padding: Self.fitPadding)
+        viewport = .initial(InitialCamera(places: places, deviceLocation: location), padding: fitPadding)
         cameraSettled = true
     }
 
