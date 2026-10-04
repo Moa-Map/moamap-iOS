@@ -23,6 +23,7 @@ struct MainTabView: View {
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let makeOfficialMapListViewModel: () -> OfficialMapListViewModel
+    private let makeDensityMapViewModel: () -> DensityMapViewModel
     private let makeMapIntroViewModel: (Int64) -> MapIntroViewModel
     private let makeMapDetailViewModels: (Int64) -> MapDetailViewModels
     private let locationProvider: any LocationProvider
@@ -35,6 +36,7 @@ struct MainTabView: View {
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeOfficialMapListViewModel: @escaping () -> OfficialMapListViewModel,
+        makeDensityMapViewModel: @escaping () -> DensityMapViewModel,
         makeMapIntroViewModel: @escaping (Int64) -> MapIntroViewModel,
         makeMapDetailViewModels: @escaping (Int64) -> MapDetailViewModels,
         locationProvider: any LocationProvider,
@@ -46,6 +48,7 @@ struct MainTabView: View {
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.makeOfficialMapListViewModel = makeOfficialMapListViewModel
+        self.makeDensityMapViewModel = makeDensityMapViewModel
         self.makeMapIntroViewModel = makeMapIntroViewModel
         self.makeMapDetailViewModels = makeMapDetailViewModels
         self.locationProvider = locationProvider
@@ -119,6 +122,9 @@ struct MainTabView: View {
                     path.wrappedValue.append(.mapDetail(mapID: mapID, title: title))
                 }
             )
+        case .mapDetail(_, let title) where FootTrafficMap.matches(title: title):
+            // 유동인구 지도는 장소 대신 밀집도를 그린다. 소개까지는 다른 지도와 같다.
+            DensityMapView(viewModel: makeDensityMapViewModel(), title: title)
         case .mapDetail(let mapID, let title):
             MapDetailView(
                 viewModels: makeMapDetailViewModels(mapID),
@@ -162,6 +168,7 @@ private final class PreviewLocationProvider: LocationProvider {
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
         makeOfficialMapListViewModel: { OfficialMapListViewModel(repository: PreviewOfficialMapRepository()) },
+        makeDensityMapViewModel: { DensityMapViewModel(repository: PreviewFootTrafficRepository()) },
         makeMapIntroViewModel: { MapIntroViewModel(mapID: $0, repository: PreviewMapDetailRepository()) },
         makeMapDetailViewModels: { MapDetailViewModels.preview(mapID: $0) },
         locationProvider: PreviewLocationProvider(),
