@@ -8,6 +8,7 @@ struct ExploreView: View {
     var onProfileClick: () -> Void = {}
     var onSettingsClick: () -> Void = {}
     var onSeeAllCommunityMapsClick: () -> Void = {}
+    var onOfficialMapsClick: () -> Void = {}
     var onMapClick: (MapSummary) -> Void = { _ in }
 
     @State private var showsProfileMenu = false
@@ -18,7 +19,7 @@ struct ExploreView: View {
                 header
 
                 VStack(alignment: .leading, spacing: 20) {
-                    OfficialMapBanner()
+                    OfficialMapBanner(action: onOfficialMapsClick)
                         .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                     content
                 }

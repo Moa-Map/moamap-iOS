@@ -13,6 +13,9 @@ final class AppContainer {
     let sessionEvents: SessionEvents
     let authRepository: any AuthRepository
     let exploreRepository: any ExploreRepository
+    let officialMapRepository: any OfficialMapRepository
+    let footTrafficRepository: any FootTrafficRepository
+    let restroomRepository: any RestroomRepository
     let mapDetailRepository: any MapDetailRepository
     let personalMapRepository: any PersonalMapRepository
     let placeReviewRepository: any PlaceReviewRepository
@@ -50,6 +53,9 @@ final class AppContainer {
             tokenStore: tokenStore, currentUserStore: currentUserStore
         )
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
+        officialMapRepository = OfficialMapRepositoryImpl(client: apiClient)
+        footTrafficRepository = FootTrafficRepositoryImpl(client: apiClient)
+        restroomRepository = RestroomRepositoryImpl(client: apiClient)
         collectionRepository = CollectionRepositoryImpl(client: apiClient)
         mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
         personalMapRepository = PersonalMapRepositoryImpl(client: apiClient)
@@ -138,8 +144,25 @@ final class AppContainer {
         CommunityMapListViewModel(repository: exploreRepository)
     }
 
+    func makeOfficialMapListViewModel() -> OfficialMapListViewModel {
+        OfficialMapListViewModel(repository: officialMapRepository)
+    }
+
+    func makeDensityMapViewModel() -> DensityMapViewModel {
+        DensityMapViewModel(repository: footTrafficRepository)
+    }
+
+    func makeRestroomMapViewModel() -> RestroomMapViewModel {
+        RestroomMapViewModel(repository: restroomRepository)
+    }
+
     func makeMapIntroViewModel(mapID: Int64) -> MapIntroViewModel {
         MapIntroViewModel(mapID: mapID, repository: mapDetailRepository)
+    }
+
+    /// 참여·나가기만 하는 공식지도 전용 화면용. 지도 상세의 다른 ViewModel 은 만들지 않는다.
+    func makeMapMembershipViewModel(mapID: Int64) -> MapDetailViewModel {
+        MapDetailViewModel(mapID: mapID, repository: mapDetailRepository)
     }
 
     func makeMapDetailViewModels(mapID: Int64) -> MapDetailViewModels {

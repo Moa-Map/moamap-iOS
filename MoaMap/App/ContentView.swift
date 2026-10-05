@@ -25,8 +25,12 @@ struct ContentView: View {
                     makeSettingsViewModel: container.makeSettingsViewModel,
                     makeProfileEditViewModel: container.makeProfileEditViewModel,
                     makeCommunityMapListViewModel: container.makeCommunityMapListViewModel,
+                    makeOfficialMapListViewModel: container.makeOfficialMapListViewModel,
+                    makeDensityMapViewModel: container.makeDensityMapViewModel,
+                    makeRestroomMapViewModel: container.makeRestroomMapViewModel,
                     makeMapIntroViewModel: container.makeMapIntroViewModel(mapID:),
                     makeMapDetailViewModels: container.makeMapDetailViewModels(mapID:),
+                    makeMapMembershipViewModel: container.makeMapMembershipViewModel(mapID:),
                     locationProvider: container.locationProvider,
                     onLoggedOut: { loginViewModel.returnToLogin() }
                 )
