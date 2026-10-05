@@ -13,7 +13,7 @@ struct MoaMapApp: App {
     @State private var container: AppContainer?
 
     init() {
-        // 기기 언어와 상관없이 지도 라벨을 한국어로 띄운다. 지도를 만들기 전에 정해야 한다.
+        // 기기 언어와 상관없이 지도 라벨을 한국어로 띄운다.
         _ = SettingsServiceFactory.getInstance(storageType: .persistent)
             .set(key: MapboxCommonSettings.language, value: "ko")
         // 설정 오류가 나면 서버 주소나 키를 노출하지 않고 앱 진입을 막는다.
