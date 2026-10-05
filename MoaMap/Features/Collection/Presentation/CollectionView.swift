@@ -208,6 +208,10 @@ final class PreviewCollectionRepository: CollectionRepository {
     }
 
     func joinByInviteCode(_ inviteCode: String) async throws {}
+
+    func uploadCoverImage(_ image: UploadImage) async throws -> String { "" }
+
+    func createMap(_ newMap: NewMap) async throws -> CreatedMap { CreatedMap(id: 1, inviteCode: nil) }
 }
 
 #Preview {
