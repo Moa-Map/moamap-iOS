@@ -27,8 +27,19 @@ struct CollectionView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task { viewModel.refresh() }
         .fullScreenCover(isPresented: $showsInviteDialog) {
-            JoinMapDialog()
+            if case .editing(let editing) = viewModel.uiState.join {
+                JoinMapDialog(
+                    state: editing,
+                    onCodeChange: viewModel.updateInviteCode,
+                    onSubmit: viewModel.join,
+                    onDismiss: viewModel.closeJoinDialog
+                )
                 .presentationBackground(.clear)
+            }
+        }
+        // 참여 성공으로 닫힐 때도 열 때처럼 애니메이션 없이 닫는다.
+        .onChange(of: viewModel.uiState.join == .hidden) { _, hidden in
+            withoutAnimation { showsInviteDialog = !hidden }
         }
     }
 
@@ -40,11 +51,7 @@ struct CollectionView: View {
             .accessibilityLabel("탐색 탭으로 이동")
             Spacer(minLength: 4)
             Button {
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    showsInviteDialog = true
-                }
+                viewModel.openJoinDialog()
             } label: {
                 HStack(spacing: 2) {
                     icon("key", size: 24)
@@ -167,6 +174,12 @@ struct CollectionView: View {
             .shadow(color: .black.opacity(0.04), radius: 4)
         }
         .buttonStyle(.plain)
+    }
+
+    private func withoutAnimation(_ body: () -> Void) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction, body)
     }
 
     private func icon(_ name: String, size: CGFloat) -> some View {
