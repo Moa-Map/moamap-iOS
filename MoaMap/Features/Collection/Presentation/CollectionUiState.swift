@@ -5,10 +5,24 @@ nonisolated enum CollectionMapsState: Equatable, Sendable {
     case failed(String)
 }
 
+nonisolated struct JoinMapEditing: Equatable, Sendable {
+    var code = ""
+    var submitting = false
+    var errorMessage: String?
+
+    var canSubmit: Bool { !code.isEmpty && !submitting }
+}
+
+nonisolated enum JoinMapState: Equatable, Sendable {
+    case hidden
+    case editing(JoinMapEditing)
+}
+
 nonisolated struct CollectionUiState: Equatable, Sendable {
     var selectedTab: CollectionMapType = .community
     var community: CollectionMapsState = .idle
     var privateMaps: CollectionMapsState = .idle
+    var join: JoinMapState = .hidden
 
     var currentMaps: CollectionMapsState { state(of: selectedTab) }
 

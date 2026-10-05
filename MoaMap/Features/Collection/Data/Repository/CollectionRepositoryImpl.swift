@@ -19,4 +19,13 @@ final class CollectionRepositoryImpl: CollectionRepository {
         let response = try await client.send(request, as: MyMapPageResponse.self)
         return (response.content ?? []).map { $0.toDomain() }
     }
+
+    func joinByInviteCode(_ inviteCode: String) async throws {
+        let request = APIRequest(
+            path: ["api", "v1", "maps", "join"],
+            method: .post,
+            jsonBody: try JSONEncoder().encode(JoinByInviteCodeRequest(inviteCode: inviteCode.trimmingCharacters(in: .whitespaces)))
+        )
+        try await client.sendWithoutResponse(request)
+    }
 }

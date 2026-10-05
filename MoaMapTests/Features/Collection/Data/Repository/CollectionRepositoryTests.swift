@@ -49,6 +49,23 @@ struct CollectionRepositoryTests {
         #expect(maps.allSatisfy { $0.imageURL == nil && $0.memberCount == 0 && $0.placeCount == 0 && !$0.personal })
     }
 
+    @Test func 초대_코드로_참여할_때_코드를_본문에_담아_보낸다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"id":7,"name":"지도"}}"#) { request in
+            #expect(request.httpMethod == "POST")
+            #expect(request.url?.path == "/api/v1/maps/join")
+            let body = request.httpBody.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: String] }
+            #expect(body == ["inviteCode": "VH4YXZ"])
+        }
+        try await sut.joinByInviteCode(" VH4YXZ ")
+    }
+
+    @Test func 초대_코드_오류_코드를_전파한다() async throws {
+        let sut = try repository(body: #"{"success":false,"error":{"code":"MAP_007","status":404}}"#)
+        await #expect(throws: NetworkError.server(code: "MAP_007", statusCode: 404)) {
+            try await sut.joinByInviteCode("WRONG1")
+        }
+    }
+
     @Test func 서버_오류를_전파한다() async throws {
         let sut = try repository(body: #"{"success":false,"error":{"code":"COMMON_005","status":500}}"#)
         await #expect(throws: NetworkError.server(code: "COMMON_005", statusCode: 500)) {
