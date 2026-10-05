@@ -77,16 +77,20 @@ struct MainTabView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // 하위 화면에서는 하단 탭을 숨긴다.
-            if explorePath.isEmpty && collectionPath.isEmpty {
+            if isRoot {
                 MoaMapBottomBar(selection: $selection)
                     .padding(.top, 8)
                     .padding(.bottom, 8)
                     .frame(maxWidth: .infinity)
             }
         }
+        // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 한다.
+        .ignoresSafeArea(isRoot ? .keyboard : [], edges: .bottom)
         .background { colors.backgroundPrimary.ignoresSafeArea() }
         .preferredColorScheme(.light)
     }
+
+    private var isRoot: Bool { explorePath.isEmpty && collectionPath.isEmpty }
 
     @ViewBuilder
     private func destination(_ route: MainRoute, path: Binding<[MainRoute]>) -> some View {
