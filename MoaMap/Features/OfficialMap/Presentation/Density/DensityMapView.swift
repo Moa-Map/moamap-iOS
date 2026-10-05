@@ -49,7 +49,7 @@ struct DensityMapView: View {
 
     private var content: some View {
         let state = viewModel.uiState
-        return map(areas: state.visibleAreas, selected: state.selectedArea)
+        return map(features: viewModel.visibleFeatures, selected: state.selectedArea)
             .overlay(alignment: .top) {
                 CongestionFilterChips(selected: state.filterLevel) { viewModel.selectLevel($0) }
                     .padding(.top, 18)
@@ -63,10 +63,10 @@ struct DensityMapView: View {
             }
     }
 
-    private func map(areas: [DensityArea], selected: DensityArea?) -> some View {
+    private func map(features: [Feature], selected: DensityArea?) -> some View {
         Map(viewport: $viewport) {
             GeoJSONSource(id: Id.source)
-                .data(.featureCollection(FeatureCollection(features: areas.densityFeatures())))
+                .data(.featureCollection(FeatureCollection(features: features)))
             // 평소에는 옅게 채우고 경계를 흐리게 번지게 한다.
             FillLayer(id: Id.fill, source: Id.source)
                 .fillColor(Self.levelColor)

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Turf
 
 nonisolated enum DensityLoadState: Equatable, Sendable {
     case loading
@@ -29,7 +30,16 @@ nonisolated struct DensityMapUiState: Equatable, Sendable {
 final class DensityMapViewModel {
     nonisolated static let loadFailedMessage = "밀집도 정보를 불러오지 못했어요"
 
-    private(set) var uiState = DensityMapUiState()
+    private(set) var uiState = DensityMapUiState() {
+        // 지역 경계는 크다. 화면을 그릴 때마다 만들지 않고 보이는 지역이 바뀔 때만 만든다.
+        didSet {
+            if uiState.areas != oldValue.areas || uiState.filterLevel != oldValue.filterLevel {
+                visibleFeatures = uiState.visibleAreas.densityFeatures()
+            }
+        }
+    }
+    /// 지도 소스에 넣을, 필터를 통과한 지역 피처.
+    private(set) var visibleFeatures: [Feature] = []
     private(set) var loadTask: Task<Void, Never>?
 
     private let repository: any FootTrafficRepository

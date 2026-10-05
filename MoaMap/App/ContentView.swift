@@ -30,6 +30,7 @@ struct ContentView: View {
                     makeRestroomMapViewModel: container.makeRestroomMapViewModel,
                     makeMapIntroViewModel: container.makeMapIntroViewModel(mapID:),
                     makeMapDetailViewModels: container.makeMapDetailViewModels(mapID:),
+                    makeMapMembershipViewModel: container.makeMapMembershipViewModel(mapID:),
                     locationProvider: container.locationProvider,
                     onLoggedOut: { loginViewModel.returnToLogin() }
                 )

@@ -30,6 +30,7 @@ struct MainTabView: View {
     private let makeRestroomMapViewModel: () -> RestroomMapViewModel
     private let makeMapIntroViewModel: (Int64) -> MapIntroViewModel
     private let makeMapDetailViewModels: (Int64) -> MapDetailViewModels
+    private let makeMapMembershipViewModel: (Int64) -> MapDetailViewModel
     private let locationProvider: any LocationProvider
     private let onLoggedOut: () -> Void
 
@@ -44,6 +45,7 @@ struct MainTabView: View {
         makeRestroomMapViewModel: @escaping () -> RestroomMapViewModel,
         makeMapIntroViewModel: @escaping (Int64) -> MapIntroViewModel,
         makeMapDetailViewModels: @escaping (Int64) -> MapDetailViewModels,
+        makeMapMembershipViewModel: @escaping (Int64) -> MapDetailViewModel,
         locationProvider: any LocationProvider,
         onLoggedOut: @escaping () -> Void
     ) {
@@ -57,6 +59,7 @@ struct MainTabView: View {
         self.makeRestroomMapViewModel = makeRestroomMapViewModel
         self.makeMapIntroViewModel = makeMapIntroViewModel
         self.makeMapDetailViewModels = makeMapDetailViewModels
+        self.makeMapMembershipViewModel = makeMapMembershipViewModel
         self.locationProvider = locationProvider
         self.onLoggedOut = onLoggedOut
     }
@@ -143,14 +146,14 @@ struct MainTabView: View {
         case .densityMap(let mapID, let title):
             DensityMapView(
                 viewModel: makeDensityMapViewModel(),
-                membership: makeMapDetailViewModels(mapID).main,
+                membership: makeMapMembershipViewModel(mapID),
                 title: title,
                 onBack: { back(from: mapID, joinedHere: $0, path: path) }
             )
         case .restroomMap(let mapID, let title):
             RestroomMapView(
                 viewModel: makeRestroomMapViewModel(),
-                membership: makeMapDetailViewModels(mapID).main,
+                membership: makeMapMembershipViewModel(mapID),
                 title: title,
                 locationProvider: locationProvider,
                 onBack: { back(from: mapID, joinedHere: $0, path: path) }
@@ -211,6 +214,7 @@ private final class PreviewLocationProvider: LocationProvider {
         makeRestroomMapViewModel: { RestroomMapViewModel(repository: PreviewRestroomRepository()) },
         makeMapIntroViewModel: { MapIntroViewModel(mapID: $0, repository: PreviewMapDetailRepository()) },
         makeMapDetailViewModels: { MapDetailViewModels.preview(mapID: $0) },
+        makeMapMembershipViewModel: { MapDetailViewModels.preview(mapID: $0).main },
         locationProvider: PreviewLocationProvider(),
         onLoggedOut: {}
     )

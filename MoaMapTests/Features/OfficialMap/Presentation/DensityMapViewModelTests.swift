@@ -63,6 +63,7 @@ struct DensityMapViewModelTests {
         let (sut, _) = await loaded()
         sut.selectLevel(.busy)
         #expect(sut.uiState.visibleAreas == [areas[0]])
+        #expect(sut.visibleFeatures == [areas[0]].densityFeatures())
         sut.selectLevel(.busy)
         #expect(sut.uiState.filterLevel == nil)
         #expect(sut.uiState.visibleAreas == areas)

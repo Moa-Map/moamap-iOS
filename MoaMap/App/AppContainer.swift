@@ -160,6 +160,11 @@ final class AppContainer {
         MapIntroViewModel(mapID: mapID, repository: mapDetailRepository)
     }
 
+    /// 참여·나가기만 하는 공식지도 전용 화면용. 지도 상세의 다른 ViewModel 은 만들지 않는다.
+    func makeMapMembershipViewModel(mapID: Int64) -> MapDetailViewModel {
+        MapDetailViewModel(mapID: mapID, repository: mapDetailRepository)
+    }
+
     func makeMapDetailViewModels(mapID: Int64) -> MapDetailViewModels {
         MapDetailViewModels(
             main: MapDetailViewModel(mapID: mapID, repository: mapDetailRepository),
