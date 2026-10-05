@@ -6,6 +6,7 @@ private enum MainRoute: Hashable {
     case settings
     case communityMaps
     case officialMaps
+    case createMap
     case mapIntro(mapID: Int64)
     case mapDetail(mapID: Int64, title: String)
     /// 장소 대신 전용 지도를 보여 주는 공식지도.
@@ -24,6 +25,7 @@ struct MainTabView: View {
 
     private let makeSettingsViewModel: () -> SettingsViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
+    private let makeCreateMapViewModel: () -> CreateMapViewModel
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let makeOfficialMapListViewModel: () -> OfficialMapListViewModel
     private let makeDensityMapViewModel: () -> DensityMapViewModel
@@ -39,6 +41,7 @@ struct MainTabView: View {
         collectionViewModel: CollectionViewModel,
         makeSettingsViewModel: @escaping () -> SettingsViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
+        makeCreateMapViewModel: @escaping () -> CreateMapViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeOfficialMapListViewModel: @escaping () -> OfficialMapListViewModel,
         makeDensityMapViewModel: @escaping () -> DensityMapViewModel,
@@ -53,6 +56,7 @@ struct MainTabView: View {
         _exploreViewModel = State(initialValue: exploreViewModel)
         self.makeSettingsViewModel = makeSettingsViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
+        self.makeCreateMapViewModel = makeCreateMapViewModel
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.makeOfficialMapListViewModel = makeOfficialMapListViewModel
         self.makeDensityMapViewModel = makeDensityMapViewModel
@@ -84,6 +88,7 @@ struct MainTabView: View {
                 CollectionView(
                     viewModel: collectionViewModel,
                     onHome: { selection = .explore },
+                    onCreateMap: { collectionPath.append(.createMap) },
                     // 모음에는 참여한 지도만 있어 소개를 건너뛴다.
                     onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) }
                 )
@@ -118,6 +123,9 @@ struct MainTabView: View {
             }
         case .settings:
             SettingsView(viewModel: makeSettingsViewModel(), onLoggedOut: onLoggedOut)
+        case .createMap:
+            // 만들기 화면을 남기면 뒤로가기로 돌아와 같은 지도를 또 만들 수 있다.
+            CreateMapView(viewModel: makeCreateMapViewModel()) { path.wrappedValue.removeLast() }
         case .communityMaps:
             CommunityMapListView(viewModel: makeCommunityMapListViewModel()) { path.wrappedValue.append(.map($0)) }
         case .officialMaps:
@@ -212,6 +220,7 @@ private final class PreviewLocationProvider: LocationProvider {
         collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository()),
         makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
+        makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository()) },
         makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
         makeOfficialMapListViewModel: { OfficialMapListViewModel(repository: PreviewOfficialMapRepository()) },
         makeDensityMapViewModel: { DensityMapViewModel(repository: PreviewFootTrafficRepository()) },

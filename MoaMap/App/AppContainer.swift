@@ -184,6 +184,10 @@ final class AppContainer {
         CollectionViewModel(repository: collectionRepository)
     }
 
+    func makeCreateMapViewModel() -> CreateMapViewModel {
+        CreateMapViewModel(repository: collectionRepository)
+    }
+
     func makeProfileEditViewModel() -> ProfileEditViewModel {
         ProfileEditViewModel(repository: userRepository)
     }

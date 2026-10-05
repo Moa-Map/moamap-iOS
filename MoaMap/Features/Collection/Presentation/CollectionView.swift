@@ -5,6 +5,7 @@ struct CollectionView: View {
     @Environment(\.moaTypography) private var typography
     let viewModel: CollectionViewModel
     let onHome: () -> Void
+    var onCreateMap: () -> Void = {}
     var onMapClick: (MyMap) -> Void = { _ in }
     @State private var showsInviteDialog = false
 
@@ -59,7 +60,7 @@ struct CollectionView: View {
                 }
                 .frame(minHeight: 44)
             }
-            Button {} label: {
+            Button(action: onCreateMap) {
                 HStack(spacing: 2) {
                     icon("add", size: 24)
                     Text("새 지도").moaTextStyle(typography.button2)
@@ -147,33 +148,15 @@ struct CollectionView: View {
 
     private var importActions: some View {
         HStack(spacing: 4) {
-            importCard(iconName: "instagram-logo", title: "인스타그램", subtitle: "장소 찾기", background: Color(argb: 0xFFFFF5FB), titleColor: Color(argb: 0xFFAF0069))
-            importCard(iconName: "map", title: "외부 지도", subtitle: "불러오기", background: MoaMapPrimitiveColors.yellow50, titleColor: MoaMapPrimitiveColors.yellow800)
+            ImportActionCard(
+                iconName: "instagram-logo", title: "인스타그램", subtitle: "장소 찾기",
+                background: Color(argb: 0xFFFFF5FB), titleColor: Color(argb: 0xFFAF0069)
+            )
+            ImportActionCard(
+                iconName: "map", iconTint: colors.secondary, title: "외부 지도", subtitle: "불러오기",
+                background: MoaMapPrimitiveColors.yellow50, titleColor: MoaMapPrimitiveColors.yellow800
+            )
         }
-    }
-
-    private func importCard(iconName: String, title: String, subtitle: String, background: Color, titleColor: Color) -> some View {
-        Button {} label: {
-            HStack(spacing: 8) {
-                if iconName == "map" {
-                    icon(iconName, size: 24).foregroundStyle(colors.secondary)
-                } else {
-                    Image("Icons/\(iconName)").resizable().frame(width: 24, height: 24)
-                }
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(title).moaTextStyle(typography.subtitle2).foregroundStyle(titleColor)
-                    Text(subtitle).moaTextStyle(typography.body1).foregroundStyle(colors.textNormal)
-                }
-                .lineLimit(1).minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                icon("arrow-outward", size: 24).foregroundStyle(colors.textNormal)
-            }
-            .padding(.horizontal, 16)
-            .frame(maxWidth: .infinity).frame(height: 72)
-            .background(background, in: RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.04), radius: 4)
-        }
-        .buttonStyle(.plain)
     }
 
     private func withoutAnimation(_ body: () -> Void) {
