@@ -56,7 +56,7 @@ final class AppContainer {
         officialMapRepository = OfficialMapRepositoryImpl(client: apiClient)
         footTrafficRepository = FootTrafficRepositoryImpl(client: apiClient)
         restroomRepository = RestroomRepositoryImpl(client: apiClient)
-        collectionRepository = CollectionRepositoryImpl(client: apiClient)
+        collectionRepository = CollectionRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
         mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
         personalMapRepository = PersonalMapRepositoryImpl(client: apiClient)
         mapMemberRepository = MapMemberRepositoryImpl(client: apiClient)
@@ -182,6 +182,10 @@ final class AppContainer {
 
     func makeCollectionViewModel() -> CollectionViewModel {
         CollectionViewModel(repository: collectionRepository)
+    }
+
+    func makeCreateMapViewModel() -> CreateMapViewModel {
+        CreateMapViewModel(repository: collectionRepository)
     }
 
     func makeProfileEditViewModel() -> ProfileEditViewModel {
