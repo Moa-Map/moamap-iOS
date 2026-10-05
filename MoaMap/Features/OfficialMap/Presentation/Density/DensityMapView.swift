@@ -90,6 +90,11 @@ struct DensityMapView: View {
                 viewModel.selectArea(code)
                 return true
             }
+            // 지역이 받은 탭은 여기까지 오지 않는다. 빈 곳을 눌렀을 때만 온다.
+            TapInteraction { _ in
+                viewModel.clearSelection()
+                return true
+            }
         }
         .mapStyle(.standard(lightPreset: .day))
         .ornamentOptions(OrnamentOptions(

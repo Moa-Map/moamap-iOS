@@ -59,6 +59,11 @@ final class DensityMapViewModel {
         uiState.selectedCode = uiState.selectedCode == code ? nil : code
     }
 
+    /// 지역이 아닌 빈 곳을 눌렀다. 카드를 닫는다.
+    func clearSelection() {
+        uiState.selectedCode = nil
+    }
+
     /// 같은 레벨을 다시 고르면 전체로 돌아간다.
     func selectLevel(_ level: CongestionLevel?) {
         uiState.filterLevel = uiState.filterLevel == level ? nil : level

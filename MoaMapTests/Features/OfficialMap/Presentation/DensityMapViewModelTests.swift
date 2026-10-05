@@ -59,6 +59,13 @@ struct DensityMapViewModelTests {
         #expect(sut.uiState.selectedArea == nil)
     }
 
+    @Test func 빈_곳을_누르면_카드를_닫는다() async {
+        let (sut, _) = await loaded()
+        sut.selectArea("A")
+        sut.clearSelection()
+        #expect(sut.uiState.selectedArea == nil)
+    }
+
     @Test func 레벨을_고르면_그_레벨만_보이고_다시_고르면_전체로_돌아간다() async {
         let (sut, _) = await loaded()
         sut.selectLevel(.busy)
