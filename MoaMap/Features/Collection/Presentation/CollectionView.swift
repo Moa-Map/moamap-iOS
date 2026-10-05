@@ -193,6 +193,8 @@ final class PreviewCollectionRepository: CollectionRepository {
             )
         }
     }
+
+    func joinByInviteCode(_ inviteCode: String) async throws {}
 }
 
 #Preview {

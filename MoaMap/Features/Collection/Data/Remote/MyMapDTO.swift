@@ -27,3 +27,7 @@ nonisolated struct MyMapResponse: Decodable, Sendable {
         )
     }
 }
+
+nonisolated struct JoinByInviteCodeRequest: Encodable, Sendable {
+    let inviteCode: String
+}

@@ -9,4 +9,12 @@ final class CollectionRepositoryStub: CollectionRepository {
         calls.append(type)
         return try await fetch(type)
     }
+
+    var join: (String) async throws -> Void = { _ in }
+    private(set) var joinedCodes: [String] = []
+
+    func joinByInviteCode(_ inviteCode: String) async throws {
+        joinedCodes.append(inviteCode)
+        try await join(inviteCode)
+    }
 }
