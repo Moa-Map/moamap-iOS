@@ -457,7 +457,7 @@ struct MapDetailView: View {
     }
 }
 
-private enum MapDetailAlert: Equatable {
+enum MapDetailAlert: Equatable {
     case locationDenied
     case locationUnavailable
     case error(String)

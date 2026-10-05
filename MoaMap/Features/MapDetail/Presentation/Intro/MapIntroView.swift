@@ -7,8 +7,11 @@ struct MapIntroView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var viewModel: MapIntroViewModel
-    private let onPreview: (_ title: String) -> Void
-    private let onJoined: (_ title: String) -> Void
+    /// 지도 이름과 공식지도인지를 넘긴다. 특수 공식지도는 지도 상세가 아니라 전용 화면으로 가야 해서 받는 쪽이 고른다.
+    private let onPreview: (_ title: String, _ official: Bool) -> Void
+    private let onJoined: (_ title: String, _ official: Bool) -> Void
+    /// 공중화장실 지도의 작은 지도. 화장실은 장소가 아니라 그냥 두면 비어 보인다.
+    private let restroomPreview: (() -> RestroomPreviewMap)?
 
     @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: .init())
     /// 장소가 도착하면 처음 한 번만 맞추고 그다음은 사용자가 움직인 대로 둔다.
@@ -16,15 +19,18 @@ struct MapIntroView: View {
 
     init(
         viewModel: MapIntroViewModel,
-        onPreview: @escaping (_ title: String) -> Void,
-        onJoined: @escaping (_ title: String) -> Void
+        onPreview: @escaping (_ title: String, _ official: Bool) -> Void,
+        onJoined: @escaping (_ title: String, _ official: Bool) -> Void,
+        restroomPreview: (() -> RestroomPreviewMap)? = nil
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPreview = onPreview
         self.onJoined = onJoined
+        self.restroomPreview = restroomPreview
     }
 
     private var title: String { viewModel.uiState.map.map?.title ?? "" }
+    private var official: Bool { viewModel.uiState.map.map?.type == .official }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -46,7 +52,7 @@ struct MapIntroView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { viewModel.refresh() }
         .onChange(of: viewModel.uiState.joined) { _, joined in
-            if joined { onJoined(title) }
+            if joined { onJoined(title, official) }
         }
         .alert("참여하지 못했어요", isPresented: showsError) {
             Button("확인", role: .cancel) { viewModel.consumeErrorMessage() }
@@ -106,8 +112,7 @@ struct MapIntroView: View {
     private var mapSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             MapIntroSectionTitle(text: "지도")
-            // 참여 전에는 장소 상세도, 묶음 펼치기도 열지 않는다. 그릴 뿐이다.
-            PlaceMarkerMap(places: viewModel.uiState.places, viewport: $viewport, allowsRotation: false)
+            previewMap
                 .frame(height: 236)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(alignment: .bottomTrailing) {
@@ -115,6 +120,16 @@ struct MapIntroView: View {
                 }
                 .onAppear(perform: settleCamera)
                 .onChange(of: viewModel.uiState.places) { settleCamera() }
+        }
+    }
+
+    /// 참여 전에는 장소 상세도, 묶음 펼치기도 열지 않는다. 그릴 뿐이다.
+    @ViewBuilder
+    private var previewMap: some View {
+        if let restroomPreview, OfficialMapKind(official: official, title: title) == .restroom {
+            restroomPreview()
+        } else {
+            PlaceMarkerMap(places: viewModel.uiState.places, viewport: $viewport, allowsRotation: false)
         }
     }
 
@@ -135,7 +150,7 @@ struct MapIntroView: View {
             }
             if viewModel.uiState.hasMorePlaces {
                 // 전체 장소 목록 화면이 없어 미리보기와 같이 상세로 보낸다.
-                Button { onPreview(title) } label: {
+                Button { onPreview(title, official) } label: {
                     Text("더보기")
                         .moaTextStyle(typography.caption0)
                         .underline()
@@ -149,7 +164,7 @@ struct MapIntroView: View {
     }
 
     private var previewButton: some View {
-        Button { onPreview(title) } label: {
+        Button { onPreview(title, official) } label: {
             Text("미리보기")
                 .moaTextStyle(typography.button2)
                 .foregroundStyle(colors.textWhite)
@@ -241,8 +256,8 @@ final class PreviewMapDetailRepository: MapDetailRepository {
     NavigationStack {
         MapIntroView(
             viewModel: MapIntroViewModel(mapID: 1, repository: PreviewMapDetailRepository()),
-            onPreview: { _ in },
-            onJoined: { _ in }
+            onPreview: { _, _ in },
+            onJoined: { _, _ in }
         )
     }
 }

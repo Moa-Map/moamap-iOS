@@ -15,6 +15,7 @@ final class AppContainer {
     let exploreRepository: any ExploreRepository
     let officialMapRepository: any OfficialMapRepository
     let footTrafficRepository: any FootTrafficRepository
+    let restroomRepository: any RestroomRepository
     let mapDetailRepository: any MapDetailRepository
     let personalMapRepository: any PersonalMapRepository
     let placeReviewRepository: any PlaceReviewRepository
@@ -54,6 +55,7 @@ final class AppContainer {
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
         officialMapRepository = OfficialMapRepositoryImpl(client: apiClient)
         footTrafficRepository = FootTrafficRepositoryImpl(client: apiClient)
+        restroomRepository = RestroomRepositoryImpl(client: apiClient)
         collectionRepository = CollectionRepositoryImpl(client: apiClient)
         mapDetailRepository = MapDetailRepositoryImpl(client: apiClient)
         personalMapRepository = PersonalMapRepositoryImpl(client: apiClient)
@@ -148,6 +150,10 @@ final class AppContainer {
 
     func makeDensityMapViewModel() -> DensityMapViewModel {
         DensityMapViewModel(repository: footTrafficRepository)
+    }
+
+    func makeRestroomMapViewModel() -> RestroomMapViewModel {
+        RestroomMapViewModel(repository: restroomRepository)
     }
 
     func makeMapIntroViewModel(mapID: Int64) -> MapIntroViewModel {

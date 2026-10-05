@@ -8,6 +8,9 @@ private enum MainRoute: Hashable {
     case officialMaps
     case mapIntro(mapID: Int64)
     case mapDetail(mapID: Int64, title: String)
+    /// 장소 대신 전용 지도를 보여 주는 공식지도.
+    case densityMap(mapID: Int64, title: String)
+    case restroomMap(mapID: Int64, title: String)
 }
 
 struct MainTabView: View {
@@ -24,6 +27,7 @@ struct MainTabView: View {
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let makeOfficialMapListViewModel: () -> OfficialMapListViewModel
     private let makeDensityMapViewModel: () -> DensityMapViewModel
+    private let makeRestroomMapViewModel: () -> RestroomMapViewModel
     private let makeMapIntroViewModel: (Int64) -> MapIntroViewModel
     private let makeMapDetailViewModels: (Int64) -> MapDetailViewModels
     private let locationProvider: any LocationProvider
@@ -37,6 +41,7 @@ struct MainTabView: View {
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeOfficialMapListViewModel: @escaping () -> OfficialMapListViewModel,
         makeDensityMapViewModel: @escaping () -> DensityMapViewModel,
+        makeRestroomMapViewModel: @escaping () -> RestroomMapViewModel,
         makeMapIntroViewModel: @escaping (Int64) -> MapIntroViewModel,
         makeMapDetailViewModels: @escaping (Int64) -> MapDetailViewModels,
         locationProvider: any LocationProvider,
@@ -49,6 +54,7 @@ struct MainTabView: View {
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.makeOfficialMapListViewModel = makeOfficialMapListViewModel
         self.makeDensityMapViewModel = makeDensityMapViewModel
+        self.makeRestroomMapViewModel = makeRestroomMapViewModel
         self.makeMapIntroViewModel = makeMapIntroViewModel
         self.makeMapDetailViewModels = makeMapDetailViewModels
         self.locationProvider = locationProvider
@@ -76,7 +82,7 @@ struct MainTabView: View {
                     viewModel: collectionViewModel,
                     onHome: { selection = .explore },
                     // 모음에는 참여한 지도만 있어 소개를 건너뛴다.
-                    onMapClick: { collectionPath.append(.mapDetail(mapID: $0.id, title: $0.title)) }
+                    onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) }
                 )
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $collectionPath) }
             }
@@ -109,45 +115,78 @@ struct MainTabView: View {
             CommunityMapListView(viewModel: makeCommunityMapListViewModel()) { path.wrappedValue.append(.map($0)) }
         case .officialMaps:
             OfficialMapListView(viewModel: makeOfficialMapListViewModel()) {
-                path.wrappedValue.append(.map(id: $0.id, title: $0.title, joined: $0.joined))
+                path.wrappedValue.append(.map(id: $0.id, title: $0.title, joined: $0.joined, official: true))
             }
         case .mapIntro(let mapID):
             MapIntroView(
                 viewModel: makeMapIntroViewModel(mapID),
                 // 미리보기는 소개를 남긴다. 뒤로 가면 다시 소개로 온다.
-                onPreview: { path.wrappedValue.append(.mapDetail(mapID: mapID, title: $0)) },
+                onPreview: { title, official in
+                    path.wrappedValue.append(.detail(id: mapID, title: title, official: official))
+                },
                 // 참여하고 나면 소개는 볼 일이 없다. 상세로 갈아 끼운다.
-                onJoined: { title in
+                onJoined: { title, official in
                     path.wrappedValue.removeLast()
-                    path.wrappedValue.append(.mapDetail(mapID: mapID, title: title))
+                    path.wrappedValue.append(.detail(id: mapID, title: title, official: official))
+                },
+                restroomPreview: {
+                    RestroomPreviewMap(viewModel: makeRestroomMapViewModel(), center: locationProvider.lastKnownLocation)
                 }
             )
-        case .mapDetail(_, let title) where FootTrafficMap.matches(title: title):
-            // 유동인구 지도는 장소 대신 밀집도를 그린다. 소개까지는 다른 지도와 같다.
-            DensityMapView(viewModel: makeDensityMapViewModel(), title: title)
         case .mapDetail(let mapID, let title):
             MapDetailView(
                 viewModels: makeMapDetailViewModels(mapID),
                 locationProvider: locationProvider,
                 initialTitle: title,
-                onBack: { joinedHere in
-                    // 미리보기를 거쳐 들어와 참여했으면 소개까지 함께 닫는다.
-                    let fromIntro = path.wrappedValue.dropLast().last == .mapIntro(mapID: mapID)
-                    path.wrappedValue.removeLast(joinedHere && fromIntro ? 2 : 1)
-                }
+                onBack: { back(from: mapID, joinedHere: $0, path: path) }
+            )
+        case .densityMap(let mapID, let title):
+            DensityMapView(
+                viewModel: makeDensityMapViewModel(),
+                membership: makeMapDetailViewModels(mapID).main,
+                title: title,
+                onBack: { back(from: mapID, joinedHere: $0, path: path) }
+            )
+        case .restroomMap(let mapID, let title):
+            RestroomMapView(
+                viewModel: makeRestroomMapViewModel(),
+                membership: makeMapDetailViewModels(mapID).main,
+                title: title,
+                locationProvider: locationProvider,
+                onBack: { back(from: mapID, joinedHere: $0, path: path) }
             )
         }
+    }
+
+    /// 미리보기를 거쳐 들어와 참여했으면 소개까지 함께 닫는다.
+    private func back(from mapID: Int64, joinedHere: Bool, path: Binding<[MainRoute]>) {
+        let fromIntro = path.wrappedValue.dropLast().last == .mapIntro(mapID: mapID)
+        path.wrappedValue.removeLast(joinedHere && fromIntro ? 2 : 1)
     }
 }
 
 private extension MainRoute {
-    /// 참여한 지도는 소개를 다시 볼 이유가 없어 바로 상세로 간다.
+    /// 커뮤니티 지도 목록에는 공식지도가 없다.
     static func map(_ map: MapSummary) -> MainRoute {
-        .map(id: map.id, title: map.title, joined: map.joined)
+        .map(id: map.id, title: map.title, joined: map.joined, official: false)
     }
 
-    static func map(id: Int64, title: String, joined: Bool) -> MainRoute {
-        joined ? .mapDetail(mapID: id, title: title) : .mapIntro(mapID: id)
+    /// 참여한 지도는 소개를 다시 볼 이유가 없어 바로 상세로 간다.
+    /// 유동인구 지도는 소개할 장소가 없어 참여 여부와 상관없이 바로 유동인구 화면으로 간다.
+    static func map(id: Int64, title: String, joined: Bool, official: Bool) -> MainRoute {
+        if joined || OfficialMapKind(official: official, title: title) == .footTraffic {
+            return .detail(id: id, title: title, official: official)
+        }
+        return .mapIntro(mapID: id)
+    }
+
+    /// 지도 자체를 보는 화면. 장소가 없는 특수 공식지도는 지도 상세 대신 전용 화면으로 간다.
+    static func detail(id: Int64, title: String, official: Bool) -> MainRoute {
+        switch OfficialMapKind(official: official, title: title) {
+        case .footTraffic: .densityMap(mapID: id, title: title)
+        case .restroom: .restroomMap(mapID: id, title: title)
+        case nil: .mapDetail(mapID: id, title: title)
+        }
     }
 }
 
@@ -169,6 +208,7 @@ private final class PreviewLocationProvider: LocationProvider {
         makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
         makeOfficialMapListViewModel: { OfficialMapListViewModel(repository: PreviewOfficialMapRepository()) },
         makeDensityMapViewModel: { DensityMapViewModel(repository: PreviewFootTrafficRepository()) },
+        makeRestroomMapViewModel: { RestroomMapViewModel(repository: PreviewRestroomRepository()) },
         makeMapIntroViewModel: { MapIntroViewModel(mapID: $0, repository: PreviewMapDetailRepository()) },
         makeMapDetailViewModels: { MapDetailViewModels.preview(mapID: $0) },
         locationProvider: PreviewLocationProvider(),

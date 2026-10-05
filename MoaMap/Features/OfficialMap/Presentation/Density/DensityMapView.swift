@@ -1,13 +1,12 @@
 import MapboxMaps
 import SwiftUI
 
+/// 유동인구 지도. 상단바·참여·나가기는 `OfficialMapScaffold` 가 지도 상세 것을 그대로 쓴다.
 struct DensityMapView: View {
-    @Environment(\.moaColors) private var colors
-    @Environment(\.moaTypography) private var typography
-    @Environment(\.dismiss) private var dismiss
-
     @State private var viewModel: DensityMapViewModel
+    private let membership: MapDetailViewModel
     private let title: String
+    private let onBack: (_ joinedHere: Bool) -> Void
     /// 서울 전역이 보이는 처음 카메라.
     @State private var viewport: Viewport = .camera(
         center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780), zoom: 10.5
@@ -20,14 +19,20 @@ struct DensityMapView: View {
     }
 
     /// 부모가 다시 그려져도 처음 받은 ViewModel 을 쓴다.
-    init(viewModel: DensityMapViewModel, title: String) {
+    init(
+        viewModel: DensityMapViewModel,
+        membership: MapDetailViewModel,
+        title: String,
+        onBack: @escaping (_ joinedHere: Bool) -> Void
+    ) {
         _viewModel = State(initialValue: viewModel)
+        self.membership = membership
         self.title = title
+        self.onBack = onBack
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
+        OfficialMapScaffold(membership: membership, initialTitle: title, onBack: onBack) {
             ZStack {
                 switch viewModel.uiState.load {
                 case .loading:
@@ -38,43 +43,8 @@ struct DensityMapView: View {
                     content
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background { colors.backgroundSecondary.ignoresSafeArea() }
-        .toolbar(.hidden, for: .navigationBar)
         .onAppear { viewModel.start() }
-    }
-
-    private var topBar: some View {
-        ZStack {
-            Text(title)
-                .moaTextStyle(typography.title3)
-                .foregroundStyle(colors.textNormal)
-            HStack {
-                Button { dismiss() } label: {
-                    Image("Icons/arrow-left")
-                        .renderingMode(.template)
-                        .resizable()
-                        .frame(width: 32, height: 32)
-                        .foregroundStyle(colors.textNormal)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("뒤로가기")
-                Spacer()
-                // 저장 기능은 아직 없다. Android 도 누를 수 없게 두었다.
-                Image("Icons/bookmark-outline")
-                    .renderingMode(.template)
-                    .resizable()
-                    .frame(width: 24, height: 24)
-                    .foregroundStyle(colors.textNormal)
-                    .frame(width: 44, height: 44)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, MoaMapDimens.screenHorizontalPadding - 6)
-        }
-        .frame(height: 58)
     }
 
     private var content: some View {
@@ -147,11 +117,5 @@ struct DensityMapView: View {
 @MainActor
 final class PreviewFootTrafficRepository: FootTrafficRepository {
     func fetchDensityAreas() async throws -> [DensityArea] { [] }
-}
-
-#Preview {
-    NavigationStack {
-        DensityMapView(viewModel: DensityMapViewModel(repository: PreviewFootTrafficRepository()), title: FootTrafficMap.name)
-    }
 }
 #endif

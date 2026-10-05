@@ -38,10 +38,14 @@ struct AreaCongestionTests {
     }
 }
 
-struct FootTrafficMapTests {
-    @Test func 유동인구_지도는_이름으로_알아본다() {
-        #expect(FootTrafficMap.matches(title: "유동인구 지도"))
-        #expect(FootTrafficMap.matches(title: " 유동인구 지도 "))
-        #expect(!FootTrafficMap.matches(title: "공중화장실 지도"))
+struct OfficialMapKindTests {
+    @Test func 전용_화면으로_여는_공식지도는_이름으로_알아본다() {
+        #expect(OfficialMapKind(official: true, title: "유동인구 지도") == .footTraffic)
+        #expect(OfficialMapKind(official: true, title: "공중화장실 지도") == .restroom)
+        #expect(OfficialMapKind(official: true, title: "분좋카") == nil)
+    }
+
+    @Test func 공식지도가_아니면_이름이_같아도_아니다() {
+        #expect(OfficialMapKind(official: false, title: "공중화장실 지도") == nil)
     }
 }
