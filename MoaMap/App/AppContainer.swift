@@ -143,7 +143,7 @@ final class AppContainer {
     }
 
     func makeExploreViewModel() -> ExploreViewModel {
-        ExploreViewModel(repository: exploreRepository)
+        ExploreViewModel(repository: exploreRepository, officialMapRepository: officialMapRepository)
     }
 
     func makeCommunityMapListViewModel() -> CommunityMapListViewModel {

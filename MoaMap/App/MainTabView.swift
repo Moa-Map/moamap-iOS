@@ -82,8 +82,9 @@ struct MainTabView: View {
                     onProfileClick: { explorePath.append(.profileEdit) },
                     onSettingsClick: { explorePath.append(.settings) },
                     onSeeAllCommunityMapsClick: { explorePath.append(.communityMaps) },
-                    onOfficialMapsClick: { explorePath.append(.officialMaps) },
-                    onMapClick: { explorePath.append(.map($0)) }
+                    onSeeAllOfficialMapsClick: { explorePath.append(.officialMaps) },
+                    onMapClick: { explorePath.append(.map($0)) },
+                    onOfficialMapClick: { explorePath.append(.map($0)) }
                 )
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $explorePath) }
             }
@@ -145,9 +146,7 @@ struct MainTabView: View {
     private func destination(_ route: MainRoute, path: Binding<[MainRoute]>) -> some View {
         switch route {
         case .profileEdit:
-            ProfileEditView(viewModel: makeProfileEditViewModel()) { profile in
-                exploreViewModel.updateNickname(profile.nickname)
-            }
+            ProfileEditView(viewModel: makeProfileEditViewModel()) { _ in }
         case .settings:
             SettingsView(viewModel: makeSettingsViewModel(), onLoggedOut: onLoggedOut)
         case .placeImport(let step):
@@ -160,9 +159,7 @@ struct MainTabView: View {
         case .communityMaps:
             CommunityMapListView(viewModel: makeCommunityMapListViewModel()) { path.wrappedValue.append(.map($0)) }
         case .officialMaps:
-            OfficialMapListView(viewModel: makeOfficialMapListViewModel()) {
-                path.wrappedValue.append(.map(id: $0.id, title: $0.title, joined: $0.joined, official: true))
-            }
+            OfficialMapListView(viewModel: makeOfficialMapListViewModel()) { path.wrappedValue.append(.map($0)) }
         case .mapIntro(let mapID):
             MapIntroView(
                 viewModel: makeMapIntroViewModel(mapID),
@@ -223,6 +220,10 @@ private extension MainRoute {
         .map(id: map.id, title: map.title, joined: map.joined, official: false)
     }
 
+    static func map(_ map: OfficialMap) -> MainRoute {
+        .map(id: map.id, title: map.title, joined: map.joined, official: true)
+    }
+
     /// 참여한 지도는 소개를 다시 볼 이유가 없어 바로 상세로 간다.
     /// 유동인구 지도는 소개할 장소가 없어 참여 여부와 상관없이 바로 유동인구 화면으로 간다.
     static func map(id: Int64, title: String, joined: Bool, official: Bool) -> MainRoute {
@@ -253,7 +254,10 @@ private final class PreviewLocationProvider: LocationProvider {
 
 #Preview("메인 탭") {
     MainTabView(
-        exploreViewModel: ExploreViewModel(repository: PreviewExploreRepository()),
+        exploreViewModel: ExploreViewModel(
+            repository: PreviewExploreRepository(),
+            officialMapRepository: PreviewOfficialMapRepository()
+        ),
         collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository()),
         makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },

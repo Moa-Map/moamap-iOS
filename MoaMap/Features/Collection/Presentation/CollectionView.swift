@@ -47,10 +47,8 @@ struct CollectionView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Button(action: onHome) {
-                Image("moa-logo").resizable().scaledToFit().frame(width: 74, height: 44)
-            }
-            .accessibilityLabel("탐색 탭으로 이동")
+            MoaMapTopBarLogo(action: onHome)
+                .accessibilityLabel("탐색 탭으로 이동")
             Spacer(minLength: 4)
             Button {
                 viewModel.openJoinDialog()
