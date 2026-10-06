@@ -57,9 +57,7 @@ struct PlaceImportLoadingView: View {
         VStack(spacing: 0) {
             PlaceImportTopBar(onBack: onCancel)
             VStack(spacing: 24) {
-                ProgressView()
-                    .controlSize(.extraLarge)
-                    .tint(colors.primary)
+                CircularProgressRing(color: colors.primary)
                     .frame(width: 80, height: 80)
                 VStack(spacing: 12) {
                     Text(source == .instagram ? "장소 불러오는 중.." : "지도 불러오는 중..")
@@ -78,6 +76,26 @@ struct PlaceImportLoadingView: View {
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
         .accessibilityElement(children: .contain)
+    }
+}
+
+/// 원본과 같은 원형 진행 표시. 호가 돌면서 길이가 늘었다 줄어든다.
+private struct CircularProgressRing: View {
+    let color: Color
+    var lineWidth: CGFloat = 4
+
+    var body: some View {
+        TimelineView(.animation) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            // 호 길이는 한 바퀴의 10%~75% 사이를 오간다.
+            let sweep = 0.1 + 0.65 * (1 - cos(time * .pi / 0.75)) / 2
+            Circle()
+                .trim(from: 0, to: sweep)
+                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(time.truncatingRemainder(dividingBy: 1.4) / 1.4 * 360 - 90))
+                .padding(lineWidth / 2)
+        }
+        .accessibilityLabel("불러오는 중")
     }
 }
 
