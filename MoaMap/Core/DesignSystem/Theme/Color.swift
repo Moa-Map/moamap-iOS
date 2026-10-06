@@ -53,6 +53,8 @@ nonisolated enum MoaMapPrimitiveColors {
 
     static let textNormal = Color(argb: 0xFF15_1617)
     static let backgroundSecondary = Color(argb: 0xFFF7_F9FA)
+    /// 탭 화면(탐색·모음) 배경. 시안이 변수 대신 이 값을 직접 칠했다.
+    static let tabBackground = Color(argb: 0xFFE7_F4FB)
     static let statusAlert = Color(argb: 0xFFFB_1921)
     static let statusCaution = Color(argb: 0xFFFC_912F)
     static let statusPositive = Color(argb: 0xFF1E_9E6A)
