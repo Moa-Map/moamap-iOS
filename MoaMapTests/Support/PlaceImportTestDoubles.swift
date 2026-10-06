@@ -16,3 +16,38 @@ extension ImportedPlace {
         )
     }
 }
+
+@MainActor
+final class PlaceImportRepositoryStub: PlaceImportRepository {
+    var extractInstagram: (String) async throws -> [ImportedPlace] = { _ in [] }
+    var extractMapShare: (String) async throws -> [ImportedPlace] = { _ in [] }
+    var upload: ([EditedPlace]) async throws -> [String: [String]] = { entries in
+        Dictionary(uniqueKeysWithValues: entries.filter { !$0.edit.photos.isEmpty }.map { ($0.place.id, ["https://file/\($0.place.id)"]) })
+    }
+    var save: ([Int64], [EditedPlace], [String: [String]]) async throws -> PlaceSaveResult = { _, places, _ in
+        PlaceSaveResult(created: places.count, duplicate: 0, failed: 0)
+    }
+    private(set) var extractedURLs: [String] = []
+    private(set) var uploadCalls = 0
+    private(set) var saveCalls: [(mapIDs: [Int64], places: [EditedPlace], photoURLs: [String: [String]])] = []
+
+    func extractInstagramPlaces(url: String) async throws -> [ImportedPlace] {
+        extractedURLs.append(url)
+        return try await extractInstagram(url)
+    }
+
+    func extractMapSharePlaces(url: String) async throws -> [ImportedPlace] {
+        extractedURLs.append(url)
+        return try await extractMapShare(url)
+    }
+
+    func uploadPhotos(mapID: Int64, places: [EditedPlace]) async throws -> [String: [String]] {
+        uploadCalls += 1
+        return try await upload(places)
+    }
+
+    func savePlaces(mapIDs: [Int64], places: [EditedPlace], photoURLs: [String: [String]]) async throws -> PlaceSaveResult {
+        saveCalls.append((mapIDs, places, photoURLs))
+        return try await save(mapIDs, places, photoURLs)
+    }
+}

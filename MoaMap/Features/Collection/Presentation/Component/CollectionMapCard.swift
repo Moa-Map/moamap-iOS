@@ -5,6 +5,8 @@ struct CollectionMapCard: View {
     @Environment(\.moaTypography) private var typography
     let map: MyMap
     let showsMembers: Bool
+    /// nil 이 아니면 체크박스를 붙이고, 고르면 파란 테두리를 두른다.
+    var selected: Bool?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -30,12 +32,17 @@ struct CollectionMapCard: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: 64)
+            if let selected { SelectionCheckBox(checked: selected) }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 20)
         .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            if selected == true { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) }
+        }
         .shadow(color: .black.opacity(0.04), radius: 4)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected == true ? .isSelected : [])
     }
 
     private func meta(_ icon: String, text: String) -> some View {

@@ -194,6 +194,10 @@ final class AppContainer {
         CreateMapViewModel(repository: collectionRepository)
     }
 
+    func makePlaceImportViewModel(source: PlaceImportSource) -> PlaceImportViewModel {
+        PlaceImportViewModel(source: source, importRepository: placeImportRepository, collectionRepository: collectionRepository)
+    }
+
     func makeProfileEditViewModel() -> ProfileEditViewModel {
         ProfileEditViewModel(repository: userRepository)
     }

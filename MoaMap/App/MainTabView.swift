@@ -7,6 +7,7 @@ private enum MainRoute: Hashable {
     case communityMaps
     case officialMaps
     case createMap
+    case placeImport(PlaceImportStep)
     case mapIntro(mapID: Int64)
     case mapDetail(mapID: Int64, title: String)
     /// 장소 대신 전용 지도를 보여 주는 공식지도.
@@ -22,10 +23,13 @@ struct MainTabView: View {
 
     @State private var collectionViewModel: CollectionViewModel
     @State private var collectionPath: [MainRoute] = []
+    /// 장소 가져오기 단계들이 함께 쓴다. 흐름을 벗어나면 비워 다음에 들어올 때 이전 입력이 남지 않는다.
+    @State private var placeImportViewModel: PlaceImportViewModel?
 
     private let makeSettingsViewModel: () -> SettingsViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCreateMapViewModel: () -> CreateMapViewModel
+    private let makePlaceImportViewModel: (PlaceImportSource) -> PlaceImportViewModel
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let makeOfficialMapListViewModel: () -> OfficialMapListViewModel
     private let makeDensityMapViewModel: () -> DensityMapViewModel
@@ -42,6 +46,7 @@ struct MainTabView: View {
         makeSettingsViewModel: @escaping () -> SettingsViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCreateMapViewModel: @escaping () -> CreateMapViewModel,
+        makePlaceImportViewModel: @escaping (PlaceImportSource) -> PlaceImportViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeOfficialMapListViewModel: @escaping () -> OfficialMapListViewModel,
         makeDensityMapViewModel: @escaping () -> DensityMapViewModel,
@@ -57,6 +62,7 @@ struct MainTabView: View {
         self.makeSettingsViewModel = makeSettingsViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCreateMapViewModel = makeCreateMapViewModel
+        self.makePlaceImportViewModel = makePlaceImportViewModel
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.makeOfficialMapListViewModel = makeOfficialMapListViewModel
         self.makeDensityMapViewModel = makeDensityMapViewModel
@@ -89,6 +95,7 @@ struct MainTabView: View {
                     viewModel: collectionViewModel,
                     onHome: { selection = .explore },
                     onCreateMap: { collectionPath.append(.createMap) },
+                    onImportPlaces: startPlaceImport,
                     // 모음에는 참여한 지도만 있어 소개를 건너뛴다.
                     onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) }
                 )
@@ -108,11 +115,31 @@ struct MainTabView: View {
         }
         // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 한다.
         .ignoresSafeArea(isRoot ? .keyboard : [], edges: .bottom)
+        .onChange(of: collectionPath) { _, path in
+            if !path.contains(where: \.isPlaceImport) { placeImportViewModel = nil }
+        }
         .background { colors.backgroundPrimary.ignoresSafeArea() }
         .preferredColorScheme(.light)
     }
 
     private var isRoot: Bool { explorePath.isEmpty && collectionPath.isEmpty }
+
+    private func startPlaceImport(_ source: PlaceImportSource) {
+        let viewModel = makePlaceImportViewModel(source)
+        viewModel.loadTargetMaps()
+        placeImportViewModel = viewModel
+        collectionPath.append(.placeImport(.url))
+    }
+
+    private func placeImportNavigator(_ path: Binding<[MainRoute]>) -> PlaceImportNavigator {
+        PlaceImportNavigator(
+            steps: { path.wrappedValue.compactMap(\.placeImportStep) },
+            // 흐름의 단계는 늘 스택 맨 위에 이어 쌓여 있다.
+            setSteps: { steps in
+                path.wrappedValue = path.wrappedValue.filter { !$0.isPlaceImport } + steps.map(MainRoute.placeImport)
+            }
+        )
+    }
 
     @ViewBuilder
     private func destination(_ route: MainRoute, path: Binding<[MainRoute]>) -> some View {
@@ -123,6 +150,10 @@ struct MainTabView: View {
             }
         case .settings:
             SettingsView(viewModel: makeSettingsViewModel(), onLoggedOut: onLoggedOut)
+        case .placeImport(let step):
+            if let placeImportViewModel {
+                PlaceImportDestination(step: step, viewModel: placeImportViewModel, navigator: placeImportNavigator(path))
+            }
         case .createMap:
             // 만들기 화면을 남기면 뒤로가기로 돌아와 같은 지도를 또 만들 수 있다.
             CreateMapView(viewModel: makeCreateMapViewModel()) { path.wrappedValue.removeLast() }
@@ -181,6 +212,12 @@ struct MainTabView: View {
 }
 
 private extension MainRoute {
+    var placeImportStep: PlaceImportStep? {
+        if case .placeImport(let step) = self { step } else { nil }
+    }
+
+    var isPlaceImport: Bool { placeImportStep != nil }
+
     /// 커뮤니티 지도 목록에는 공식지도가 없다.
     static func map(_ map: MapSummary) -> MainRoute {
         .map(id: map.id, title: map.title, joined: map.joined, official: false)
@@ -221,6 +258,9 @@ private final class PreviewLocationProvider: LocationProvider {
         makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository()) },
+        makePlaceImportViewModel: {
+            PlaceImportViewModel(source: $0, importRepository: PreviewPlaceImportRepository(), collectionRepository: PreviewCollectionRepository())
+        },
         makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
         makeOfficialMapListViewModel: { OfficialMapListViewModel(repository: PreviewOfficialMapRepository()) },
         makeDensityMapViewModel: { DensityMapViewModel(repository: PreviewFootTrafficRepository()) },

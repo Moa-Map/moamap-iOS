@@ -23,8 +23,12 @@ struct AddPlaceView: View {
                 .padding(.bottom, 8)
             if let selected = state.selected {
                 AddPlaceFormContent(
-                    candidate: selected,
-                    state: state,
+                    name: selected.name,
+                    address: selected.displayAddress,
+                    photos: state.photos,
+                    tags: state.tags,
+                    tagInput: state.tagInput,
+                    memo: state.memo,
                     focus: $focusedField,
                     onAddPhoto: { showsSourceMenu = true },
                     onRemovePhoto: viewModel.removePhoto(at:),
@@ -123,7 +127,9 @@ struct AddPlaceSearchContent: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(candidates) { candidate in
-                            Button { onSelect(candidate) } label: { CandidateCard(candidate: candidate) }
+                            Button { onSelect(candidate) } label: {
+                                CandidateCard(name: candidate.name, address: candidate.displayAddress)
+                            }
                                 .buttonStyle(.plain)
                         }
                     }
@@ -177,18 +183,19 @@ private struct CandidateCard: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
-    let candidate: PlaceCandidate
+    let name: String
+    let address: String
     var highlighted = false
 
     var body: some View {
         HStack(spacing: 12) {
             PhotoThumbnail(imageURL: nil, size: 64)
             VStack(alignment: .leading, spacing: 6) {
-                Text(candidate.name)
+                Text(name)
                     .moaTextStyle(typography.subtitle2)
                     .lineLimit(1)
-                if !candidate.displayAddress.isEmpty {
-                    Text(candidate.displayAddress)
+                if !address.isEmpty {
+                    Text(address)
                         .moaTextStyle(typography.caption0)
                         .lineLimit(1)
                 }
@@ -210,12 +217,17 @@ private struct CandidateCard: View {
     }
 }
 
+/// 장소에 사진·태그·메모를 붙이는 폼. 장소 가져오기의 편집도 같은 폼을 쓴다.
 struct AddPlaceFormContent: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
-    let candidate: PlaceCandidate
-    let state: AddPlaceUiState
+    let name: String
+    let address: String
+    let photos: [UploadImage]
+    let tags: [String]
+    let tagInput: String
+    let memo: String
     let focus: FocusState<AddPlaceField?>.Binding
     let onAddPhoto: () -> Void
     let onRemovePhoto: (Int) -> Void
@@ -230,37 +242,37 @@ struct AddPlaceFormContent: View {
                 Text("장소등록")
                     .moaTextStyle(typography.title3)
                     .foregroundStyle(colors.textNormal)
-                CandidateCard(candidate: candidate, highlighted: true)
-                section("사진") { photos }
+                CandidateCard(name: name, address: address, highlighted: true)
+                section("사진") { photoSection }
                 section("태그") {
-                    if !state.tags.isEmpty {
+                    if !tags.isEmpty {
                         ScrollView(.horizontal) {
                             HStack(spacing: 4) {
-                                ForEach(state.tags, id: \.self) { tagChip($0) }
+                                ForEach(tags, id: \.self) { tagChip($0) }
                             }
                         }
                         .scrollIndicators(.hidden)
                         .padding(.bottom, 4)
                     }
                     inputField(
-                        text: Binding(get: { state.tagInput }, set: onTagInputChange),
+                        text: Binding(get: { tagInput }, set: onTagInputChange),
                         placeholder: "태그 입력 후 스페이스 또는 엔터"
                     )
                     .focused(focus, equals: .tag)
                     .submitLabel(.next)
                     .onSubmit {
                         // 엔터는 줄바꿈과 같이 태그를 확정한다. 키보드는 내리지 않는다.
-                        onTagInputChange(state.tagInput + "\n")
+                        onTagInputChange(tagInput + "\n")
                         focus.wrappedValue = .tag
                     }
                     .onKeyPress(.delete) {
-                        guard state.tagInput.isEmpty, !state.tags.isEmpty else { return .ignored }
+                        guard tagInput.isEmpty, !tags.isEmpty else { return .ignored }
                         onTagBackspace()
                         return .handled
                     }
                 }
                 section("메모") {
-                    inputField(text: Binding(get: { state.memo }, set: onMemoChange), placeholder: "메모를 남겨보세요")
+                    inputField(text: Binding(get: { memo }, set: onMemoChange), placeholder: "메모를 남겨보세요")
                         .focused(focus, equals: .memo)
                 }
             }
@@ -282,8 +294,8 @@ struct AddPlaceFormContent: View {
     }
 
     @ViewBuilder
-    private var photos: some View {
-        if state.photos.isEmpty {
+    private var photoSection: some View {
+        if photos.isEmpty {
             Button(action: onAddPhoto) {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(MoaMapPrimitiveColors.white)
@@ -306,11 +318,11 @@ struct AddPlaceFormContent: View {
         } else {
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
-                    ForEach(Array(state.photos.enumerated()), id: \.offset) { index, photo in
+                    ForEach(Array(photos.enumerated()), id: \.offset) { index, photo in
                         photoTile(photo, index: index)
                     }
                     // 다섯 장이 차면 더 붙일 수 없다. 서버 제한이다.
-                    if state.canAddPhoto {
+                    if photos.count < AddPlaceUiState.maxPhotos {
                         Button(action: onAddPhoto) {
                             Image("Icons/add")
                                 .renderingMode(.template)
