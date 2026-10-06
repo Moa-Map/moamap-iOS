@@ -141,5 +141,5 @@ private struct FeaturedTagChip: View {
 #Preview {
     FeaturedMapCarousel(maps: FeaturedMap.mocks)
         .padding(.vertical)
-        .background(Color(argb: 0xFFE7_F4FB))
+        .background(MoaMapPrimitiveColors.tabBackground)
 }

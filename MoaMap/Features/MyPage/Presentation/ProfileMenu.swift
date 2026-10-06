@@ -58,5 +58,5 @@ struct ProfileMenu: View {
 #Preview {
     ProfileMenu(onProfileClick: {}, onSettingsClick: {})
         .padding()
-        .background(Color(argb: 0xFFE7_F4FB))
+        .background(MoaMapPrimitiveColors.tabBackground)
 }

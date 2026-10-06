@@ -25,7 +25,7 @@ struct CollectionView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .background { colors.backgroundPrimary.ignoresSafeArea() }
+        .background { MoaMapPrimitiveColors.tabBackground.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
         .task { viewModel.refresh() }
         .fullScreenCover(isPresented: $showsInviteDialog) {

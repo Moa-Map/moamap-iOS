@@ -14,8 +14,6 @@ struct ExploreView: View {
 
     @State private var showsProfileMenu = false
 
-    /// 홈 배경. 시안 「메인 화면」이 색 변수가 아니라 이 값을 직접 칠했다. 다른 화면은 그대로 변수 색을 쓴다.
-    private static let background = Color(argb: 0xFFE7_F4FB)
     private static let topID = "explore-top"
 
     var body: some View {
@@ -43,7 +41,7 @@ struct ExploreView: View {
                 .scrollIndicators(.hidden)
             }
         }
-        .background { Self.background.ignoresSafeArea() }
+        .background { MoaMapPrimitiveColors.tabBackground.ignoresSafeArea() }
         .overlay(alignment: .topTrailing) {
             if showsProfileMenu { profileMenu }
         }
