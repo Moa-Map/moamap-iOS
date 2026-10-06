@@ -202,7 +202,7 @@ nonisolated enum PlaceReviewMessage {
 
     /// 멤버가 아닌 경우와 사진 문제는 따로 알린다. 뭉뚱그리면 같은 글을 계속 다시 보내게 된다.
     static func submitMessage(for error: any Error) -> String {
-        if case .server(code: "PLACE_002", _) = error as? NetworkError { return notMember }
+        if case .server(code: "PLACE_002", _, _) = error as? NetworkError { return notMember }
         if let error = error as? ImageUploadError { return error.userMessage }
         return MapDetailMessage.userMessage(for: error, fallback: submitFailed)
     }

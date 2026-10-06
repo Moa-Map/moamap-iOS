@@ -25,6 +25,7 @@ struct ContentView: View {
                     makeSettingsViewModel: container.makeSettingsViewModel,
                     makeProfileEditViewModel: container.makeProfileEditViewModel,
                     makeCreateMapViewModel: container.makeCreateMapViewModel,
+                    makePlaceImportViewModel: container.makePlaceImportViewModel(source:),
                     makeCommunityMapListViewModel: container.makeCommunityMapListViewModel,
                     makeOfficialMapListViewModel: container.makeOfficialMapListViewModel,
                     makeDensityMapViewModel: container.makeDensityMapViewModel,

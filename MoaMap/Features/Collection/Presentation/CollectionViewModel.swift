@@ -83,8 +83,8 @@ final class CollectionViewModel {
     private static func joinMessage(for error: any Error) -> String {
         switch error as? NetworkError {
         case .connection: "네트워크에 연결할 수 없어요"
-        case .server(code: "MAP_007", _): "코드를 다시 확인해주세요"
-        case .server(code: "MAP_005", _): "이미 참여 중인 지도예요"
+        case .server(code: "MAP_007", _, _): "코드를 다시 확인해주세요"
+        case .server(code: "MAP_005", _, _): "이미 참여 중인 지도예요"
         default: "지도에 참여하지 못했어요"
         }
     }

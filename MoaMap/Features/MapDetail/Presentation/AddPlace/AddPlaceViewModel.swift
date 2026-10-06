@@ -220,7 +220,7 @@ nonisolated enum AddPlaceMessage {
     static let requested = "추가 요청을 보냈어요"
 
     static func addMessage(for error: any Error) -> String {
-        if case .server(code: "PLACE_010", _) = error as? NetworkError { return duplicate }
+        if case .server(code: "PLACE_010", _, _) = error as? NetworkError { return duplicate }
         return MapDetailMessage.userMessage(for: error, fallback: addFailed)
     }
 

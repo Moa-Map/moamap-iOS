@@ -27,6 +27,7 @@ final class AppContainer {
     let userRepository: any UserRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
+    let placeImportRepository: any PlaceImportRepository
 
     init(
         configuration: APIConfiguration,
@@ -63,6 +64,11 @@ final class AppContainer {
         mapActivityRepository = MapActivityRepositoryImpl(client: apiClient, timeZone: .current)
         pendingPlaceRepository = PendingPlaceRepositoryImpl(client: apiClient, timeZone: .current)
         placeAddRepository = PlaceAddRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
+        placeImportRepository = PlaceImportRepositoryImpl(
+            client: apiClient,
+            captionExtractor: InstagramCaptionExtractor(transport: transport),
+            photoUploader: placeAddRepository
+        )
         // 카카오 로컬 API 는 우리 서버 인증을 붙이지 않는다.
         let kakaoLocalClient = APIClient(configuration: Self.kakaoLocalConfiguration, transport: transport)
         placeSearchRepository = KakaoPlaceSearchRepository(client: kakaoLocalClient, restAPIKey: kakaoRestAPIKey)
@@ -186,6 +192,10 @@ final class AppContainer {
 
     func makeCreateMapViewModel() -> CreateMapViewModel {
         CreateMapViewModel(repository: collectionRepository)
+    }
+
+    func makePlaceImportViewModel(source: PlaceImportSource) -> PlaceImportViewModel {
+        PlaceImportViewModel(source: source, importRepository: placeImportRepository, collectionRepository: collectionRepository)
     }
 
     func makeProfileEditViewModel() -> ProfileEditViewModel {

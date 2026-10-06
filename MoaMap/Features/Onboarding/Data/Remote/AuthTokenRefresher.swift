@@ -28,7 +28,7 @@ nonisolated struct AuthTokenRefresher: TokenRefresher {
             try Task.checkCancellation()
             switch error {
             // 인증 거부만 세션을 끝낸다. 서버 장애·요청 제한·알 수 없는 오류는 세션을 유지한다.
-            case .http(let status), .server(_, let status):
+            case .http(let status), .server(_, let status, _):
                 return [401, 403].contains(status) ? .rejected : .failed
             default: return .failed
             }

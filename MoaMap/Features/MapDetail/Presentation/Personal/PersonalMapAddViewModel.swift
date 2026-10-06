@@ -65,7 +65,7 @@ nonisolated enum PersonalMapMessage {
     static let failed = "나만의 지도에 추가하지 못했어요"
 
     static func message(for error: any Error) -> String {
-        if case .server(code: "PLACE_010", _) = error as? NetworkError { return duplicate }
+        if case .server(code: "PLACE_010", _, _) = error as? NetworkError { return duplicate }
         if error is PersonalMapNotFoundError { return notFound }
         return MapDetailMessage.userMessage(for: error, fallback: failed)
     }

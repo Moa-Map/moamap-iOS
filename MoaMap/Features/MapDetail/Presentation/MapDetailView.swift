@@ -372,7 +372,6 @@ struct MapDetailView: View {
             places: visiblePlaces,
             viewport: $viewport,
             shows3DObjects: is3D,
-            ornamentBottomInset: sheetCollapsedHeight,
             onCameraChanged: { currentZoom = $0.zoom },
             onMarkerTap: selectPlace,
             // 좌표가 같은 장소는 확대해도 갈라지지 않아 목록으로 펼친다.

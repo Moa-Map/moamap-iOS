@@ -163,7 +163,7 @@ nonisolated enum MapManageMessage {
     static let actionFailed = "요청을 처리하지 못했어요"
 
     static func activityMessage(for error: any Error) -> String {
-        if case .server(code: "PLACE_002", _) = error as? NetworkError { return notMember }
+        if case .server(code: "PLACE_002", _, _) = error as? NetworkError { return notMember }
         return MapDetailMessage.userMessage(for: error, fallback: activityLoadFailed)
     }
 }

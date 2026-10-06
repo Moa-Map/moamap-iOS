@@ -6,6 +6,7 @@ struct CollectionView: View {
     let viewModel: CollectionViewModel
     let onHome: () -> Void
     var onCreateMap: () -> Void = {}
+    var onImportPlaces: (PlaceImportSource) -> Void = { _ in }
     var onMapClick: (MyMap) -> Void = { _ in }
     @State private var showsInviteDialog = false
 
@@ -151,11 +152,11 @@ struct CollectionView: View {
             ImportActionCard(
                 iconName: "instagram-logo", title: "인스타그램", subtitle: "장소 찾기",
                 background: Color(argb: 0xFFFFF5FB), titleColor: Color(argb: 0xFFAF0069)
-            )
+            ) { onImportPlaces(.instagram) }
             ImportActionCard(
                 iconName: "map", iconTint: colors.secondary, title: "외부 지도", subtitle: "불러오기",
                 background: MoaMapPrimitiveColors.yellow50, titleColor: MoaMapPrimitiveColors.yellow800
-            )
+            ) { onImportPlaces(.mapShare) }
         }
     }
 
