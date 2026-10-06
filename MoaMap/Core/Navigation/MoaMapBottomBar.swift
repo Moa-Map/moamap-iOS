@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// 콘텐츠 위에 떠 있는 알약형 하단 탭. 시안 「NavigationBar」: 고른 칸은 노랑 바탕에 진한 노랑 글자.
 struct MoaMapBottomBar: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
@@ -13,9 +14,9 @@ struct MoaMapBottomBar: View {
                 } label: {
                     Text(tab.title)
                         .moaTextStyle(selection == tab ? typography.button0 : typography.button1)
-                        .foregroundStyle(selection == tab ? colors.textNormal : colors.textAssistive)
+                        .foregroundStyle(selection == tab ? MoaMapPrimitiveColors.yellow800 : colors.textAssistive)
                         .frame(width: 100, height: 50)
-                        .background(selection == tab ? colors.lineAlternative : .clear, in: Capsule())
+                        .background(selection == tab ? MoaMapPrimitiveColors.yellow200 : .clear, in: Capsule())
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
