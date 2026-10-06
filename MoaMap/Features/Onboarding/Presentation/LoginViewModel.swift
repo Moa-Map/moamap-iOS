@@ -71,9 +71,9 @@ final class LoginViewModel {
         if let networkError = error as? NetworkError {
             if provider == .apple {
                 switch networkError {
-                case .http(401), .server(_, 401):
+                case .http(401), .server(_, 401, _):
                     return "Apple 인증이 만료되었거나 유효하지 않아요. 다시 로그인해 주세요."
-                case .http(503), .server(_, 503):
+                case .http(503), .server(_, 503, _):
                     return "Apple 로그인을 일시적으로 사용할 수 없어요. 잠시 후 다시 시도해 주세요."
                 default: break
                 }

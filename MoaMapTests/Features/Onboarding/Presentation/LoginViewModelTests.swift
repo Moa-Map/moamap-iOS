@@ -119,7 +119,7 @@ struct LoginViewModelTests {
         await sut.loadTask?.value
         guard case .failed(let message) = sut.uiState else { Issue.record("오류 안내 필요"); return }
         switch error {
-        case .http(401), .server(_, 401): #expect(message.contains("다시 로그인"))
+        case .http(401), .server(_, 401, _): #expect(message.contains("다시 로그인"))
         default: #expect(message.contains("잠시 후"))
         }
         #expect(message.contains("Apple"))

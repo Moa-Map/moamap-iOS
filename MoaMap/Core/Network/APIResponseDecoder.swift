@@ -10,9 +10,14 @@ nonisolated enum APIResponseDecoder {
     private struct ServerError: Decodable {
         let code: String?
         let status: Int?
+        let message: String?
 
         func networkError(fallbackStatus: Int) -> NetworkError {
-            .server(code: code ?? "UNKNOWN", statusCode: status.flatMap { $0 == 0 ? nil : $0 } ?? fallbackStatus)
+            .server(
+                code: code ?? "UNKNOWN",
+                statusCode: status.flatMap { $0 == 0 ? nil : $0 } ?? fallbackStatus,
+                message: message
+            )
         }
     }
 

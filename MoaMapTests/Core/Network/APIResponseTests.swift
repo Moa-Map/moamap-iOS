@@ -50,10 +50,20 @@ struct APIResponseTests {
     @Test(arguments: [200, 500])
     func 실패_응답은_데이터보다_서버_코드를_우선한다(status: Int) async throws {
         let api = try client(#"{"success":false,"data":"wrong shape","error":{"code":"COMMON_005","status":503,"message":"internal secret"}}"#, status: status)
-        await #expect(throws: NetworkError.server(code: "COMMON_005", statusCode: 503)) {
+        let error = NetworkError.server(code: "COMMON_005", statusCode: 503, message: "internal secret")
+        await #expect(throws: error) {
             try await api.send(APIRequest(path: []), as: Item.self)
         }
-        #expect(!NetworkError.server(code: "COMMON_005", statusCode: 503).userMessage.contains("COMMON_005"))
+        // 공통 안내에는 서버 코드도 문구도 싣지 않는다. 문구는 필요한 화면이 골라 쓴다.
+        #expect(!error.userMessage.contains("COMMON_005"))
+        #expect(!error.userMessage.contains("internal secret"))
+        #expect(error.serverMessage == "internal secret")
+    }
+
+    @Test(arguments: [nil, "", "  "] as [String?])
+    func 비어_있는_서버_문구는_없는_것으로_본다(message: String?) {
+        #expect(NetworkError.server(code: "MAP_001", statusCode: 400, message: message).serverMessage == nil)
+        #expect(NetworkError.http(statusCode: 500).serverMessage == nil)
     }
 
     @Test
