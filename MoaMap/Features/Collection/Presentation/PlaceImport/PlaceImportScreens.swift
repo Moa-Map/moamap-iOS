@@ -18,7 +18,8 @@ struct PlaceImportURLView: View {
         ) {
             // 붙여넣은 내용이 길어도 세 줄까지만 늘어난다.
             TextField(
-                "", text: Binding(get: { viewModel.uiState.url }, set: viewModel.updateURL),
+                // 메서드를 그대로 넘기면 Xcode 26 컴파일러가 크래시해 클로저로 감싼다.
+                "", text: Binding(get: { viewModel.uiState.url }, set: { viewModel.updateURL($0) }),
                 prompt: Text("url을 입력해주세요").foregroundStyle(colors.textAssistive),
                 axis: .vertical
             )

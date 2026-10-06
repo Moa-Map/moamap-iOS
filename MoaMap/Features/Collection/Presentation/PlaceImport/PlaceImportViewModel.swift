@@ -141,8 +141,8 @@ final class PlaceImportViewModel {
         var after = before
         transform(&after)
         uiState.edits[placeID] = after
-        // 올려 둔 주소가 바뀐 사진과 어긋나지 않게 버린다.
-        if before.photos != after.photos { uiState.uploadedPhotoURLs = [:] }
+        // 올려 둔 주소가 바뀐 사진과 어긋나지 않게 그 장소 것만 버린다.
+        if before.photos != after.photos { uiState.uploadedPhotoURLs[placeID] = nil }
     }
 
     // MARK: 지도 → 등록
@@ -184,10 +184,13 @@ final class PlaceImportViewModel {
         saveTask = Task { [weak self, importRepository] in
             do {
                 var photoURLs = uploaded
-                if photoURLs.isEmpty {
+                // 앞서 올려 둔 장소는 건너뛴다. 실패 뒤 새로 고른 장소의 사진만 올린다.
+                let pending = entries.filter { uploaded[$0.place.id] == nil }
+                if pending.contains(where: { !$0.edit.photos.isEmpty }) {
                     // 발급 권한만 확인하는 값이라 고른 지도 중 아무거나면 된다.
-                    photoURLs = try await importRepository.uploadPhotos(mapID: photoMapID, places: entries)
+                    let fresh = try await importRepository.uploadPhotos(mapID: photoMapID, places: pending)
                     try Task.checkCancellation()
+                    photoURLs.merge(fresh) { _, new in new }
                     self?.uiState.uploadedPhotoURLs = photoURLs
                 }
                 let result = try await importRepository.savePlaces(mapIDs: mapIDs, places: entries, photoURLs: photoURLs)

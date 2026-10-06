@@ -191,6 +191,51 @@ struct PlaceImportViewModelTests {
         #expect(repository.uploadCalls == 2)
     }
 
+    @Test func 등록이_실패한_뒤_새로_고른_장소의_사진만_올린다() async throws {
+        let sut = try await extracted([.fixture(id: "1"), .fixture(id: "2"), .fixture(id: "3")], select: ["1"])
+        sut.addEditPhoto("1", data: photo.data, type: .png)
+        sut.addEditPhoto("2", data: Data([7]), type: .png)
+        sut.toggleMap(1)
+        var uploadedIDs: [[String]] = []
+        let upload = repository.upload
+        repository.upload = { entries in
+            uploadedIDs.append(entries.map(\.place.id))
+            return try await upload(entries)
+        }
+        repository.save = { _, _, _ in throw NetworkError.http(statusCode: 500) }
+        sut.savePlaces()
+        try await sut.saveTask?.value
+        sut.togglePlace("2")
+        sut.togglePlace("3")
+        repository.save = { _, places, _ in PlaceSaveResult(created: places.count, duplicate: 0, failed: 0) }
+        sut.savePlaces()
+        try await sut.saveTask?.value
+        #expect(uploadedIDs == [["1"], ["2", "3"]])
+        #expect(repository.saveCalls.last?.photoURLs == ["1": ["https://file/1"], "2": ["https://file/2"]])
+    }
+
+    @Test func 한_장소의_사진을_바꾸면_그_장소만_다시_올린다() async throws {
+        let sut = try await extracted([.fixture(id: "1"), .fixture(id: "2")], select: ["1", "2"])
+        sut.addEditPhoto("1", data: photo.data, type: .png)
+        sut.addEditPhoto("2", data: Data([7]), type: .png)
+        sut.toggleMap(1)
+        repository.save = { _, _, _ in throw NetworkError.http(statusCode: 500) }
+        sut.savePlaces()
+        try await sut.saveTask?.value
+        sut.removeEditPhoto("2", at: 0)
+        sut.addEditPhoto("2", data: Data([8]), type: .png)
+        #expect(sut.uiState.uploadedPhotoURLs.keys.sorted() == ["1"])
+        var uploadedIDs: [[String]] = []
+        let upload = repository.upload
+        repository.upload = { entries in
+            uploadedIDs.append(entries.map(\.place.id))
+            return try await upload(entries)
+        }
+        sut.savePlaces()
+        try await sut.saveTask?.value
+        #expect(uploadedIDs == [["2"]])
+    }
+
     @Test(arguments: [
         (PlaceSaveResult(created: 0, duplicate: 2, failed: 0), "이미 저장되어 있는 장소예요"),
         (PlaceSaveResult(created: 0, duplicate: 1, failed: 1), "장소를 저장하지 못했어요")

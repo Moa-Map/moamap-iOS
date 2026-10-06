@@ -21,7 +21,7 @@ nonisolated struct PlaceImportUiState: Equatable, Sendable {
     var targetMaps: CollectionMapsState = .loading
     /// 고른 순서대로 등록한다.
     var selectedMapIDs: [Int64] = []
-    /// 등록이 실패해 다시 시도할 때 같은 사진을 또 올리지 않게 둔다. 사진이 바뀌면 비운다.
+    /// 등록이 실패해 다시 시도할 때 같은 사진을 또 올리지 않게 장소별로 둔다. 그 장소 사진이 바뀌면 지운다.
     var uploadedPhotoURLs: [String: [String]] = [:]
     var saving = false
     /// 채워지면 흐름을 빠져나간다.
