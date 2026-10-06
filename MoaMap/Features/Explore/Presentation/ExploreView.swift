@@ -28,7 +28,6 @@ struct ExploreView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         // 운영자 추천 API 가 없어 임시 데이터다.
                         FeaturedMapCarousel(maps: FeaturedMap.mocks)
-                            .id(Self.topID)
                         VStack(alignment: .leading, spacing: 20) {
                             communitySection
                             officialSection
@@ -38,6 +37,8 @@ struct ExploreView: View {
                     .padding(.top, 20)
                     // 하단 탭 위 띄움 8 과 합쳐 시안의 마지막 카드 ↔ 하단 탭 32.
                     .padding(.bottom, 24)
+                    // 위 여백까지 포함해야 맨 위로 올렸을 때 처음 화면과 같다.
+                    .id(Self.topID)
                 }
                 .scrollIndicators(.hidden)
             }
@@ -79,17 +80,8 @@ struct ExploreView: View {
     /// 24 가 사이 8 로 놓인다. 로고는 홈으로 가는 버튼이라, 이미 홈인 여기서는 맨 위로 올린다.
     private func header(onLogoClick: @escaping () -> Void) -> some View {
         HStack(spacing: 8) {
-            Button(action: onLogoClick) {
-                Image("moa-symbol")
-                    .resizable()
-                    .frame(width: 43.75, height: 35.75)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("맨 위로")
-            // 그림자가 그림 밖으로 번져 본체는 그림 안 왼쪽 0.75 에서 시작한다.
-            .padding(.leading, 3.25)
-            .padding(.top, 9)
-            .frame(maxHeight: .infinity, alignment: .top)
+            MoaMapTopBarLogo(action: onLogoClick)
+                .accessibilityLabel("맨 위로")
             Spacer()
             // 알림 기능이 생길 때까지 보이기만 한다.
             headerIcon("Icons/bell-outline")

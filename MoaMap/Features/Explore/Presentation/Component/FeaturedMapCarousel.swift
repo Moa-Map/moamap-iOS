@@ -76,13 +76,8 @@ private struct FeaturedMapCard: View {
             Color.black.opacity(0.08)
 
             VStack(alignment: .leading, spacing: 0) {
-                ForEach([map.description, map.title], id: \.self) { line in
-                    Text(line)
-                        .moaTextStyle(Self.titleStyle)
-                        .foregroundStyle(MoaMapPrimitiveColors.white)
-                        .lineLimit(1)
-                        .shadow(color: .black.opacity(0.2), radius: 5)
-                }
+                titleLine(map.description)
+                titleLine(map.title)
             }
             .frame(width: 242, alignment: .leading)
             .padding(.leading, 12)
@@ -99,6 +94,14 @@ private struct FeaturedMapCard: View {
         .frame(height: Self.height)
         .clipShape(shape)
         .accessibilityElement(children: .combine)
+    }
+
+    private func titleLine(_ text: String) -> some View {
+        Text(text)
+            .moaTextStyle(Self.titleStyle)
+            .foregroundStyle(MoaMapPrimitiveColors.white)
+            .lineLimit(1)
+            .shadow(color: .black.opacity(0.2), radius: 5)
     }
 
     /// 시안 히어로 글: ExtraBold 22, 줄 높이 1.3, 자간 −0.02em. 글꼴 단계에 22 가 없어 따로 둔다.
