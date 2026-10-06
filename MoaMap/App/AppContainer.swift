@@ -28,6 +28,7 @@ final class AppContainer {
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
     let placeImportRepository: any PlaceImportRepository
+    let sharedLinkInbox = SharedLinkInbox()
 
     init(
         configuration: APIConfiguration,
@@ -194,8 +195,8 @@ final class AppContainer {
         CreateMapViewModel(repository: collectionRepository)
     }
 
-    func makePlaceImportViewModel(source: PlaceImportSource) -> PlaceImportViewModel {
-        PlaceImportViewModel(source: source, importRepository: placeImportRepository, collectionRepository: collectionRepository)
+    func makePlaceImportViewModel(source: PlaceImportSource, url: String) -> PlaceImportViewModel {
+        PlaceImportViewModel(source: source, url: url, importRepository: placeImportRepository, collectionRepository: collectionRepository)
     }
 
     func makeProfileEditViewModel() -> ProfileEditViewModel {
@@ -207,6 +208,7 @@ final class AppContainer {
     }
 
     func handleOpenURL(_ url: URL) {
+        if sharedLinkInbox.receive(url) { return }
         if AuthApi.isKakaoTalkLoginUrl(url) {
             _ = AuthController.handleOpenUrl(url: url)
         }

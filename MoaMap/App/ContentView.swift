@@ -25,7 +25,7 @@ struct ContentView: View {
                     makeSettingsViewModel: container.makeSettingsViewModel,
                     makeProfileEditViewModel: container.makeProfileEditViewModel,
                     makeCreateMapViewModel: container.makeCreateMapViewModel,
-                    makePlaceImportViewModel: container.makePlaceImportViewModel(source:),
+                    makePlaceImportViewModel: container.makePlaceImportViewModel(source:url:),
                     makeCommunityMapListViewModel: container.makeCommunityMapListViewModel,
                     makeOfficialMapListViewModel: container.makeOfficialMapListViewModel,
                     makeDensityMapViewModel: container.makeDensityMapViewModel,
@@ -33,6 +33,7 @@ struct ContentView: View {
                     makeMapIntroViewModel: container.makeMapIntroViewModel(mapID:),
                     makeMapDetailViewModels: container.makeMapDetailViewModels(mapID:),
                     makeMapMembershipViewModel: container.makeMapMembershipViewModel(mapID:),
+                    sharedLinkInbox: container.sharedLinkInbox,
                     locationProvider: container.locationProvider,
                     onLoggedOut: { loginViewModel.returnToLogin() }
                 )
