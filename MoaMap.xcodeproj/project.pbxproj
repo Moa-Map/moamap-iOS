@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9E16313D3075035900EEF232 /* MoaMapShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9E1631333075035900EEF232 /* MoaMapShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9EC0F1050000000000000030 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 9EC0F1050000000000000020 /* Kingfisher */; };
 		9EC0F1050000000000000031 /* KakaoSDKCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 9EC0F1050000000000000021 /* KakaoSDKCommon */; };
 		9EC0F1050000000000000032 /* KakaoSDKAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 9EC0F1050000000000000022 /* KakaoSDKAuth */; };
@@ -15,6 +16,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		9E16313B3075035900EEF232 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9E542B2B302EE90B0052FD62 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9E1631323075035900EEF232;
+			remoteInfo = MoaMapShare;
+		};
 		9E542B41302EE90C0052FD62 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 9E542B2B302EE90B0052FD62 /* Project object */;
@@ -31,7 +39,22 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		9E16313E3075035900EEF232 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				9E16313D3075035900EEF232 /* MoaMapShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		9E1631333075035900EEF232 /* MoaMapShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MoaMapShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E4D56DC305818A1002D37C3 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		9E542B33302EE90B0052FD62 /* MoaMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MoaMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E542B40302EE90C0052FD62 /* MoaMapTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MoaMapTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -41,6 +64,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9E1631423075035900EEF232 /* Exceptions for "MoaMapShare" folder in "MoaMapShare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9E1631323075035900EEF232 /* MoaMapShare */;
+		};
 		9EC0F1050000000000000004 /* Exceptions for "MoaMap" folder in "MoaMap" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -51,6 +81,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		9E1631343075035900EEF232 /* MoaMapShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9E1631423075035900EEF232 /* Exceptions for "MoaMapShare" folder in "MoaMapShare" target */,
+			);
+			path = MoaMapShare;
+			sourceTree = "<group>";
+		};
 		9E542B35302EE90B0052FD62 /* MoaMap */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -72,6 +110,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		9E1631303075035900EEF232 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9E542B30302EE90B0052FD62 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -108,6 +153,7 @@
 				9E542B35302EE90B0052FD62 /* MoaMap */,
 				9E542B43302EE90C0052FD62 /* MoaMapTests */,
 				9E542B4D302EE90C0052FD62 /* MoaMapUITests */,
+				9E1631343075035900EEF232 /* MoaMapShare */,
 				9E542B34302EE90B0052FD62 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -118,6 +164,7 @@
 				9E542B33302EE90B0052FD62 /* MoaMap.app */,
 				9E542B40302EE90C0052FD62 /* MoaMapTests.xctest */,
 				9E542B4A302EE90C0052FD62 /* MoaMapUITests.xctest */,
+				9E1631333075035900EEF232 /* MoaMapShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -135,6 +182,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		9E1631323075035900EEF232 /* MoaMapShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9E1631413075035900EEF232 /* Build configuration list for PBXNativeTarget "MoaMapShare" */;
+			buildPhases = (
+				9E16312F3075035900EEF232 /* Sources */,
+				9E1631303075035900EEF232 /* Frameworks */,
+				9E1631313075035900EEF232 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				9E1631343075035900EEF232 /* MoaMapShare */,
+			);
+			name = MoaMapShare;
+			packageProductDependencies = (
+			);
+			productName = MoaMapShare;
+			productReference = 9E1631333075035900EEF232 /* MoaMapShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		9E542B32302EE90B0052FD62 /* MoaMap */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9E542B54302EE90C0052FD62 /* Build configuration list for PBXNativeTarget "MoaMap" */;
@@ -142,10 +211,12 @@
 				9E542B2F302EE90B0052FD62 /* Sources */,
 				9E542B30302EE90B0052FD62 /* Frameworks */,
 				9E542B31302EE90B0052FD62 /* Resources */,
+				9E16313E3075035900EEF232 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				9E16313C3075035900EEF232 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				9E542B35302EE90B0052FD62 /* MoaMap */,
@@ -215,9 +286,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2660;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
+					9E1631323075035900EEF232 = {
+						CreatedOnToolsVersion = 27.0;
+					};
 					9E542B32302EE90B0052FD62 = {
 						CreatedOnToolsVersion = 26.6;
 					};
@@ -253,11 +327,19 @@
 				9E542B32302EE90B0052FD62 /* MoaMap */,
 				9E542B3F302EE90C0052FD62 /* MoaMapTests */,
 				9E542B49302EE90C0052FD62 /* MoaMapUITests */,
+				9E1631323075035900EEF232 /* MoaMapShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		9E1631313075035900EEF232 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9E542B31302EE90B0052FD62 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -282,6 +364,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		9E16312F3075035900EEF232 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9E542B2F302EE90B0052FD62 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -306,6 +395,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		9E16313C3075035900EEF232 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9E1631323075035900EEF232 /* MoaMapShare */;
+			targetProxy = 9E16313B3075035900EEF232 /* PBXContainerItemProxy */;
+		};
 		9E542B42302EE90C0052FD62 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 9E542B32302EE90B0052FD62 /* MoaMap */;
@@ -319,6 +413,66 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		9E16313F3075035900EEF232 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = A4BC8YG62N;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MoaMapShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "모아맵";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moamap.MoaMap.MoaMapShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9E1631403075035900EEF232 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = A4BC8YG62N;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MoaMapShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "모아맵";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moamap.MoaMap.MoaMapShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		9E542B52302EE90C0052FD62 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 9EC0F1050000000000000002 /* Base.xcconfig */;
@@ -601,6 +755,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		9E1631413075035900EEF232 /* Build configuration list for PBXNativeTarget "MoaMapShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9E16313F3075035900EEF232 /* Debug */,
+				9E1631403075035900EEF232 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		9E542B2E302EE90B0052FD62 /* Build configuration list for PBXProject "MoaMap" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

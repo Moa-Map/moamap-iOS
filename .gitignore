@@ -49,6 +49,8 @@ CLAUDE.md
 .superpowers/
 docs/
 docs/superpowers/
+docs/superpowers/specs/2026-10-06-share-extension-design.md
+docs/superpowers/plans/2026-10-06-share-extension.md
 
 # Codex / agent local settings
 .codex/

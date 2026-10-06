@@ -29,7 +29,9 @@ struct MainTabView: View {
     private let makeSettingsViewModel: () -> SettingsViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCreateMapViewModel: () -> CreateMapViewModel
-    private let makePlaceImportViewModel: (PlaceImportSource) -> PlaceImportViewModel
+    private let makePlaceImportViewModel: (PlaceImportSource, String) -> PlaceImportViewModel
+    private let sharedLinkInbox: SharedLinkInbox
+    @State private var shareNotice: String?
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let makeOfficialMapListViewModel: () -> OfficialMapListViewModel
     private let makeDensityMapViewModel: () -> DensityMapViewModel
@@ -46,7 +48,7 @@ struct MainTabView: View {
         makeSettingsViewModel: @escaping () -> SettingsViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCreateMapViewModel: @escaping () -> CreateMapViewModel,
-        makePlaceImportViewModel: @escaping (PlaceImportSource) -> PlaceImportViewModel,
+        makePlaceImportViewModel: @escaping (PlaceImportSource, String) -> PlaceImportViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeOfficialMapListViewModel: @escaping () -> OfficialMapListViewModel,
         makeDensityMapViewModel: @escaping () -> DensityMapViewModel,
@@ -54,6 +56,7 @@ struct MainTabView: View {
         makeMapIntroViewModel: @escaping (Int64) -> MapIntroViewModel,
         makeMapDetailViewModels: @escaping (Int64) -> MapDetailViewModels,
         makeMapMembershipViewModel: @escaping (Int64) -> MapDetailViewModel,
+        sharedLinkInbox: SharedLinkInbox,
         locationProvider: any LocationProvider,
         onLoggedOut: @escaping () -> Void
     ) {
@@ -70,6 +73,7 @@ struct MainTabView: View {
         self.makeMapIntroViewModel = makeMapIntroViewModel
         self.makeMapDetailViewModels = makeMapDetailViewModels
         self.makeMapMembershipViewModel = makeMapMembershipViewModel
+        self.sharedLinkInbox = sharedLinkInbox
         self.locationProvider = locationProvider
         self.onLoggedOut = onLoggedOut
     }
@@ -96,7 +100,7 @@ struct MainTabView: View {
                     viewModel: collectionViewModel,
                     onHome: { selection = .explore },
                     onCreateMap: { collectionPath.append(.createMap) },
-                    onImportPlaces: startPlaceImport,
+                    onImportPlaces: { startPlaceImport($0) },
                     // 모음에는 참여한 지도만 있어 소개를 건너뛴다.
                     onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) }
                 )
@@ -105,6 +109,7 @@ struct MainTabView: View {
             .tag(MainTab.collection)
             .toolbar(.hidden, for: .tabBar)
         }
+        .moaSnackbar($shareNotice)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // 하위 화면에서는 하단 탭을 숨긴다.
             if isRoot {
@@ -119,17 +124,34 @@ struct MainTabView: View {
         .onChange(of: collectionPath) { _, path in
             if !path.contains(where: \.isPlaceImport) { placeImportViewModel = nil }
         }
+        // 처음 뜰 때도 본다. 로그인 전에 받은 공유가 여기서 처리된다.
+        .onChange(of: sharedLinkInbox.pending, initial: true) {
+            if let link = sharedLinkInbox.take() { handleShare(link) }
+        }
         .background { colors.backgroundPrimary.ignoresSafeArea() }
         .preferredColorScheme(.light)
     }
 
     private var isRoot: Bool { explorePath.isEmpty && collectionPath.isEmpty }
 
-    private func startPlaceImport(_ source: PlaceImportSource) {
-        let viewModel = makePlaceImportViewModel(source)
+    private func startPlaceImport(_ source: PlaceImportSource, url: String = "") {
+        let viewModel = makePlaceImportViewModel(source, url)
         viewModel.loadTargetMaps()
         placeImportViewModel = viewModel
         collectionPath.append(.placeImport(.url))
+    }
+
+    /// 보던 화면과 진행 중이던 가져오기는 버리고 새 링크로 시작한다.
+    private func handleShare(_ link: SharedLink) {
+        explorePath = []
+        selection = .collection
+        switch link {
+        case .supported(let url, let source):
+            collectionPath = []
+            startPlaceImport(source, url: url)
+        case .unsupported:
+            shareNotice = SharedLinkParser.unsupportedMessage
+        }
     }
 
     private func placeImportNavigator(_ path: Binding<[MainRoute]>) -> PlaceImportNavigator {
@@ -263,7 +285,7 @@ private final class PreviewLocationProvider: LocationProvider {
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository()) },
         makePlaceImportViewModel: {
-            PlaceImportViewModel(source: $0, importRepository: PreviewPlaceImportRepository(), collectionRepository: PreviewCollectionRepository())
+            PlaceImportViewModel(source: $0, url: $1, importRepository: PreviewPlaceImportRepository(), collectionRepository: PreviewCollectionRepository())
         },
         makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
         makeOfficialMapListViewModel: { OfficialMapListViewModel(repository: PreviewOfficialMapRepository()) },
@@ -272,6 +294,7 @@ private final class PreviewLocationProvider: LocationProvider {
         makeMapIntroViewModel: { MapIntroViewModel(mapID: $0, repository: PreviewMapDetailRepository()) },
         makeMapDetailViewModels: { MapDetailViewModels.preview(mapID: $0) },
         makeMapMembershipViewModel: { MapDetailViewModels.preview(mapID: $0).main },
+        sharedLinkInbox: SharedLinkInbox(),
         locationProvider: PreviewLocationProvider(),
         onLoggedOut: {}
     )
