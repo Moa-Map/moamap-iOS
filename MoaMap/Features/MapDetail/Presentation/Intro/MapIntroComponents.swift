@@ -21,14 +21,18 @@ struct MapIntroHero: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityHidden(true)
             if let imageURL {
-                AsyncImage(url: imageURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Color.clear
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-                .accessibilityHidden(true)
+                // 꽉 채운 사진은 영역보다 커진다. 크기는 빈 뷰가 정하고 사진은 그 위에 얹어 잘라야
+                // 세로로 긴 사진이 영역을 늘려 제목과 아래 섹션을 밀어내지 않는다.
+                Color.clear
+                    .overlay {
+                        AsyncImage(url: imageURL) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Color.clear
+                        }
+                    }
+                    .clipped()
+                    .accessibilityHidden(true)
             }
             LinearGradient(colors: [.clear, Color(argb: 0xFF66_6666)], startPoint: .top, endPoint: .bottom)
 
