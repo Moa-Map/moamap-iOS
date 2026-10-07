@@ -15,12 +15,14 @@ struct PlaceMarkerMap: View {
     var onClusterTap: ((MarkerCluster) -> Void)?
 
     @State private var cameraKey = ClusterCameraKey(zoom: MapCameraDefaults.zoom, center: nil)
+    /// 다른 화면이 위에 쌓이면 지도는 살아 있어도 가려진다. 그동안은 내 위치를 받지 않는다.
+    @State private var onScreen = false
 
     var body: some View {
         GeometryReader { proxy in
             let clusters = cameraKey.clusters(of: places.map(PlaceMarker.init(place:)), size: proxy.size)
             Map(viewport: $viewport) {
-                if showsMyLocation { Puck2D.myLocation }
+                if showsMyLocation && onScreen { Puck2D.myLocation }
                 ForEvery(clusters) { cluster in
                     MapViewAnnotation(coordinate: cluster.anchor) {
                         marker(cluster)
@@ -44,6 +46,8 @@ struct PlaceMarkerMap: View {
                 onCameraChanged?(event.cameraState)
             }
         }
+        .onAppear { onScreen = true }
+        .onDisappear { onScreen = false }
     }
 
     @ViewBuilder

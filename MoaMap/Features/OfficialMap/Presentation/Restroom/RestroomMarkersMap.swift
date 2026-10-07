@@ -24,6 +24,9 @@ struct RestroomMarkersMap: View {
     /// 위치 권한이 있을 때만 켠다. 지도 라이브러리는 내 위치를 그리려 할 때 권한을 스스로 묻는다.
     var showsMyLocation = false
 
+    /// 다른 화면이 위에 쌓이면 지도는 살아 있어도 가려진다. 그동안은 내 위치를 받지 않는다.
+    @State private var onScreen = false
+
     private enum Id {
         static let source = "restrooms"
         static let selectedSource = "restroom-selected"
@@ -37,7 +40,7 @@ struct RestroomMarkersMap: View {
     var body: some View {
         MapReader { proxy in
             Map(viewport: $viewport) {
-                if showsMyLocation { Puck2D.myLocation }
+                if showsMyLocation && onScreen { Puck2D.myLocation }
                 GeoJSONSource(id: Id.source)
                     .data(.featureCollection(FeatureCollection(features: restrooms.map(Self.feature))))
                 CircleLayer(id: Id.layer, source: Id.source)
@@ -81,6 +84,8 @@ struct RestroomMarkersMap: View {
                 ))
             }
         }
+        .onAppear { onScreen = true }
+        .onDisappear { onScreen = false }
     }
 
     private static func feature(_ restroom: RestroomMarker) -> Feature {
