@@ -207,11 +207,14 @@ struct PlaceImportEditDetailView: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    private func applyTagInput(_ input: String) {
+    @discardableResult
+    private func applyTagInput(_ input: String) -> String {
         let tags = viewModel.uiState.edit(of: place).tags
         let result = TagInput.apply(tags: tags, rawInput: input)
-        tagInput = String(result.input.prefix(TagInput.maxLength))
+        let remaining = String(result.input.prefix(TagInput.maxLength))
+        tagInput = remaining
         if result.tags != tags { viewModel.updateEditTags(place.id, tags: result.tags) }
+        return remaining
     }
 
     /// 완료나 뒤로가기로 나갈 때도 입력 중이던 태그를 버리지 않는다.

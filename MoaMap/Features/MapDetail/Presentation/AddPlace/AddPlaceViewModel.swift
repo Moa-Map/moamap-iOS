@@ -145,7 +145,7 @@ final class AddPlaceViewModel {
     func updateTagInput(_ input: String) {
         let result = TagInput.apply(tags: uiState.tags, rawInput: input)
         uiState.tags = result.tags
-        uiState.tagInput = result.input
+        uiState.tagInput = String(result.input.prefix(TagInput.maxLength))
     }
 
     /// 입력창이 비었을 때 지우기를 누르면 마지막 태그를 지운다.

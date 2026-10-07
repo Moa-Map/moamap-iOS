@@ -66,8 +66,13 @@ struct CreateMapView: View {
                         }
                     }
                     .focused($focusedField, equals: .tag)
-                    .onChange(of: tagDraft) { _, draft in viewModel.updateTagInput(draft) }
-                    .onChange(of: state.tagInput) { _, input in
+                    .onChange(of: tagDraft) { _, draft in
+                        // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 "카페 "를 붙여넣는 경우 등.
+                        viewModel.updateTagInput(draft)
+                        let remaining = viewModel.uiState.tagInput
+                        if remaining != draft { tagDraft = remaining }
+                    }
+                    .onChange(of: state.tagInput, initial: true) { _, input in
                         if tagDraft != input { tagDraft = input }
                     }
                     .onChange(of: focusedField) { old, new in

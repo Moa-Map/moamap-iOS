@@ -163,6 +163,12 @@ struct AddPlaceViewModelTests {
         #expect(sut.uiState.tags == ["성수"])
     }
 
+    @Test func 입력_중인_태그도_30자를_넘지_않는다() {
+        let sut = makeSUT()
+        sut.updateTagInput(String(repeating: "가", count: 35))
+        #expect(sut.uiState.tagInput == String(repeating: "가", count: 30))
+    }
+
     @Test func 태그는_구분자마다_끊고_중복과_빈_조각을_버리고_30자로_자른다() {
         let long = String(repeating: "가", count: 35)
         let result = TagInput.apply(tags: ["성수"], rawInput: "성수  카페\n\(long) 데이")
