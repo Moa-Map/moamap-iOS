@@ -195,8 +195,9 @@ struct MainTabView: View {
                     path.wrappedValue.append(.detail(id: mapID, title: title, official: official))
                 },
                 restroomPreview: {
-                    RestroomPreviewMap(viewModel: makeRestroomMapViewModel(), center: locationProvider.lastKnownLocation)
-                }
+                    RestroomPreviewMap(viewModel: makeRestroomMapViewModel(), locationProvider: locationProvider)
+                },
+                locationProvider: locationProvider
             )
         case .mapDetail(let mapID, let title):
             MapDetailView(
@@ -210,6 +211,7 @@ struct MainTabView: View {
                 viewModel: makeDensityMapViewModel(),
                 membership: makeMapMembershipViewModel(mapID),
                 title: title,
+                locationProvider: locationProvider,
                 onBack: { back(from: mapID, joinedHere: $0, path: path) }
             )
         case .restroomMap(let mapID, let title):

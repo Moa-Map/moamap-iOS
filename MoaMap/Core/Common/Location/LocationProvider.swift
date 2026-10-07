@@ -17,23 +17,27 @@ protocol LocationProvider: AnyObject {
     func currentLocation() async -> CLLocationCoordinate2D?
 }
 
-@MainActor
+/// 권한 상태를 지켜볼 수 있다. 설정 앱에서 바꾸고 돌아와도 읽던 화면이 다시 그려진다.
+@MainActor @Observable
 final class DeviceLocationProvider: NSObject, LocationProvider {
     /// 실내나 약신호에서는 첫 좌표가 오지 않을 수 있다. 버튼이 잠긴 채로 남지 않게 끊는다.
     static let timeout: Duration = .seconds(5)
 
-    private let manager = CLLocationManager()
-    private var authorizationWaiters: [CheckedContinuation<LocationAuthorization, Never>] = []
-    private var locationWaiters: [CheckedContinuation<CLLocationCoordinate2D?, Never>] = []
+    private(set) var authorization: LocationAuthorization = .notDetermined
+
+    @ObservationIgnored private let manager = CLLocationManager()
+    @ObservationIgnored private var authorizationWaiters: [CheckedContinuation<LocationAuthorization, Never>] = []
+    @ObservationIgnored private var locationWaiters: [CheckedContinuation<CLLocationCoordinate2D?, Never>] = []
 
     override init() {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        authorization = Self.authorization(of: manager.authorizationStatus)
     }
 
-    var authorization: LocationAuthorization {
-        switch manager.authorizationStatus {
+    private static func authorization(of status: CLAuthorizationStatus) -> LocationAuthorization {
+        switch status {
         case .notDetermined: .notDetermined
         case .authorizedWhenInUse, .authorizedAlways: .granted
         default: .denied
@@ -78,6 +82,7 @@ final class DeviceLocationProvider: NSObject, LocationProvider {
 
 extension DeviceLocationProvider: @preconcurrency CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        authorization = Self.authorization(of: manager.authorizationStatus)
         guard authorization != .notDetermined else { return }
         let waiters = authorizationWaiters
         authorizationWaiters.removeAll()

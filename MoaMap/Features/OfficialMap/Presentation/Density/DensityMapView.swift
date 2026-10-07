@@ -7,6 +7,10 @@ struct DensityMapView: View {
     private let membership: MapDetailViewModel
     private let title: String
     private let onBack: (_ joinedHere: Bool) -> Void
+    /// 이 화면은 권한을 묻지 않는다. 이미 허용돼 있을 때만 내 위치가 보인다.
+    private let locationProvider: any LocationProvider
+    /// 다른 화면이 위에 쌓이면 지도는 살아 있어도 가려진다. 그동안은 내 위치를 받지 않는다.
+    @State private var onScreen = false
     /// 서울 전역이 보이는 처음 카메라.
     @State private var viewport: Viewport = .camera(
         center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780), zoom: 10.5
@@ -23,11 +27,13 @@ struct DensityMapView: View {
         viewModel: DensityMapViewModel,
         membership: MapDetailViewModel,
         title: String,
+        locationProvider: any LocationProvider,
         onBack: @escaping (_ joinedHere: Bool) -> Void
     ) {
         _viewModel = State(initialValue: viewModel)
         self.membership = membership
         self.title = title
+        self.locationProvider = locationProvider
         self.onBack = onBack
     }
 
@@ -65,6 +71,7 @@ struct DensityMapView: View {
 
     private func map(features: [Feature], selected: DensityArea?) -> some View {
         Map(viewport: $viewport) {
+            if locationProvider.authorization == .granted && onScreen { Puck2D.myLocation }
             GeoJSONSource(id: Id.source)
                 .data(.featureCollection(FeatureCollection(features: features)))
             // 평소에는 옅게 채우고 경계를 흐리게 번지게 한다.
@@ -101,6 +108,8 @@ struct DensityMapView: View {
             scaleBar: ScaleBarViewOptions(visibility: .hidden),
             compass: CompassViewOptions(visibility: .hidden)
         ))
+        .onAppear { onScreen = true }
+        .onDisappear { onScreen = false }
     }
 
     /// 피처의 `level` 로 레벨 색을 고른다.

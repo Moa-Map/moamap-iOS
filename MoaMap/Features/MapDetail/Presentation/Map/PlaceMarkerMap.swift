@@ -8,21 +8,28 @@ struct PlaceMarkerMap: View {
     /// 미리보기처럼 되돌릴 버튼이 없는 화면에서는 회전과 기울기를 닫는다.
     var allowsRotation = true
     var shows3DObjects = false
+    /// 위치 권한이 있을 때만 켠다. 지도 라이브러리는 내 위치를 그리려 할 때 권한을 스스로 묻는다.
+    var showsMyLocation = false
     var onCameraChanged: ((CameraState) -> Void)?
     var onMarkerTap: ((Int64) -> Void)?
     var onClusterTap: ((MarkerCluster) -> Void)?
 
     @State private var cameraKey = ClusterCameraKey(zoom: MapCameraDefaults.zoom, center: nil)
+    /// 다른 화면이 위에 쌓이면 지도는 살아 있어도 가려진다. 그동안은 내 위치를 받지 않는다.
+    @State private var onScreen = false
 
     var body: some View {
         GeometryReader { proxy in
             let clusters = cameraKey.clusters(of: places.map(PlaceMarker.init(place:)), size: proxy.size)
             Map(viewport: $viewport) {
+                if showsMyLocation && onScreen { Puck2D.myLocation }
                 ForEvery(clusters) { cluster in
                     MapViewAnnotation(coordinate: cluster.anchor) {
                         marker(cluster)
                     }
                     .allowOverlap(true)
+                    // 기본값은 내 위치 점과 겹치면 마커를 숨긴다. 장소 바로 앞에 서 있으면 그 장소가 사라지므로 겹쳐도 그린다.
+                    .allowOverlapWithPuck(true)
                     .variableAnchors([ViewAnnotationAnchorConfig(anchor: .bottom)])
                 }
             }
@@ -39,6 +46,8 @@ struct PlaceMarkerMap: View {
                 onCameraChanged?(event.cameraState)
             }
         }
+        .onAppear { onScreen = true }
+        .onDisappear { onScreen = false }
     }
 
     @ViewBuilder
