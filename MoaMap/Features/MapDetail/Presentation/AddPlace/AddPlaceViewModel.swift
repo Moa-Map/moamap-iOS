@@ -170,6 +170,8 @@ final class AddPlaceViewModel {
     /// 실패해도 화면을 닫지 않는다. 적어 둔 것이 날아가면 안 된다.
     func submit(map: MapDetail) {
         guard let candidate = uiState.selected, !uiState.submitting else { return }
+        // 엔터 없이 바로 등록을 눌러도 입력 중이던 태그를 버리지 않는다.
+        updateTagInput(uiState.tagInput + "\n")
         let state = uiState
         uiState.submitting = true
         uiState.errorMessage = nil
