@@ -372,6 +372,8 @@ struct MapDetailView: View {
             places: visiblePlaces,
             viewport: $viewport,
             shows3DObjects: is3D,
+            // 들어올 때 권한을 묻는다. 답을 받으면 `permissionAnswered` 가 바뀌며 다시 그려진다.
+            showsMyLocation: locationProvider.authorization == .granted,
             onCameraChanged: { currentZoom = $0.zoom },
             onMarkerTap: selectPlace,
             // 좌표가 같은 장소는 확대해도 갈라지지 않아 목록으로 펼친다.

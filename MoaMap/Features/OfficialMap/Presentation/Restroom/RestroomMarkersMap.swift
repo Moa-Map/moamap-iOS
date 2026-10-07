@@ -21,6 +21,8 @@ struct RestroomMarkersMap: View {
     var onRestroomTap: ((Int64) -> Void)?
     /// 마커가 받은 탭은 여기까지 오지 않는다. 빈 곳을 눌렀을 때만 온다.
     var onMapTap: (() -> Void)?
+    /// 위치 권한이 있을 때만 켠다. 지도 라이브러리는 내 위치를 그리려 할 때 권한을 스스로 묻는다.
+    var showsMyLocation = false
 
     private enum Id {
         static let source = "restrooms"
@@ -35,6 +37,7 @@ struct RestroomMarkersMap: View {
     var body: some View {
         MapReader { proxy in
             Map(viewport: $viewport) {
+                if showsMyLocation { Puck2D.myLocation }
                 GeoJSONSource(id: Id.source)
                     .data(.featureCollection(FeatureCollection(features: restrooms.map(Self.feature))))
                 CircleLayer(id: Id.layer, source: Id.source)
@@ -92,9 +95,12 @@ struct RestroomMarkersMap: View {
 struct RestroomPreviewMap: View {
     @State private var viewModel: RestroomMapViewModel
     @State private var viewport: Viewport
+    /// 소개 화면은 권한을 묻지 않는다. 이미 허용돼 있을 때만 내 위치가 보인다.
+    private let showsMyLocation: Bool
 
-    init(viewModel: RestroomMapViewModel, center: CLLocationCoordinate2D?) {
+    init(viewModel: RestroomMapViewModel, center: CLLocationCoordinate2D?, showsMyLocation: Bool) {
         _viewModel = State(initialValue: viewModel)
+        self.showsMyLocation = showsMyLocation
         _viewport = State(initialValue: .camera(center: center ?? RestroomMapCamera.start, zoom: RestroomMapCamera.zoom))
     }
 
@@ -103,7 +109,8 @@ struct RestroomPreviewMap: View {
             restrooms: viewModel.uiState.restrooms,
             selected: nil,
             viewport: $viewport,
-            onCameraIdle: { viewModel.onCameraIdle($0) }
+            onCameraIdle: { viewModel.onCameraIdle($0) },
+            showsMyLocation: showsMyLocation
         )
     }
 }

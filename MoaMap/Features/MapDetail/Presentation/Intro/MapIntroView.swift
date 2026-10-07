@@ -12,6 +12,8 @@ struct MapIntroView: View {
     private let onJoined: (_ title: String, _ official: Bool) -> Void
     /// 공중화장실 지도의 작은 지도. 화장실은 장소가 아니라 그냥 두면 비어 보인다.
     private let restroomPreview: (() -> RestroomPreviewMap)?
+    /// 이 화면은 권한을 묻지 않는다. 이미 허용돼 있을 때만 내 위치가 보인다.
+    private let showsMyLocation: Bool
 
     @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: .init())
     /// 장소가 도착하면 처음 한 번만 맞추고 그다음은 사용자가 움직인 대로 둔다.
@@ -21,12 +23,14 @@ struct MapIntroView: View {
         viewModel: MapIntroViewModel,
         onPreview: @escaping (_ title: String, _ official: Bool) -> Void,
         onJoined: @escaping (_ title: String, _ official: Bool) -> Void,
-        restroomPreview: (() -> RestroomPreviewMap)? = nil
+        restroomPreview: (() -> RestroomPreviewMap)? = nil,
+        showsMyLocation: Bool = false
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPreview = onPreview
         self.onJoined = onJoined
         self.restroomPreview = restroomPreview
+        self.showsMyLocation = showsMyLocation
     }
 
     private var title: String { viewModel.uiState.map.map?.title ?? "" }
@@ -129,7 +133,12 @@ struct MapIntroView: View {
         if let restroomPreview, OfficialMapKind(official: official, title: title) == .restroom {
             restroomPreview()
         } else {
-            PlaceMarkerMap(places: viewModel.uiState.places, viewport: $viewport, allowsRotation: false)
+            PlaceMarkerMap(
+                places: viewModel.uiState.places,
+                viewport: $viewport,
+                allowsRotation: false,
+                showsMyLocation: showsMyLocation
+            )
         }
     }
 

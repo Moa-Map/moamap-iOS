@@ -46,7 +46,9 @@ struct RestroomMapView: View {
                 onCameraIdle: { viewModel.onCameraIdle($0) },
                 onCameraChanged: { currentZoom = $0.zoom },
                 onRestroomTap: { viewModel.selectRestroom(id: $0) },
-                onMapTap: { viewModel.clearSelection() }
+                onMapTap: { viewModel.clearSelection() },
+                // 들어올 때 권한을 묻는다. 허용되면 현재 위치로 카메라가 옮겨지며 다시 그려진다.
+                showsMyLocation: locationProvider.authorization == .granted
             )
             .overlay(alignment: .top) {
                 if let message = noticeMessage { notice(message) }

@@ -7,6 +7,8 @@ struct DensityMapView: View {
     private let membership: MapDetailViewModel
     private let title: String
     private let onBack: (_ joinedHere: Bool) -> Void
+    /// 이 화면은 권한을 묻지 않는다. 이미 허용돼 있을 때만 내 위치가 보인다.
+    private let showsMyLocation: Bool
     /// 서울 전역이 보이는 처음 카메라.
     @State private var viewport: Viewport = .camera(
         center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780), zoom: 10.5
@@ -23,11 +25,13 @@ struct DensityMapView: View {
         viewModel: DensityMapViewModel,
         membership: MapDetailViewModel,
         title: String,
+        showsMyLocation: Bool,
         onBack: @escaping (_ joinedHere: Bool) -> Void
     ) {
         _viewModel = State(initialValue: viewModel)
         self.membership = membership
         self.title = title
+        self.showsMyLocation = showsMyLocation
         self.onBack = onBack
     }
 
@@ -65,6 +69,7 @@ struct DensityMapView: View {
 
     private func map(features: [Feature], selected: DensityArea?) -> some View {
         Map(viewport: $viewport) {
+            if showsMyLocation { Puck2D.myLocation }
             GeoJSONSource(id: Id.source)
                 .data(.featureCollection(FeatureCollection(features: features)))
             // 평소에는 옅게 채우고 경계를 흐리게 번지게 한다.
