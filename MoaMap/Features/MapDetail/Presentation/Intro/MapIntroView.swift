@@ -13,7 +13,7 @@ struct MapIntroView: View {
     /// 공중화장실 지도의 작은 지도. 화장실은 장소가 아니라 그냥 두면 비어 보인다.
     private let restroomPreview: (() -> RestroomPreviewMap)?
     /// 이 화면은 권한을 묻지 않는다. 이미 허용돼 있을 때만 내 위치가 보인다.
-    private let showsMyLocation: Bool
+    private let locationProvider: (any LocationProvider)?
 
     @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: .init())
     /// 장소가 도착하면 처음 한 번만 맞추고 그다음은 사용자가 움직인 대로 둔다.
@@ -24,13 +24,13 @@ struct MapIntroView: View {
         onPreview: @escaping (_ title: String, _ official: Bool) -> Void,
         onJoined: @escaping (_ title: String, _ official: Bool) -> Void,
         restroomPreview: (() -> RestroomPreviewMap)? = nil,
-        showsMyLocation: Bool = false
+        locationProvider: (any LocationProvider)? = nil
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onPreview = onPreview
         self.onJoined = onJoined
         self.restroomPreview = restroomPreview
-        self.showsMyLocation = showsMyLocation
+        self.locationProvider = locationProvider
     }
 
     private var title: String { viewModel.uiState.map.map?.title ?? "" }
@@ -137,7 +137,7 @@ struct MapIntroView: View {
                 places: viewModel.uiState.places,
                 viewport: $viewport,
                 allowsRotation: false,
-                showsMyLocation: showsMyLocation
+                showsMyLocation: locationProvider?.authorization == .granted
             )
         }
     }

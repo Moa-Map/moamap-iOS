@@ -96,12 +96,14 @@ struct RestroomPreviewMap: View {
     @State private var viewModel: RestroomMapViewModel
     @State private var viewport: Viewport
     /// 소개 화면은 권한을 묻지 않는다. 이미 허용돼 있을 때만 내 위치가 보인다.
-    private let showsMyLocation: Bool
+    private let locationProvider: any LocationProvider
 
-    init(viewModel: RestroomMapViewModel, center: CLLocationCoordinate2D?, showsMyLocation: Bool) {
+    init(viewModel: RestroomMapViewModel, locationProvider: any LocationProvider) {
         _viewModel = State(initialValue: viewModel)
-        self.showsMyLocation = showsMyLocation
-        _viewport = State(initialValue: .camera(center: center ?? RestroomMapCamera.start, zoom: RestroomMapCamera.zoom))
+        self.locationProvider = locationProvider
+        _viewport = State(initialValue: .camera(
+            center: locationProvider.lastKnownLocation ?? RestroomMapCamera.start, zoom: RestroomMapCamera.zoom
+        ))
     }
 
     var body: some View {
@@ -110,7 +112,7 @@ struct RestroomPreviewMap: View {
             selected: nil,
             viewport: $viewport,
             onCameraIdle: { viewModel.onCameraIdle($0) },
-            showsMyLocation: showsMyLocation
+            showsMyLocation: locationProvider.authorization == .granted
         )
     }
 }

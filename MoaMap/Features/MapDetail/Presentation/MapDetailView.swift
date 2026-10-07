@@ -372,7 +372,7 @@ struct MapDetailView: View {
             places: visiblePlaces,
             viewport: $viewport,
             shows3DObjects: is3D,
-            // 들어올 때 권한을 묻는다. 답을 받으면 `permissionAnswered` 가 바뀌며 다시 그려진다.
+            // 들어올 때 권한을 묻는다. 허용되는 순간부터 내 위치가 보인다.
             showsMyLocation: locationProvider.authorization == .granted,
             onCameraChanged: { currentZoom = $0.zoom },
             onMarkerTap: selectPlace,
