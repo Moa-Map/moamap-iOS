@@ -32,7 +32,10 @@ struct AddPlaceView: View {
                     focus: $focusedField,
                     onAddPhoto: { showsSourceMenu = true },
                     onRemovePhoto: viewModel.removePhoto(at:),
-                    onTagInputChange: viewModel.updateTagInput,
+                    onTagInputChange: {
+                        viewModel.updateTagInput($0)
+                        return viewModel.uiState.tagInput
+                    },
                     onTagBackspace: viewModel.removeLastTagIfInputEmpty,
                     onRemoveTag: viewModel.removeTag,
                     onMemoChange: viewModel.updateMemo
@@ -231,10 +234,14 @@ struct AddPlaceFormContent: View {
     let focus: FocusState<AddPlaceField?>.Binding
     let onAddPhoto: () -> Void
     let onRemovePhoto: (Int) -> Void
-    let onTagInputChange: (String) -> Void
+    /// 입력을 반영하고 확정되지 않고 남은 입력을 돌려준다.
+    let onTagInputChange: (String) -> String
     let onTagBackspace: () -> Void
     let onRemoveTag: (String) -> Void
     let onMemoChange: (String) -> Void
+
+    /// TextField에 붙는 입력 중인 글자. 확정된 결과는 `tagInput`으로 다시 받는다.
+    @State private var tagDraft = ""
 
     var body: some View {
         ScrollView {
@@ -254,15 +261,26 @@ struct AddPlaceFormContent: View {
                         .scrollIndicators(.hidden)
                         .padding(.bottom, 4)
                     }
-                    inputField(
-                        text: Binding(get: { tagInput }, set: onTagInputChange),
-                        placeholder: "태그 입력 후 스페이스 또는 엔터"
-                    )
+                    // Binding setter 안에서 값을 비우면 TextField가 화면에 반영하지 않는다.
+                    // 그래서 입력은 그대로 받아 두고, 확정과 되돌려 받기는 onChange에서 한다.
+                    inputField(text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터")
                     .focused(focus, equals: .tag)
+                    .onChange(of: tagDraft) { _, draft in
+                        // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 "카페 "를 붙여넣는 경우 등.
+                        let remaining = onTagInputChange(draft)
+                        if remaining != draft { tagDraft = remaining }
+                    }
+                    .onChange(of: tagInput, initial: true) { _, input in
+                        if tagDraft != input { tagDraft = input }
+                    }
+                    .onChange(of: focus.wrappedValue) { old, new in
+                        // 엔터 없이 입력창을 벗어나도 입력 중이던 태그를 확정한다.
+                        if old == .tag, new != .tag { _ = onTagInputChange(tagInput + "\n") }
+                    }
                     .submitLabel(.next)
                     .onSubmit {
                         // 엔터는 줄바꿈과 같이 태그를 확정한다. 키보드는 내리지 않는다.
-                        onTagInputChange(tagInput + "\n")
+                        _ = onTagInputChange(tagInput + "\n")
                         focus.wrappedValue = .tag
                     }
                     .onKeyPress(.delete) {

@@ -174,7 +174,7 @@ struct PlaceImportEditDetailView: View {
     var body: some View {
         let edit = viewModel.uiState.edit(of: place)
         VStack(spacing: 0) {
-            PlaceImportTopBar(onBack: onDone)
+            PlaceImportTopBar(onBack: finish)
             AddPlaceFormContent(
                 name: place.name,
                 address: place.displayAddress,
@@ -188,11 +188,7 @@ struct PlaceImportEditDetailView: View {
                     showsSourceMenu = true
                 },
                 onRemovePhoto: { viewModel.removeEditPhoto(place.id, at: $0) },
-                onTagInputChange: { input in
-                    let result = TagInput.apply(tags: edit.tags, rawInput: input)
-                    tagInput = String(result.input.prefix(TagInput.maxLength))
-                    if result.tags != edit.tags { viewModel.updateEditTags(place.id, tags: result.tags) }
-                },
+                onTagInputChange: { applyTagInput($0) },
                 onTagBackspace: { viewModel.updateEditTags(place.id, tags: Array(edit.tags.dropLast())) },
                 onRemoveTag: { tag in viewModel.updateEditTags(place.id, tags: edit.tags.filter { $0 != tag }) },
                 onMemoChange: { viewModel.updateEditMemo(place.id, memo: $0) }
@@ -200,7 +196,7 @@ struct PlaceImportEditDetailView: View {
             .padding(.top, 8)
         }
         .safeAreaInset(edge: .bottom) {
-            PlaceImportBottomBar { PlaceImportButton(text: "완료", action: onDone) }
+            PlaceImportBottomBar { PlaceImportButton(text: "완료", action: finish) }
         }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .contentShape(Rectangle())
@@ -209,6 +205,22 @@ struct PlaceImportEditDetailView: View {
             viewModel.addEditPhoto(place.id, data: data, type: type)
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    @discardableResult
+    private func applyTagInput(_ input: String) -> String {
+        let tags = viewModel.uiState.edit(of: place).tags
+        let result = TagInput.apply(tags: tags, rawInput: input)
+        let remaining = String(result.input.prefix(TagInput.maxLength))
+        tagInput = remaining
+        if result.tags != tags { viewModel.updateEditTags(place.id, tags: result.tags) }
+        return remaining
+    }
+
+    /// 완료나 뒤로가기로 나갈 때도 입력 중이던 태그를 버리지 않는다.
+    private func finish() {
+        applyTagInput(tagInput + "\n")
+        onDone()
     }
 }
 

@@ -89,6 +89,17 @@ struct AddPlaceViewModelTests {
         #expect(sut.uiState.addedMessage == "추가 요청을 보냈어요")
     }
 
+    @Test func 엔터_없이_등록해도_입력_중인_태그를_넣는다() async {
+        let add = PlaceAddRepositoryStub()
+        let sut = makeSUT(add: add)
+        sut.select(.fixture())
+        sut.updateTagInput("성수 카페")
+        sut.submit(map: map())
+        await sut.submitTask?.value
+        #expect(add.added.first?.tags == ["성수", "카페"])
+        #expect(sut.uiState.tagInput.isEmpty)
+    }
+
     @Test(arguments: [(MapType.private, MapRole.member), (.community, .owner), (.community, .admin)])
     func 바로_넣을_수_있는_지도는_추가했다고_안내한다(type: MapType, role: MapRole) async {
         let sut = makeSUT()
@@ -150,6 +161,12 @@ struct AddPlaceViewModelTests {
         sut.updateTagInput("데")
         sut.removeLastTagIfInputEmpty()
         #expect(sut.uiState.tags == ["성수"])
+    }
+
+    @Test func 입력_중인_태그도_30자를_넘지_않는다() {
+        let sut = makeSUT()
+        sut.updateTagInput(String(repeating: "가", count: 35))
+        #expect(sut.uiState.tagInput == String(repeating: "가", count: 30))
     }
 
     @Test func 태그는_구분자마다_끊고_중복과_빈_조각을_버리고_30자로_자른다() {
