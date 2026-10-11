@@ -30,6 +30,12 @@ nonisolated enum MapCameraDefaults {
     static let center = CLLocationCoordinate2D(latitude: 37.4963, longitude: 126.9574)
     /// 동네 몇 개가 한눈에 들어오는 배율.
     static let zoom = 14.0
+    /// 지도가 보여 줄 수 있는 범위. 화면 가장자리가 이 밖으로 나가지 않는다.
+    /// 세로 화면에서도 국토 전체가 한 화면에 들어오도록 위아래를 넉넉히 잡았다.
+    static let boundsSouthWest = CLLocationCoordinate2D(latitude: 26.9, longitude: 122.5)
+    static let boundsNorthEast = CLLocationCoordinate2D(latitude: 44.0, longitude: 134.0)
+    /// 가장 작은 지도(지도 소개 미리보기)에서도 국토 전체가 들어오는 배율.
+    static let minZoom = 4.4
 }
 
 /// 처음 지도를 열 때 카메라를 어디에 둘지.
