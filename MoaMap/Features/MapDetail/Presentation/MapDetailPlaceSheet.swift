@@ -192,7 +192,7 @@ struct MapDetailPlaceSheet: View {
 }
 
 /// iOS 시스템 시트 손잡이.
-private struct SheetGrabber: View {
+struct SheetGrabber: View {
     var body: some View {
         Capsule()
             .fill(Color(red: 0.8, green: 0.8, blue: 0.8))

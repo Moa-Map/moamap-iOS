@@ -65,6 +65,36 @@ struct AddPlaceViewModelTests {
         #expect(sut.uiState.search == .loaded([]))
     }
 
+    @Test func 고르면_지도에서_위치부터_확인하고_확인해야_폼으로_간다() {
+        let sut = makeSUT()
+        sut.select(.fixture())
+        #expect(sut.uiState.isLocationStep && !sut.uiState.isFormStep)
+        sut.confirmLocation()
+        #expect(sut.uiState.isFormStep && !sut.uiState.isLocationStep)
+    }
+
+    @Test func 폼에서_뒤로가면_위치_확인으로_돌아가고_적은_것은_비운다() {
+        let sut = makeSUT()
+        sut.select(.fixture())
+        sut.confirmLocation()
+        sut.updateTagInput("성수 ")
+        sut.updateMemo("메모")
+        sut.addPhoto(data: png, type: .png)
+        sut.backToLocation()
+        #expect(sut.uiState.isLocationStep)
+        #expect(sut.uiState.selected == .fixture())
+        #expect(sut.uiState.tags.isEmpty && sut.uiState.memo.isEmpty && sut.uiState.photos.isEmpty)
+    }
+
+    @Test func 다른_장소를_고르면_위치_확인부터_다시_한다() {
+        let sut = makeSUT()
+        sut.select(.fixture())
+        sut.confirmLocation()
+        sut.backToSearch()
+        sut.select(.fixture(id: "2"))
+        #expect(sut.uiState.isLocationStep)
+    }
+
     @Test func 사진은_다섯_장까지_같은_사진은_한_번만_붙는다() {
         let sut = makeSUT()
         sut.addPhoto(data: png, type: .png)
@@ -115,6 +145,7 @@ struct AddPlaceViewModelTests {
         add.add = { _ in throw NetworkError.server(code: "PLACE_010", statusCode: 409) }
         let sut = makeSUT(add: add)
         sut.select(.fixture())
+        sut.confirmLocation()
         sut.addPhoto(data: png, type: .png)
         sut.submit(map: map())
         await sut.submitTask?.value

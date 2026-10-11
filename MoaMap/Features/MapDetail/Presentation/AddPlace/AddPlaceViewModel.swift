@@ -16,8 +16,10 @@ nonisolated struct AddPlaceUiState: Equatable, Sendable {
 
     var query = ""
     var search: PlaceSearchState = .idle
-    /// nil 이면 검색, 값이 있으면 등록 폼이다. 단계를 따로 두면 둘이 어긋날 수 있다.
+    /// nil 이면 검색이다. 값이 있으면 지도에서 위치를 확인하고, 확인을 마치면 등록 폼이다.
     var selected: PlaceCandidate?
+    /// 고른 장소의 위치를 확인했다. 장소를 새로 고르면 다시 확인한다.
+    var locationConfirmed = false
     var photos: [UploadImage] = []
     var tags: [String] = []
     var tagInput = ""
@@ -30,7 +32,8 @@ nonisolated struct AddPlaceUiState: Equatable, Sendable {
     /// 등록이 끝났다. 화면이 이 신호로 닫고 안내를 띄운다.
     var addedMessage: String?
 
-    var isFormStep: Bool { selected != nil }
+    var isLocationStep: Bool { selected != nil && !locationConfirmed }
+    var isFormStep: Bool { selected != nil && locationConfirmed }
     var canAddPhoto: Bool { photos.count < Self.maxPhotos }
 }
 
@@ -108,11 +111,23 @@ final class AddPlaceViewModel {
 
     func select(_ candidate: PlaceCandidate) {
         uiState.selected = candidate
+        uiState.locationConfirmed = false
+    }
+
+    func confirmLocation() {
+        guard uiState.selected != nil else { return }
+        uiState.locationConfirmed = true
     }
 
     /// 검색 결과는 남기고 폼에 적은 것만 버린다.
     func backToSearch() {
+        backToLocation()
         uiState.selected = nil
+    }
+
+    /// 고른 장소는 남기고 폼에 적은 것만 버린다.
+    func backToLocation() {
+        uiState.locationConfirmed = false
         uiState.photos = []
         uiState.uploadedPhotoURLs = []
         uiState.tags = []
