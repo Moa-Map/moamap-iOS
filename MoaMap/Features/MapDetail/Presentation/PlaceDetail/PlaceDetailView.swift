@@ -27,8 +27,9 @@ struct PlaceDetailView: View {
     let onViewMap: () -> Void
     let onAddToPersonalMap: () -> Void
     let onLike: () -> Void
-    /// 반만 올라온 시트의 높이가 정해질 때마다 알린다. 지도가 이만큼 가려진다.
-    var onCollapsedHeightChange: (CGFloat) -> Void = { _ in }
+    /// 반만 올라온 시트의 높이가 처음 정해지면 한 번 알린다. 지도가 이만큼 가려진다.
+    /// 댓글이 늦게 와 높이가 바뀌어도 다시 알리지 않는다. 그 사이 사용자가 옮긴 지도를 되돌리면 안 된다.
+    var onCollapsedHeightSettle: (CGFloat) -> Void = { _ in }
 
     private var showsReactions: Bool { reviews != nil }
 
@@ -36,12 +37,15 @@ struct PlaceDetailView: View {
     /// 반만 올라온 시트에서 마지막으로 보이는 칸 아래 여백.
     private static let peekBottomGap: CGFloat = 12
     private static let contentSpace = "placeDetailContent"
+    private static let contentTopID = "placeDetailTop"
 
     @State private var expanded = false
     @GestureState private var dragOffset: CGFloat = 0
     /// 반만 올라온 시트의 높이를 정하는 치수.
     /// 상태 표시줄·홈 표시줄까지 친 화면의 절반. 홈 표시줄 위부터 잰다.
     @State private var halfScreenHeight: CGFloat = 0
+    @State private var bottomInset: CGFloat = 0
+    @State private var collapsedHeightSettled = false
     @State private var controlsHeight: CGFloat = 0
     @State private var actionsBottom: CGFloat = 0
     @State private var dividerBottom: CGFloat = 0
@@ -89,10 +93,13 @@ struct PlaceDetailView: View {
         .onGeometryChange(for: CGFloat.self) {
             ($0.size.height + $0.safeAreaInsets.top + $0.safeAreaInsets.bottom) / 2 - $0.safeAreaInsets.bottom
         } action: { halfScreenHeight = $0 }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { bottomInset = $0 }
         .animation(.easeOut(duration: 0.25), value: expanded)
         .animation(.easeOut(duration: 0.25), value: collapsedHeight)
         .onChange(of: collapsedHeight) { _, height in
-            if let height { onCollapsedHeightChange(height) }
+            guard let height, !collapsedHeightSettled else { return }
+            collapsedHeightSettled = true
+            onCollapsedHeightSettle(height)
         }
         .imageSourcePicker(isPresented: $showsSourceMenu, darkMenu: true) { data, type in
             reviewPhoto = reviews?.preparePhoto(data: data, type: type)
@@ -131,12 +138,17 @@ struct PlaceDetailView: View {
 
     /// 반만 올라온 시트의 높이. 홈 표시줄 위부터 잰다.
     /// 사진이 있으면 시안 1번대로 화면 절반이고, 버튼까지 들어가게 줄인 배치를 쓴다.
+    /// 화면이 작아 절반에 버튼이 다 안 들어가면 버튼까지 늘린다. 홈 표시줄 칸까지는 내려도 된다.
     /// 사진이 없으면 댓글 한 개까지 보인다. 댓글이 없는 공식지도는 버튼까지다.
     private var collapsedHeight: CGFloat? {
-        if place.photoURL != nil { return halfScreenHeight > 0 ? halfScreenHeight : nil }
         guard controlsHeight > 0, actionsBottom > 0 else { return nil }
+        let toActions = controlsHeight + actionsBottom + Self.peekBottomGap
+        if place.photoURL != nil {
+            guard halfScreenHeight > 0 else { return nil }
+            return max(halfScreenHeight, toActions - bottomInset)
+        }
         var contentBottom = actionsBottom
-        if place.photoURL == nil, reviews != nil {
+        if reviews != nil {
             guard firstReviewHeight > 0 else { return nil }
             contentBottom = dividerBottom + firstReviewHeight
         }
@@ -157,10 +169,7 @@ struct PlaceDetailView: View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 if !expanded {
-                    Capsule()
-                        .fill(Color(red: 0.8, green: 0.8, blue: 0.8))
-                        .frame(width: 36, height: 5)
-                        .frame(maxWidth: .infinity)
+                    SheetGrabber()
                         .frame(height: 16)
                         .onTapGesture { expanded = true }
                         .accessibilityLabel("장소 상세 펼치기")
@@ -175,49 +184,56 @@ struct PlaceDetailView: View {
             .contentShape(Rectangle())
             .gesture(dragGesture)
 
-            ScrollView {
-                VStack(spacing: 0) {
-                    header
-                    actions
-                        .onGeometryChange(for: CGFloat.self) {
-                            $0.frame(in: .named(Self.contentSpace)).maxY
-                        } action: { actionsBottom = $0 }
-                        .padding(.top, 12)
-                    if let reviews {
-                        Rectangle()
-                            .fill(colors.lineNormal)
-                            .frame(height: 0.5)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
+            ScrollViewReader { scroll in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        header
+                            .id(Self.contentTopID)
+                        actions
                             .onGeometryChange(for: CGFloat.self) {
                                 $0.frame(in: .named(Self.contentSpace)).maxY
-                            } action: { dividerBottom = $0 }
-                        PlaceReviewList(
-                            state: reviews.uiState,
-                            // 반만 올라온 동안의 끌기는 시트를 올리는 데 쓴다.
-                            swipeEnabled: canWriteReview && expanded,
-                            relativeTime: reviews.relativeTime(of:),
-                            openReviewID: $openReviewID,
-                            onRetry: reviews.retry,
-                            onEdit: { id in
-                                openReviewID = nil
-                                reviews.startEdit(reviewID: id)
-                            },
-                            onDelete: { id in
-                                openReviewID = nil
-                                deleteTargetID = id
-                            },
-                            onFirstItemHeightChange: { firstReviewHeight = $0 }
-                        )
+                            } action: { actionsBottom = $0 }
+                            .padding(.top, 12)
+                        if let reviews {
+                            Rectangle()
+                                .fill(colors.lineNormal)
+                                .frame(height: 0.5)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .onGeometryChange(for: CGFloat.self) {
+                                    $0.frame(in: .named(Self.contentSpace)).maxY
+                                } action: { dividerBottom = $0 }
+                            PlaceReviewList(
+                                state: reviews.uiState,
+                                // 반만 올라온 동안의 끌기는 시트를 올리는 데 쓴다.
+                                swipeEnabled: canWriteReview && expanded,
+                                relativeTime: reviews.relativeTime(of:),
+                                openReviewID: $openReviewID,
+                                onRetry: reviews.retry,
+                                onEdit: { id in
+                                    openReviewID = nil
+                                    reviews.startEdit(reviewID: id)
+                                },
+                                onDelete: { id in
+                                    openReviewID = nil
+                                    deleteTargetID = id
+                                },
+                                onFirstItemHeightChange: { firstReviewHeight = $0 }
+                            )
+                        }
                     }
+                    .padding(.bottom, 16)
+                    .coordinateSpace(.named(Self.contentSpace))
                 }
-                .padding(.bottom, 16)
-                .coordinateSpace(.named(Self.contentSpace))
+                .scrollDismissesKeyboard(.interactively)
+                // 반만 올라온 동안은 목록 대신 시트가 끌려 올라온다.
+                .scrollDisabled(!expanded)
+                .gesture(dragGesture, including: expanded ? .subviews : .all)
+                .onChange(of: expanded) { _, isExpanded in
+                    // 내려 둔 채로 접으면 반만 보이는 칸에 댓글 중간이 걸린다. 접히면 스크롤도 막혀 위로 못 간다.
+                    if !isExpanded { scroll.scrollTo(Self.contentTopID, anchor: .top) }
+                }
             }
-            .scrollDismissesKeyboard(.interactively)
-            // 반만 올라온 동안은 목록 대신 시트가 끌려 올라온다.
-            .scrollDisabled(!expanded)
-            .gesture(dragGesture, including: expanded ? .subviews : .all)
             if expanded, let reviews {
                 PlaceReviewComposer(
                     state: reviews.uiState,

@@ -54,8 +54,6 @@ struct MapDetailView: View {
     @State private var selectedCategory: PlaceCategoryFilter = .all
     @State private var sheetExpanded = false
     @State private var sheetCollapsedHeight = MapDetailPlaceSheet.defaultCollapsedHeight
-    /// 처음 열린 장소 상세 시트가 지도를 가리는 높이.
-    @State private var placeDetailHeight: CGFloat = 0
     /// 펼친 묶음 마커의 장소. 비어 있으면 목록을 띄우지 않는다.
     @State private var expandedClusterIDs: [Int64] = []
     @State private var selectedPlaceID: Int64?
@@ -155,7 +153,13 @@ struct MapDetailView: View {
             let selectedPlace = viewModel.uiState.places.first(where: { $0.id == selectedPlaceID })
 
             // 펼치면 상단바까지 덮는다. 장소 상세가 떠 있는 동안은 감춘다. 두 시트가 겹쳐 보이면 안 된다.
-            if selectedTab == .places, selectedPlace == nil { placeSheet }
+            // 빼지 않고 감춰야 돌아왔을 때 보던 목록 위치가 남는다.
+            if selectedTab == .places {
+                placeSheet
+                    .opacity(selectedPlace == nil ? 1 : 0)
+                    .allowsHitTesting(selectedPlace == nil)
+                    .accessibilityHidden(selectedPlace != nil)
+            }
 
             if let place = selectedPlace {
                 // 장소마다 입력 중인 글과 사진을 새로 시작한다.
@@ -325,11 +329,8 @@ struct MapDetailView: View {
             onViewMap: { openKakaoMap(place) },
             onAddToPersonalMap: { personalMapViewModel.add() },
             onLike: { viewModel.toggleLike(placeID: place.id) },
-            onCollapsedHeightChange: { height in
-                // 시트 높이가 정해진 뒤에야 장소를 가리지 않는 자리를 안다.
-                placeDetailHeight = height
-                moveCamera(to: place.id)
-            }
+            // 시트 높이가 정해진 뒤에야 장소를 가리지 않는 자리를 안다.
+            onCollapsedHeightSettle: { height in moveCamera(to: place, bottomPadding: height) }
         )
     }
 
@@ -339,14 +340,17 @@ struct MapDetailView: View {
         selectedPlaceID = placeID
     }
 
-    /// 장소를 상세 시트에 가리지 않는 위쪽 가운데로 옮긴다. 이미 더 확대해 봤으면 그 줌을 뺏지 않는다.
-    private func moveCamera(to placeID: Int64) {
-        guard let place = viewModel.uiState.places.first(where: { $0.id == placeID }) else { return }
+    /// 장소를 상세 시트에 가리지 않는 위쪽 가운데로 옮긴다.
+    private func moveCamera(to place: MapPlace, bottomPadding: CGFloat) {
         let center = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
         withViewportAnimation(.easeOut(duration: 0.6)) {
-            viewport = .camera(center: center, zoom: max(currentZoom ?? MapCameraDefaults.zoom, MapCameraDefaults.zoom))
-                .padding(.bottom, placeDetailHeight)
+            viewport = .camera(center: center, zoom: zoomKeepingCloser).padding(.bottom, bottomPadding)
         }
+    }
+
+    /// 이미 더 확대해 봤으면 그 줌을 뺏지 않는다.
+    private var zoomKeepingCloser: Double {
+        max(currentZoom ?? MapCameraDefaults.zoom, MapCameraDefaults.zoom)
     }
 
     /// 지도 상세에 처음 들어왔을 때로 되돌린다.
@@ -463,9 +467,8 @@ struct MapDetailView: View {
                 return
             }
             // 기울기는 그대로 둔다. 2D 로 보던 지도가 버튼 하나에 기울어지면 안 된다.
-            // 이미 더 확대해 봤으면 그 줌을 뺏지 않는다.
             withViewportAnimation(.easeOut(duration: 0.6)) {
-                viewport = .camera(center: point, zoom: max(currentZoom ?? MapCameraDefaults.zoom, MapCameraDefaults.zoom))
+                viewport = .camera(center: point, zoom: zoomKeepingCloser)
             }
         }
     }

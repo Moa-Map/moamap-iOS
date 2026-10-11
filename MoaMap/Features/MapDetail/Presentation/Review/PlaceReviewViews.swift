@@ -58,8 +58,12 @@ struct PlaceReviewList: View {
                     ) {
                         PlaceReviewRow(review: review, relativeTime: relativeTime(review))
                     }
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                        if review.id == state.reviews.first?.id { onFirstItemHeightChange(height) }
+                    .background {
+                        // 맨 앞 댓글이 지워지면 다음 줄이 새로 재도록 맨 앞 줄에만 단다.
+                        if review.id == state.reviews.first?.id {
+                            Color.clear
+                                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onFirstItemHeightChange($0) }
+                        }
                     }
                 }
             }
