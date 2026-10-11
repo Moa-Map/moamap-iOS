@@ -5,8 +5,10 @@ import UniformTypeIdentifiers
 extension View {
     /// 카메라·갤러리 메뉴를 띄우고 고른 사진을 넘긴다. 읽지 못하면 data 가 nil 이다.
     /// 메뉴는 화면 가운데에 뜨고, `imageSourceMenuAnchor()` 를 단 칸이 있으면 그 칸의 아래 가운데에 붙는다.
-    func imageSourcePicker(isPresented: Binding<Bool>, onPicked: @escaping (Data?, UTType?) -> Void) -> some View {
-        modifier(ImageSourcePickerModifier(showsMenu: isPresented, onPicked: onPicked))
+    func imageSourcePicker(
+        isPresented: Binding<Bool>, darkMenu: Bool = false, onPicked: @escaping (Data?, UTType?) -> Void
+    ) -> some View {
+        modifier(ImageSourcePickerModifier(showsMenu: isPresented, darkMenu: darkMenu, onPicked: onPicked))
     }
 
     func imageSourceMenuAnchor() -> some View {
@@ -25,6 +27,7 @@ private struct ImageSourcePickerModifier: ViewModifier {
     @Environment(\.openURL) private var openURL
 
     @Binding var showsMenu: Bool
+    let darkMenu: Bool
     let onPicked: (Data?, UTType?) -> Void
 
     @State private var showsGallery = false
@@ -90,7 +93,7 @@ private struct ImageSourcePickerModifier: ViewModifier {
                 showsMenu = false
                 showsGallery = true
             }
-        ])
+        ], dark: darkMenu)
         .accessibilityAction(.escape) { showsMenu = false }
     }
 
