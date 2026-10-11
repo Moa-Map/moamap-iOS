@@ -30,6 +30,8 @@ struct MapDetailPlaceSheet: View {
     private static let headerBottomGap: CGFloat = 12
     /// 공식지도는 제목만 보이면 비어 보여 첫 카드가 다 보이게 둔다.
     private static let officialPeekBelowHeader: CGFloat = 160
+    /// 펼친 목록이 내려가도 되는 홈 표시줄 칸. 실제 칸보다 넉넉하면 된다.
+    private static let homeIndicatorAllowance: CGFloat = 100
 
     @GestureState private var dragOffset: CGFloat = 0
     @FocusState private var searchFocused: Bool
@@ -69,7 +71,10 @@ struct MapDetailPlaceSheet: View {
         }
         .frame(height: height, alignment: .top)
         .frame(maxWidth: .infinity)
-        .clipped()
+        // 펼치면 목록이 홈 표시줄 칸까지 이어지게 아래로는 자르지 않는다. 경계에서 카드가 직선으로 잘려 보인다.
+        .mask(alignment: .top) {
+            Rectangle().frame(height: expanded ? height + Self.homeIndicatorAllowance : height)
+        }
         // 빈 곳을 누르면 키보드를 내린다.
         .contentShape(Rectangle())
         .onTapGesture { searchFocused = false }
@@ -181,6 +186,7 @@ struct MapDetailPlaceSheet: View {
                 .padding(EdgeInsets(top: official ? 20 : 16, leading: 20, bottom: 20, trailing: 20))
             }
             .scrollDismissesKeyboard(.immediately)
+            .ignoresSafeArea(.container, edges: .bottom)
         }
     }
 
