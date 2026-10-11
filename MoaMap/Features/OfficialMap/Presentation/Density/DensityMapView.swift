@@ -104,6 +104,7 @@ struct DensityMapView: View {
             }
         }
         .mapStyle(.standard(lightPreset: .day))
+        .cameraBounds(.korea)
         .ornamentOptions(OrnamentOptions(
             scaleBar: ScaleBarViewOptions(visibility: .hidden),
             compass: CompassViewOptions(visibility: .hidden)
