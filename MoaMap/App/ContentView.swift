@@ -10,6 +10,10 @@ import SwiftUI
 struct ContentView: View {
     let container: AppContainer
     @State private var loginViewModel: LoginViewModel
+    @State private var isSplashVisible = true
+
+    /// 로고가 번쩍이고 사라지지 않도록 보장하는 최소 노출 시간. Android 와 같다.
+    private static let splashMinimumDuration: Duration = .seconds(1.5)
 
     init(container: AppContainer) {
         self.container = container
@@ -18,7 +22,9 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            if loginViewModel.uiState == .authenticated {
+            if isSplashVisible {
+                SplashView()
+            } else if loginViewModel.uiState == .authenticated {
                 MainTabView(
                     exploreViewModel: container.makeExploreViewModel(),
                     collectionViewModel: container.makeCollectionViewModel(),
@@ -52,6 +58,10 @@ struct ContentView: View {
                 loginViewModel.returnToLogin()
             }
         }
+        .task {
+            try? await Task.sleep(for: Self.splashMinimumDuration)
+            isSplashVisible = false
+        }
         .alert("로그인할 수 없습니다", isPresented: showsError) {
             Button("확인", role: .cancel) { loginViewModel.dismissError() }
         } message: {
@@ -63,6 +73,8 @@ struct ContentView: View {
     private var showsError: Binding<Bool> {
         Binding(
             get: {
+                // 스플래시 위에 오류가 먼저 뜨지 않도록 로그인 화면이 보인 뒤에 띄운다.
+                if isSplashVisible { return false }
                 if case .failed = loginViewModel.uiState { return true }
                 return false
             },
