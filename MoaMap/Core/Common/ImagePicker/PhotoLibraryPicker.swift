@@ -1,4 +1,5 @@
 import Photos
+import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -14,6 +15,7 @@ struct PhotoLibraryPicker: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
 
     /// 더 붙일 수 있는 장수.
     let maxSelection: Int
@@ -24,14 +26,18 @@ struct PhotoLibraryPicker: View {
     /// 고른 사진의 `localIdentifier`. 보관함이 바뀌면 같은 사진도 새 객체로 오기 때문에 식별자로 들고 있는다.
     @State private var selection: [String] = []
     @State private var loading = false
+    /// 원본을 받는 작업. 받는 도중에 나가면 멈춰서, 늦게 끝난 결과가 폼에 붙지 않게 한다.
+    @State private var finishTask: Task<Void, Never>?
     @State private var showsCamera = false
+    /// 찍은 사진. 카메라가 다 닫힌 뒤에 넘긴다. 닫히는 중에 이 화면까지 닫으면 UIKit 이 무시한다.
+    @State private var captured: PickedPhoto?
     @State private var cameraAlert: CameraAlert?
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 4)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            MoaMapTopBar(title: "사진 선택", onBack: onCancel) {
+            MoaMapTopBar(title: "사진 선택", onBack: cancel) {
                 Button { finish() } label: {
                     MoaMapTopBarIcon(name: "arrow-forward")
                         .opacity(selection.isEmpty ? 0.3 : 1)
@@ -57,14 +63,27 @@ struct PhotoLibraryPicker: View {
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                 if library.access == .denied { deniedNotice }
+                if library.access == .limited { limitedNotice }
             }
             .scrollIndicators(.hidden)
         }
         .background(colors.backgroundSecondary)
         .overlay { if loading { ProgressView() } }
         .task { await library.load() }
-        .fullScreenCover(isPresented: $showsCamera) {
-            CameraPicker { data in finish(adding: PickedPhoto(data: data, type: .jpeg)) }
+        // 설정에서 사진 접근을 바꾸고 돌아오면 다시 확인한다.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await library.load() } }
+        }
+        .onDisappear {
+            finishTask?.cancel()
+            library.stop()
+        }
+        .fullScreenCover(isPresented: $showsCamera, onDismiss: {
+            guard let photo = captured else { return }
+            captured = nil
+            finish(adding: photo)
+        }) {
+            CameraPicker { data in captured = PickedPhoto(data: data, type: .jpeg) }
                 .ignoresSafeArea()
         }
         .alert(cameraAlert?.title ?? "", isPresented: showsCameraAlert, presenting: cameraAlert) { alert in
@@ -129,6 +148,22 @@ struct PhotoLibraryPicker: View {
         .padding(.top, 40)
     }
 
+    /// 일부만 허용했으면 허용할 사진을 더 고를 수 있게 한다. 고르고 나면 보관함 변경 알림으로 격자가 갱신된다.
+    private var limitedNotice: some View {
+        VStack(spacing: 12) {
+            Text("허용한 사진만 보여요.")
+                .moaTextStyle(typography.body2)
+                .foregroundStyle(colors.textAssistive)
+            Button("사진 더 허용하기", action: PhotoLibrary.presentLimitedPicker)
+                .moaTextStyle(typography.button2)
+                .foregroundStyle(colors.textNormal)
+                .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+        .padding(.vertical, 24)
+    }
+
     /// 1부터 센 고른 순서. 고르지 않았으면 nil.
     private func order(of id: String) -> Int? {
         selection.firstIndex(of: id).map { $0 + 1 }
@@ -147,13 +182,19 @@ struct PhotoLibraryPicker: View {
         guard !loading else { return }
         loading = true
         let ids = selection
-        Task {
+        finishTask = Task {
             var photos: [PickedPhoto] = []
             for id in ids { photos.append(await library.photo(for: id)) }
             if let captured { photos.append(captured) }
             loading = false
+            guard !Task.isCancelled else { return }
             onPicked(photos)
         }
+    }
+
+    private func cancel() {
+        finishTask?.cancel()
+        onCancel()
     }
 
     /// 이미 다 골랐으면 찍어도 붙일 자리가 없다.
@@ -224,7 +265,7 @@ private struct PhotoLibraryCell: View {
 /// 사진 보관함 접근, 앨범, 앨범 속 사진을 들고 있는다.
 @MainActor @Observable
 private final class PhotoLibrary: NSObject, PHPhotoLibraryChangeObserver {
-    enum Access { case unknown, granted, denied }
+    enum Access { case unknown, granted, limited, denied }
 
     private(set) var access = Access.unknown
     private(set) var albums: [PHAssetCollection] = []
@@ -243,12 +284,28 @@ private final class PhotoLibrary: NSObject, PHPhotoLibraryChangeObserver {
             access = .denied
             return
         }
-        access = .granted
+        access = status == .limited ? .limited : .granted
         if !registered {
             registered = true
             PHPhotoLibrary.shared().register(self)
         }
         reload()
+    }
+
+    /// 화면이 닫히면 보관함 변경 알림을 그만 받는다. 다시 열면 `load()` 가 다시 등록한다.
+    func stop() {
+        guard registered else { return }
+        registered = false
+        PHPhotoLibrary.shared().unregisterChangeObserver(self)
+    }
+
+    /// 시스템의 허용 사진 고르기 창은 UIKit 화면 위에만 띄울 수 있어 맨 위 화면을 찾아 띄운다.
+    static func presentLimitedPicker() {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        var top = scene?.keyWindow?.rootViewController
+        while let presented = top?.presentedViewController { top = presented }
+        guard let top else { return }
+        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: top)
     }
 
     func select(_ album: PHAssetCollection) {
