@@ -90,9 +90,15 @@ struct PlaceReviewRow: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 12) {
-                Circle()
-                    .fill(MoaMapPrimitiveColors.black)
+                // 프로필 사진은 아직 받지 않는다. 시안의 빈 프로필 자리를 둔다.
+                Image("photo-placeholder")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 24, height: 24)
+                    .clipShape(Circle())
                     .frame(width: 28, height: 28)
+                    .background(MoaMapPrimitiveColors.white, in: Circle())
+                    .overlay { Circle().strokeBorder(colors.lineNormal, lineWidth: 1) }
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -103,7 +109,7 @@ struct PlaceReviewRow: View {
                         Spacer(minLength: 8)
                         Text(relativeTime)
                             .moaTextStyle(typography.caption0)
-                            .foregroundStyle(colors.textAlternative)
+                            .foregroundStyle(colors.textAssistive)
                     }
                     // 사진만 남긴 댓글은 빈 줄이 끼지 않게 통째로 뺀다.
                     if !review.content.isEmpty {
@@ -118,19 +124,20 @@ struct PlaceReviewRow: View {
                         } placeholder: {
                             MoaMapPrimitiveColors.gray50
                         }
-                        .frame(width: 96, height: 96)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .frame(width: 100, height: 100)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                         .padding(.top, 4)
                         .accessibilityLabel("댓글 사진")
                     }
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 12)
             .padding(.vertical, 16)
             Rectangle()
                 .fill(colors.lineAlternative)
                 .frame(height: 1)
         }
+        .padding(.horizontal, 20)
         .accessibilityElement(children: .combine)
     }
 }
@@ -282,10 +289,10 @@ struct PlaceReviewComposer: View {
                     .submitLabel(.send)
                     .onSubmit { if canSend { onSubmit() } }
                 }
-                .padding(.leading, 8)
+                .padding(.leading, 10)
                 .padding(.trailing, 16)
                 .frame(height: 44)
-                .background(MoaMapPrimitiveColors.white, in: Capsule())
+                .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
                 .shadow(color: .black.opacity(0.04), radius: 4)
 
                 Button(action: onSubmit) {
@@ -296,7 +303,7 @@ struct PlaceReviewComposer: View {
                             Image("Icons/send")
                                 .renderingMode(.template)
                                 .resizable()
-                                .frame(width: 24, height: 24)
+                                .frame(width: 32, height: 32)
                                 .foregroundStyle(MoaMapPrimitiveColors.white)
                         }
                     }
@@ -315,7 +322,8 @@ struct PlaceReviewComposer: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
-        .padding(.bottom, 20)
+        // 홈 표시줄·키보드 바로 위에 붙인다.
+        .padding(.bottom, 8)
     }
 
     /// 보내기 전의 첨부 사진. 오른쪽 위를 눌러 뺀다.
