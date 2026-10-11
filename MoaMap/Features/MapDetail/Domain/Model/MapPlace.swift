@@ -17,6 +17,8 @@ nonisolated struct MapPlace: Identifiable, Equatable, Sendable {
     var kakaoPlaceID = ""
     var likeCount = 0
     var liked = false
+    /// 장소를 가져온 인스타그램 게시물.
+    var instagramURL: URL?
 }
 
 nonisolated extension MapPlace {

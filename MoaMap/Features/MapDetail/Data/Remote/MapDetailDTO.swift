@@ -35,6 +35,8 @@ nonisolated struct PlaceResponse: Decodable, Sendable {
     let likeCount: Int?
     let likedByMe: Bool?
     let photoUrls: [String]?
+    let sourceType: String?
+    let sourceUrl: String?
 }
 
 nonisolated struct PlaceLikeResponse: Decodable, Sendable {
@@ -84,7 +86,9 @@ nonisolated extension PlaceResponse {
             reviewCount: commentCount ?? 0,
             kakaoPlaceID: kakaoPlaceId?.trimmingCharacters(in: .whitespaces) ?? "",
             likeCount: likeCount ?? 0,
-            liked: likedByMe ?? false
+            liked: likedByMe ?? false,
+            // 인스타그램 게시물에서 가져온 장소만 원본으로 가는 버튼을 둔다.
+            instagramURL: sourceType == "INSTAGRAM" ? sourceUrl.nonBlank.flatMap(URL.init(string:)) : nil
         )
     }
 }
