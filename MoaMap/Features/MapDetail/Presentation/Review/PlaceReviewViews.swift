@@ -13,6 +13,8 @@ struct PlaceReviewList: View {
     let onRetry: () -> Void
     let onEdit: (Int64) -> Void
     let onDelete: (Int64) -> Void
+    /// 첫 댓글(없으면 로딩·오류·빈 안내) 높이. 장소 상세가 반만 올라올 때 이만큼 보여 준다.
+    var onFirstItemHeightChange: (CGFloat) -> Void = { _ in }
 
     private static let placeholderHeight: CGFloat = 140
 
@@ -56,6 +58,9 @@ struct PlaceReviewList: View {
                     ) {
                         PlaceReviewRow(review: review, relativeTime: relativeTime(review))
                     }
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        if review.id == state.reviews.first?.id { onFirstItemHeightChange(height) }
+                    }
                 }
             }
         }
@@ -77,6 +82,7 @@ struct PlaceReviewList: View {
         content()
             .frame(maxWidth: .infinity)
             .frame(height: Self.placeholderHeight)
+            .onAppear { onFirstItemHeightChange(Self.placeholderHeight) }
     }
 }
 

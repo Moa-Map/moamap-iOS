@@ -317,7 +317,8 @@ struct MapDetailView: View {
             canWriteReview: viewModel.uiState.canAddPlace,
             onBack: { selectedPlaceID = nil },
             onClose: resetToInitial,
-            onExternalLink: { openKakaoMap(place) },
+            onInstagram: { if let url = place.instagramURL { openURL(url) } },
+            onViewMap: { openKakaoMap(place) },
             onAddToPersonalMap: { personalMapViewModel.add() },
             onLike: { viewModel.toggleLike(placeID: place.id) }
         )
