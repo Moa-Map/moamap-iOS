@@ -67,7 +67,8 @@ struct SocialLoginButton: View {
             .foregroundStyle(provider.foreground)
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 53)
+            // 시안의 Apple 버튼은 고정 높이가 아니라 위아래 패딩 15 + 로고 24 라 1 더 크다.
+            .frame(minHeight: provider == .apple ? 54 : 53)
             .background(provider.background, in: RoundedRectangle(cornerRadius: 12))
             .overlay {
                 if provider == .google {

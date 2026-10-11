@@ -12,24 +12,21 @@ struct LoginView: View {
         GeometryReader { geometry in
             let screenHeight = geometry.size.height
                 + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom
+            // 화면 전체 기준 가운데를 지키면서 넘칠 때도 상태 바·홈 인디케이터를 피하도록 위아래를 같게 비운다.
+            let verticalInset = max(geometry.safeAreaInsets.top, geometry.safeAreaInsets.bottom) + 24
 
             ScrollView {
-                VStack(spacing: 0) {
-                    VStack(spacing: 16) {
-                        Image("moa-logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 173, height: 103)
-                            .accessibilityLabel("모아맵")
+                // 피그마 「Home/」(3258:12942). 로고·문구·버튼 묶음을 화면 전체의 세로 가운데에 둔다.
+                VStack(spacing: 40) {
+                    VStack(spacing: 20) {
+                        MoaSymbolLogo(bodySize: CGSize(width: 103.991, height: 83.588))
 
                         Text("취향을 담아,\n우리만의 지도로")
-                            .moaTextStyle(typography.title1)
+                            .moaTextStyle(typography.display2)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(colors.textNormal)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-
-                    Color.clear.frame(height: screenHeight * 66 / 852)
 
                     VStack(spacing: 12) {
                         SocialLoginButton(provider: .google)
@@ -45,18 +42,18 @@ struct LoginView: View {
                         )
                     }
                     .disabled(loadingProvider != nil)
-
-                    Spacer(minLength: 24)
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-                .padding(.top, max(24, screenHeight * 239 / 852 - geometry.safeAreaInsets.top))
+                .padding(.vertical, verticalInset)
                 .frame(maxWidth: 480)
-                .frame(minHeight: geometry.size.height, alignment: .top)
+                .frame(minHeight: screenHeight)
                 .frame(maxWidth: .infinity)
             }
             .scrollIndicators(.hidden)
+            .ignoresSafeArea(edges: .vertical)
         }
-        .background { colors.backgroundPrimary.ignoresSafeArea() }
+        // 시안 배경은 단색 Background/Primary(#E6F6FF)다. iOS 의 backgroundPrimary 토큰은 그라데이션이라 쓰지 않는다.
+        .background { MoaMapPrimitiveColors.blue50.ignoresSafeArea() }
         .preferredColorScheme(.light)
     }
 }
