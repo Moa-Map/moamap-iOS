@@ -183,7 +183,8 @@ final class AppContainer {
             ),
             member: MemberViewModel(mapID: mapID, repository: mapMemberRepository),
             activity: MapActivityViewModel(mapID: mapID, repository: mapActivityRepository, now: Date.init),
-            pending: PendingRequestViewModel(mapID: mapID, repository: pendingPlaceRepository)
+            pending: PendingRequestViewModel(mapID: mapID, repository: pendingPlaceRepository),
+            makeEditMap: makeEditMapViewModel(map:)
         )
     }
 
@@ -193,6 +194,10 @@ final class AppContainer {
 
     func makeCreateMapViewModel() -> CreateMapViewModel {
         CreateMapViewModel(repository: collectionRepository)
+    }
+
+    func makeEditMapViewModel(map: MapDetail) -> EditMapViewModel {
+        EditMapViewModel(map: map, repository: collectionRepository)
     }
 
     func makePlaceImportViewModel(source: PlaceImportSource, url: String) -> PlaceImportViewModel {

@@ -56,4 +56,13 @@ final class CollectionRepositoryImpl: CollectionRepository {
         )
         return try await client.send(request, as: CreatedMapResponse.self).toDomain()
     }
+
+    func updateMap(mapID: Int64, _ update: MapUpdate) async throws {
+        let request = APIRequest(
+            path: ["api", "v1", "maps", String(mapID)],
+            method: .patch,
+            jsonBody: try JSONEncoder().encode(MapUpdateRequest(update))
+        )
+        try await client.sendWithoutResponse(request)
+    }
 }

@@ -194,6 +194,8 @@ final class PreviewCollectionRepository: CollectionRepository {
     func uploadCoverImage(_ image: UploadImage) async throws -> String { "" }
 
     func createMap(_ newMap: NewMap) async throws -> CreatedMap { CreatedMap(id: 1, inviteCode: nil) }
+
+    func updateMap(mapID: Int64, _ update: MapUpdate) async throws {}
 }
 
 #Preview {

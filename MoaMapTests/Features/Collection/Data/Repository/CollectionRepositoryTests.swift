@@ -112,6 +112,30 @@ struct CollectionRepositoryTests {
         #expect(created == CreatedMap(id: 9, inviteCode: "VH4YXZ"))
     }
 
+    @Test func 지도_수정은_PATCH로_전체_값을_보내고_빈_설명과_사진은_뺀다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"id":7}}"#) { request in
+            #expect(request.httpMethod == "PATCH")
+            #expect(request.url?.path == "/api/v1/maps/7")
+            let body = Self.json(request)
+            #expect(body?["name"] as? String == "성수 카페")
+            #expect(body?["tags"] as? [String] == [])
+            #expect(body?.keys.sorted() == ["name", "tags"])
+        }
+        try await sut.updateMap(mapID: 7, MapUpdate(name: " 성수 카페 ", description: " ", tags: [], imageURL: nil))
+    }
+
+    @Test func 지도_수정은_설명_사진_태그를_그대로_담는다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"id":7}}"#) { request in
+            let body = Self.json(request)
+            #expect(body?["description"] as? String == "친구들과")
+            #expect(body?["imageUrl"] as? String == "https://cdn.example.com/cover.jpg")
+            #expect(body?["tags"] as? [String] == ["카페", "성수"])
+        }
+        try await sut.updateMap(mapID: 7, MapUpdate(
+            name: "성수", description: "친구들과", tags: ["카페", "성수"], imageURL: "https://cdn.example.com/cover.jpg"
+        ))
+    }
+
     @Test func 커버는_주소를_발급받아_올리고_파일_주소를_돌려준다() async throws {
         let uploader = UploaderSpy()
         let sut = try repository(

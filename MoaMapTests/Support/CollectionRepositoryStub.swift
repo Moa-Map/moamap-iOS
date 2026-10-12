@@ -33,4 +33,12 @@ final class CollectionRepositoryStub: CollectionRepository {
         createdMaps.append(newMap)
         return try await create(newMap)
     }
+
+    var update: (Int64, MapUpdate) async throws -> Void = { _, _ in }
+    private(set) var updates: [(mapID: Int64, update: MapUpdate)] = []
+
+    func updateMap(mapID: Int64, _ update: MapUpdate) async throws {
+        updates.append((mapID, update))
+        try await self.update(mapID, update)
+    }
 }

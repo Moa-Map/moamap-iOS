@@ -22,12 +22,19 @@ struct CreateMapLabel: View {
 }
 
 /// 지도 사진 카드. 고른 사진이 있으면 카드를 채워 보여준다.
+/// 지도 정보 수정에서는 이미 있는 사진을 어둡게 덮고 바꿀 수 있다고 알린다.
 struct MapPhotoField: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
     let image: UIImage?
+    /// 고른 사진이 없을 때 보여 줄, 이미 올라가 있는 사진.
+    var imageURL: URL?
+    /// 사진 위에 `사진 수정하기` 를 덮는다.
+    var showsEditOverlay = false
     let onTap: () -> Void
+
+    private var hasImage: Bool { image != nil || imageURL != nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -38,21 +45,40 @@ struct MapPhotoField: View {
                     .overlay {
                         if let image {
                             Image(uiImage: image).resizable().scaledToFill()
-                        } else {
-                            VStack(spacing: 2) {
-                                Image("Icons/add").renderingMode(.template).resizable()
-                                    .frame(width: 32, height: 32)
-                                Text("사진 추가하기").moaTextStyle(typography.body2)
+                        } else if let imageURL {
+                            AsyncImage(url: imageURL) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                MoaMapPrimitiveColors.gray50
                             }
-                            .foregroundStyle(colors.textAssistive)
+                        } else {
+                            caption(icon: "add", text: "사진 추가하기")
+                                .foregroundStyle(colors.textAssistive)
+                        }
+                    }
+                    .overlay {
+                        if hasImage && showsEditOverlay {
+                            ZStack {
+                                Color.black.opacity(0.6)
+                                caption(icon: "edit", text: "사진 수정하기")
+                                    .foregroundStyle(colors.textWhite)
+                            }
                         }
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(color: .black.opacity(0.04), radius: 4)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(image == nil ? "지도 사진 추가하기" : "지도 사진 바꾸기")
+            .accessibilityLabel(hasImage ? "지도 사진 바꾸기" : "지도 사진 추가하기")
             .imageSourceMenuAnchor()
+        }
+    }
+
+    private func caption(icon: String, text: String) -> some View {
+        VStack(spacing: 2) {
+            Image("Icons/\(icon)").renderingMode(.template).resizable()
+                .frame(width: 32, height: 32)
+            Text(text).moaTextStyle(typography.body2)
         }
     }
 }
@@ -194,6 +220,7 @@ struct CreateMapSubmitButton: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
+    var title = "지도 만들기"
     let enabled: Bool
     let submitting: Bool
     let action: () -> Void
@@ -204,7 +231,7 @@ struct CreateMapSubmitButton: View {
                 if submitting {
                     ProgressView().tint(colors.textWhite)
                 } else {
-                    Text("지도 만들기")
+                    Text(title)
                         .moaTextStyle(typography.button0)
                         .foregroundStyle(colors.textWhite)
                 }

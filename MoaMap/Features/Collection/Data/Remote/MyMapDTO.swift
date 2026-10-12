@@ -49,6 +49,21 @@ nonisolated struct MapCreateRequest: Encodable, Sendable {
     }
 }
 
+/// 빠진 값은 서버가 비운다. 설명·사진을 지우려는 게 아니면 원래 값을 담아 보낸다.
+nonisolated struct MapUpdateRequest: Encodable, Sendable {
+    let name: String
+    let description: String?
+    let imageUrl: String?
+    let tags: [String]
+
+    init(_ update: MapUpdate) {
+        name = update.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        description = update.description.nonBlank
+        imageUrl = update.imageURL?.nonBlank
+        tags = update.tags
+    }
+}
+
 nonisolated struct CreatedMapResponse: Decodable, Sendable {
     let id: Int64
     let inviteCode: String?

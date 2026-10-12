@@ -116,15 +116,18 @@ struct MapDetailMenu: View {
     let canLeave: Bool
     let onMembers: () -> Void
     let onManage: () -> Void
+    let onInfo: () -> Void
     let onLeave: () -> Void
 
     var body: some View {
         var items = [
             ActionMenuItem(icon: "person", label: "멤버 관리", action: onMembers),
-            ActionMenuItem(icon: "map", label: "지도 관리", action: onManage)
+            ActionMenuItem(icon: "map", label: "지도 관리", action: onManage),
+            ActionMenuItem(icon: "info", label: "지도 정보", action: onInfo)
         ]
         if canLeave { items.append(ActionMenuItem(icon: "out", label: "나가기", action: onLeave)) }
-        return ActionMenu(items: items)
+        // 지도 위에 뜨므로 뒤가 비치는 어두운 메뉴를 쓴다.
+        return ActionMenu(items: items, dark: true)
     }
 }
 
@@ -270,7 +273,7 @@ struct MyLocationButton: View {
             title: "서울 무장애 여행지", roleBadge: nil, action: .leave, showsMenu: false,
             inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
         )
-        MapDetailMenu(canLeave: true, onMembers: {}, onManage: {}, onLeave: {})
+        MapDetailMenu(canLeave: true, onMembers: {}, onManage: {}, onInfo: {}, onLeave: {})
         MapDetailTabBar(selection: .places) { _ in }.padding(.horizontal, 20)
         HStack(spacing: 40) {
             MyLocationButton(inProgress: false) {}
