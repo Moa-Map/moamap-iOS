@@ -610,6 +610,7 @@
 				INFOPLIST_FILE = MoaMap/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "프로필 사진을 촬영하는 데 사용해요.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "지도에서 현재 위치를 보여 주고, 내 위치로 지도를 옮기는 데 사용해요.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "장소에 올릴 사진을 앨범에서 고르는 데 사용해요.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -648,6 +649,7 @@
 				INFOPLIST_FILE = MoaMap/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "프로필 사진을 촬영하는 데 사용해요.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "지도에서 현재 위치를 보여 주고, 내 위치로 지도를 옮기는 데 사용해요.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "장소에 올릴 사진을 앨범에서 고르는 데 사용해요.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

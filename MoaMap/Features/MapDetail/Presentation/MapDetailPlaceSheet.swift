@@ -197,6 +197,7 @@ struct MapDetailPlaceSheet: View {
     }
 }
 
+
 /// iOS 시스템 시트 손잡이. 장소 상세 시트도 같이 쓴다.
 struct SheetGrabber: View {
     var body: some View {
