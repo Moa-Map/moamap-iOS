@@ -10,6 +10,14 @@ final class CollectionRepositoryStub: CollectionRepository {
         return try await fetch(type)
     }
 
+    var updateOrder: (CollectionMapType, [Int64]) async throws -> Void = { _, _ in }
+    private(set) var orders: [(type: CollectionMapType, mapIDs: [Int64])] = []
+
+    func updateMapOrder(type: CollectionMapType, mapIDs: [Int64]) async throws {
+        orders.append((type, mapIDs))
+        try await updateOrder(type, mapIDs)
+    }
+
     var join: (String) async throws -> Void = { _ in }
     private(set) var joinedCodes: [String] = []
 

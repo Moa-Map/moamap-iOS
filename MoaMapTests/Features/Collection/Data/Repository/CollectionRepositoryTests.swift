@@ -12,6 +12,13 @@ private final class UploaderSpy: ImageUploader, @unchecked Sendable {
     }
 }
 
+private final class LockedPages: @unchecked Sendable {
+    private let lock = NSLock()
+    private var pages: [Int] = []
+    var values: [Int] { lock.withLock { pages } }
+    func append(_ page: Int) { lock.withLock { pages.append(page) } }
+}
+
 @MainActor
 struct CollectionRepositoryTests {
     private func repository(
@@ -33,15 +40,44 @@ struct CollectionRepositoryTests {
     }
 
     @Test(arguments: [CollectionMapType.community, .private])
-    func 참여한_지도를_유형별로_20개_조회한다(type: CollectionMapType) async throws {
+    func 참여한_지도를_유형별로_첫_페이지부터_조회한다(type: CollectionMapType) async throws {
         let sut = try repository(body: #"{"success":true,"data":{"content":[]}}"#) { request in
             #expect(request.httpMethod == "GET")
             #expect(request.url?.path == "/api/v1/maps/me")
             let items = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems } ?? []
             let query = Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value ?? "") })
-            #expect(query == ["type": type == .community ? "COMMUNITY" : "PRIVATE", "size": "20"])
+            #expect(query == ["type": type == .community ? "COMMUNITY" : "PRIVATE", "page": "0", "size": "100"])
         }
         #expect(try await sut.fetchMyMaps(type: type).isEmpty)
+    }
+
+    @Test func 순서_변경에_필요하도록_마지막_페이지까지_이어서_받는다() async throws {
+        let pages = LockedPages()
+        let client = APIClient(configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"])) { request in
+            let items = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems } ?? []
+            let page = Int(items.first { $0.name == "page" }?.value ?? "") ?? -1
+            pages.append(page)
+            let body = page == 0
+                ? #"{"success":true,"data":{"content":[{"id":1},{"id":2}],"last":false}}"#
+                : #"{"success":true,"data":{"content":[{"id":3}],"last":true}}"#
+            let url = try #require(request.url)
+            let response = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil))
+            return (Data(body.utf8), response)
+        }
+        let sut = CollectionRepositoryImpl(client: client, uploader: UploaderSpy())
+        #expect(try await sut.fetchMyMaps(type: .private).map(\.id) == [1, 2, 3])
+        #expect(pages.values == [0, 1])
+    }
+
+    @Test func 순서_변경은_탭과_전체_지도_ID를_순서대로_보낸다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":null}"#) { request in
+            #expect(request.httpMethod == "PATCH")
+            #expect(request.url?.path == "/api/v1/maps/me/order")
+            let body = Self.json(request)
+            #expect(body?["type"] as? String == "PRIVATE")
+            #expect(body?["mapIds"] as? [Int64] == [3, 1, 2])
+        }
+        try await sut.updateMapOrder(type: .private, mapIDs: [3, 1, 2])
     }
 
     @Test func 개인지도_구분과_카드_정보를_보존한다() async throws {

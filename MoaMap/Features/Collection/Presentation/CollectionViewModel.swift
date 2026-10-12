@@ -3,12 +3,19 @@ import Observation
 
 @MainActor @Observable
 final class CollectionViewModel {
+    static let orderFailedMessage = "지도 순서를 저장하지 못했어요"
+
     private(set) var uiState = CollectionUiState()
     // 취소는 오류 상태로 바꾸지 않고 호출자에게 전파한다.
     private(set) var loadTasks: [CollectionMapType: Task<Void, any Error>] = [:]
     var loadTask: Task<Void, any Error>? { loadTasks[uiState.selectedTab] }
     private(set) var joinTask: Task<Void, any Error>?
     private(set) var editTask: Task<Void, Never>?
+    private(set) var orderTask: Task<Void, Never>?
+    /// 끌어서 바꿨지만 아직 서버에 보내지 않은 순서가 있다. 편집을 끝낼 때 보낸다.
+    private var orderDirty = false
+    /// 보내는 중에 또 바뀐 순서. 앞 요청이 끝나면 마지막 것만 보낸다.
+    private var pendingOrder: (type: CollectionMapType, mapIDs: [Int64])?
 
     private var requestedTabs: Set<CollectionMapType> = []
     private let repository: any CollectionRepository
@@ -27,6 +34,7 @@ final class CollectionViewModel {
 
     func selectTab(_ type: CollectionMapType) {
         guard type != uiState.selectedTab, uiState.editing?.processing != true else { return }
+        commitOrder()
         uiState.selectedTab = type
         // 고른 지도는 보던 탭의 것이다. 다른 탭에서 보이지 않는 지도를 나가면 안 된다.
         uiState.editing = nil
@@ -50,6 +58,7 @@ final class CollectionViewModel {
     /// 나가는 중에 끝내면 결과를 알릴 곳이 사라진다.
     func finishEditing() {
         guard uiState.editing?.processing != true else { return }
+        commitOrder()
         uiState.editing = nil
         uiState.editDialog = nil
     }
@@ -58,6 +67,44 @@ final class CollectionViewModel {
         guard var editing = uiState.editing, !editing.processing else { return }
         if editing.selectedIDs.remove(mapID) == nil { editing.selectedIDs.insert(mapID) }
         uiState.editing = editing
+    }
+
+    /// 끌고 지나가는 자리마다 화면 순서만 바꾼다. 서버에는 편집을 끝낼 때 한 번 보낸다.
+    /// 프라이빗 탭은 나만의 지도와 나머지를 따로 보여 주므로 같은 묶음 안에서만 옮긴다.
+    /// 옮겼는지 돌려준다. 핸들로 끌 때는 옮긴 만큼만 손가락 위치를 보정해야 한다.
+    @discardableResult
+    func moveMap(_ mapID: Int64, to targetID: Int64) -> Bool {
+        guard uiState.editing?.processing == false, case .loaded(var maps) = uiState.currentMaps,
+              let from = maps.firstIndex(where: { $0.id == mapID }),
+              let to = maps.firstIndex(where: { $0.id == targetID }),
+              from != to, maps[from].personal == maps[to].personal else { return false }
+        maps.insert(maps.remove(at: from), at: to)
+        uiState.setState(.loaded(maps), for: uiState.selectedTab)
+        orderDirty = true
+        return true
+    }
+
+    /// 서버는 탭의 지도 전체를 받아 순서를 통째로 바꾼다. 실패하면 서버 순서로 되돌린다.
+    private func commitOrder() {
+        guard orderDirty, case .loaded(let maps) = uiState.currentMaps else { return }
+        orderDirty = false
+        pendingOrder = (uiState.selectedTab, maps.map(\.id))
+        guard orderTask == nil else { return }
+        orderTask = Task { [weak self] in
+            while let self, let order = pendingOrder {
+                pendingOrder = nil
+                do {
+                    try await repository.updateMapOrder(type: order.type, mapIDs: order.mapIDs)
+                } catch {
+                    guard !(error is CancellationError) else { break }
+                    pendingOrder = nil
+                    uiState.notice = MapDetailMessage.userMessage(for: error, fallback: Self.orderFailedMessage)
+                    load(order.type, keepCurrent: true)
+                    break
+                }
+            }
+            self?.orderTask = nil
+        }
     }
 
     /// 방장인 지도가 섞여 있으면 막고, 아니면 한 번 더 묻는다.
@@ -85,7 +132,11 @@ final class CollectionViewModel {
         guard case .confirmLeave = uiState.editDialog, let editing = uiState.editing, editing.canLeave else { return }
         uiState.editDialog = nil
         let ids = editing.selectedIDs.sorted()
+        // 바꾼 순서는 나가기 전에 저장한다. 나간 뒤에는 보낼 목록이 서버와 달라져 `MAP_022` 로 거부된다.
+        commitOrder()
+        let orderSave = orderTask
         runEditTask { [mapRepository] in
+            await orderSave?.value
             var failed: Set<Int64> = []
             var lastError: (any Error)?
             for id in ids {
@@ -229,11 +280,14 @@ final class CollectionViewModel {
         if !keepCurrent || uiState.state(of: type) == .idle {
             uiState.setState(.loading, for: type)
         }
+        // 저장 중인 순서가 있으면 끝난 뒤에 읽는다. 먼저 읽으면 바꾸기 전 순서가 화면을 덮는다.
+        let orderSave = orderTask
         loadTasks[type] = Task { [weak self, repository] in
             defer {
                 if !Task.isCancelled { self?.loadTasks[type] = nil }
             }
             do {
+                await orderSave?.value
                 let maps = try await repository.fetchMyMaps(type: type)
                 try Task.checkCancellation()
                 self?.uiState.setState(.loaded(maps), for: type)

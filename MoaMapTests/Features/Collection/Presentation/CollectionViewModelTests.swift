@@ -332,4 +332,71 @@ struct CollectionViewModelTests {
         await sut.editTask?.value
         #expect(sut.uiState.editDialog == .ownerCannotLeave)
     }
+
+    @Test func 끌어서_옮겨도_완료할_때_탭의_전체_순서를_한_번만_보낸다() async throws {
+        let repository = CollectionRepositoryStub()
+        repository.fetch = { _ in [self.map(1), self.map(2), self.map(3)] }
+        let sut = try await editing(repository, mapRepository: MapDetailRepositoryStub(), selecting: [])
+        sut.moveMap(3, to: 2)
+        sut.moveMap(3, to: 1)
+        #expect(sut.uiState.currentMaps == .loaded([map(3), map(1), map(2)]))
+        #expect(repository.orders.isEmpty)
+        sut.finishEditing()
+        await sut.orderTask?.value
+        #expect(repository.orders.map(\.mapIDs) == [[3, 1, 2]])
+        #expect(repository.orders.map(\.type) == [.community])
+        sut.startEditing()
+        sut.finishEditing()
+        #expect(repository.orders.count == 1)
+    }
+
+    @Test func 순서를_바꾸고_나가면_순서를_먼저_저장한_뒤_나간다() async throws {
+        let repository = CollectionRepositoryStub()
+        repository.fetch = { _ in [self.map(1), self.map(2)] }
+        let mapRepository = MapDetailRepositoryStub()
+        mapRepository.detail = { MapDetail.fixture(id: $0, joined: true, role: .member) }
+        var events: [String] = []
+        repository.updateOrder = { _, ids in events.append("order \(ids)") }
+        mapRepository.leave = { events.append("leave \($0)") }
+        let sut = try await editing(repository, mapRepository: mapRepository, selecting: [])
+        sut.moveMap(2, to: 1)
+        sut.toggleSelection(mapID: 1)
+        sut.requestLeave()
+        await sut.editTask?.value
+        sut.confirmLeave()
+        await sut.editTask?.value
+        #expect(events == ["order [2, 1]", "leave 1"])
+    }
+
+    @Test func 편집이_아니거나_나만의_지도와_섞이면_옮기지_않는다() async throws {
+        let repository = CollectionRepositoryStub()
+        let maps = [map(1, personal: true), map(2), map(3)]
+        repository.fetch = { _ in maps }
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
+        sut.selectTab(.private)
+        try await sut.loadTask?.value
+        sut.moveMap(3, to: 2)
+        #expect(sut.uiState.currentMaps == .loaded(maps))
+        sut.startEditing()
+        sut.moveMap(3, to: 1)
+        #expect(sut.uiState.currentMaps == .loaded(maps))
+        sut.moveMap(3, to: 2)
+        #expect(sut.uiState.currentMaps == .loaded([map(1, personal: true), map(3), map(2)]))
+    }
+
+    @Test func 끝낼_때_저장하지_않은_순서를_보내고_실패하면_서버_순서로_되돌린다() async throws {
+        let repository = CollectionRepositoryStub()
+        let maps = [map(1), map(2)]
+        repository.fetch = { _ in maps }
+        repository.updateOrder = { _, _ in throw NetworkError.server(code: "MAP_022", statusCode: 400) }
+        let sut = try await editing(repository, mapRepository: MapDetailRepositoryStub(), selecting: [])
+        sut.moveMap(2, to: 1)
+        sut.finishEditing()
+        #expect(sut.uiState.editing == nil)
+        await sut.orderTask?.value
+        #expect(repository.orders.map(\.mapIDs) == [[2, 1]])
+        #expect(sut.uiState.notice == CollectionViewModel.orderFailedMessage)
+        try await sut.loadTask?.value
+        #expect(sut.uiState.currentMaps == .loaded(maps))
+    }
 }

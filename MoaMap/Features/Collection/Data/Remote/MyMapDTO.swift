@@ -2,6 +2,7 @@ import Foundation
 
 nonisolated struct MyMapPageResponse: Decodable, Sendable {
     let content: [MyMapResponse]?
+    let last: Bool?
 }
 
 nonisolated struct MyMapResponse: Decodable, Sendable {
@@ -26,6 +27,11 @@ nonisolated struct MyMapResponse: Decodable, Sendable {
             personal: personal ?? false
         )
     }
+}
+
+nonisolated struct MapOrderUpdateRequest: Encodable, Sendable {
+    let type: String
+    let mapIds: [Int64]
 }
 
 nonisolated struct JoinByInviteCodeRequest: Encodable, Sendable {

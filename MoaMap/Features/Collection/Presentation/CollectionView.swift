@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CollectionView: View {
     @Environment(\.moaColors) private var colors
@@ -10,6 +11,17 @@ struct CollectionView: View {
     var onMapClick: (MyMap) -> Void = { _ in }
     var onEditMap: (MapDetail) -> Void = { _ in }
     @State private var showsInviteDialog = false
+    /// 끌고 있는 지도. 놓거나 다른 곳에 떨어뜨리면 비운다.
+    @State private var draggingMapID: Int64?
+    /// 핸들로 끄는 카드가 제자리에서 벗어난 거리. 한 칸을 넘으면 옮기고 그만큼 덜어 낸다.
+    @State private var handleDragOffset: CGFloat = 0
+    /// 카드 한 칸의 높이(간격 포함). 핸들로 끌 때 몇 칸 지났는지 셈한다.
+    @State private var cardHeight: CGFloat = 0
+    /// 지금까지 옮긴 칸 수만큼의 거리. 손가락이 간 거리에서 빼야 카드가 손가락을 따라간다.
+    @State private var consumedDrag: CGFloat = 0
+    private static let cardSpacing: CGFloat = 8
+    /// 이웃과 자리를 바꾸는 지점(한 칸 대비). 0.5 보다 커야 바꾼 직후 되돌아가지 않는다.
+    private static let swapThreshold: CGFloat = 0.6
 
     private var editing: CollectionEditing? { viewModel.uiState.editing }
 
@@ -27,6 +39,8 @@ struct CollectionView: View {
                 .padding(.bottom, 20)
             }
             .scrollIndicators(.hidden)
+            // 핸들로 끄는 동안 목록이 같이 움직이지 않게 한다.
+            .scrollDisabled(draggingMapID != nil && handleDragOffset != 0)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if let editing { editBar(editing) }
@@ -163,16 +177,86 @@ struct CollectionView: View {
     }
 
     private func mapList(_ maps: [MyMap], showsMembers: Bool) -> some View {
-        LazyVStack(spacing: 8) {
+        LazyVStack(spacing: Self.cardSpacing) {
             ForEach(maps) { map in
-                Button {
+                let card = Button {
                     if editing == nil { onMapClick(map) } else { viewModel.toggleSelection(mapID: map.id) }
                 } label: {
-                    CollectionMapCard(map: map, showsMembers: showsMembers, selected: editing.map { $0.selectedIDs.contains(map.id) })
+                    CollectionMapCard(
+                        map: map, showsMembers: showsMembers,
+                        selected: editing.map { $0.selectedIDs.contains(map.id) },
+                        showsDragHandle: editing != nil
+                    )
                 }
                 .buttonStyle(.plain)
+                if editing == nil {
+                    card
+                } else {
+                    // 핸들은 누르자마자, 카드는 길게 눌러 끈다. 지나가는 자리마다 순서가 바뀌고 저장은 편집을 끝낼 때 한다.
+                    let handleDragging = draggingMapID == map.id && handleDragOffset != 0
+                    card
+                        .overlay(alignment: .leading) { dragHandleArea(map: map) }
+                        .offset(y: draggingMapID == map.id ? handleDragOffset : 0)
+                        .zIndex(draggingMapID == map.id ? 1 : 0)
+                        .scaleEffect(handleDragging ? 1.02 : 1)
+                        .shadow(color: .black.opacity(handleDragging ? 0.12 : 0), radius: 8)
+                        // 끄는 카드는 손가락을 바로 따라가야 한다. 순서가 바뀔 때의 애니메이션은 나머지 카드에만 건다.
+                        .transaction { if draggingMapID == map.id { $0.animation = nil } }
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardHeight = $0 }
+                        .onDrag {
+                            draggingMapID = map.id
+                            return NSItemProvider(object: String(map.id) as NSString)
+                        }
+                        .onDrop(of: [.text], delegate: MapReorderDropDelegate(
+                            targetID: map.id, draggingMapID: $draggingMapID,
+                            onMove: { viewModel.moveMap($0, to: $1) }
+                        ))
+                }
             }
         }
+        .animation(.default, value: maps.map(\.id))
+    }
+
+    /// 카드 왼쪽 두 줄 핸들 자리. 누른 채 위아래로 끌면 이웃 카드 쪽으로 충분히 넘어갈 때마다 자리를 바꾼다.
+    private func dragHandleArea(map: MyMap) -> some View {
+        Color.clear
+            .frame(width: 48)
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                // 핸들은 카드와 함께 움직인다. 카드 기준으로 재면 움직일 때마다 거리가 흔들려 화면 기준으로 잰다.
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                    .onChanged { value in
+                        if draggingMapID != map.id {
+                            draggingMapID = map.id
+                            consumedDrag = 0
+                        }
+                        handleDragOffset = value.translation.height - consumedDrag
+                        let step = cardHeight + Self.cardSpacing
+                        // 그릴 때의 목록이 아니라 지금 목록을 본다. 빠르게 끌면 다시 그리기 전에 또 불려 이미 지나친 이웃으로 되돌린다.
+                        // 프라이빗 탭은 나만의 지도와 나머지를 따로 보여 주므로 같은 묶음만 이웃으로 본다.
+                        guard step > Self.cardSpacing, case .loaded(let current) = viewModel.uiState.currentMaps else { return }
+                        let maps = current.filter { $0.personal == map.personal }
+                        guard let index = maps.firstIndex(where: { $0.id == map.id }) else { return }
+                        // 반 칸보다 더 넘어가야 바꾼다. 경계가 같으면 손떨림에도 자리가 계속 오간다.
+                        let threshold = step * Self.swapThreshold
+                        if handleDragOffset > threshold, index + 1 < maps.count,
+                           viewModel.moveMap(map.id, to: maps[index + 1].id) {
+                            consumedDrag += step
+                        } else if handleDragOffset < -threshold, index > 0,
+                                  viewModel.moveMap(map.id, to: maps[index - 1].id) {
+                            consumedDrag -= step
+                        }
+                        handleDragOffset = value.translation.height - consumedDrag
+                    }
+                    .onEnded { _ in
+                        withAnimation(.default) {
+                            draggingMapID = nil
+                            handleDragOffset = 0
+                        }
+                    }
+            )
+            .accessibilityHidden(true)
     }
 
     /// 편집 중에는 하단 탭 대신 띄운다.
@@ -276,6 +360,27 @@ struct CollectionView: View {
     }
 }
 
+/// 끌고 있는 카드가 다른 카드 위에 오면 그 자리로 옮긴다.
+private struct MapReorderDropDelegate: DropDelegate {
+    let targetID: Int64
+    @Binding var draggingMapID: Int64?
+    let onMove: (_ mapID: Int64, _ targetID: Int64) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggingMapID, draggingMapID != targetID else { return }
+        onMove(draggingMapID, targetID)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingMapID = nil
+        return true
+    }
+}
+
 /// 방장인 지도를 골라 나가려 할 때 띄운다. 버튼 없이 바깥을 누르거나 잠시 뒤에 닫힌다.
 private struct OwnerCannotLeaveNotice: View {
     @Environment(\.moaColors) private var colors
@@ -336,6 +441,8 @@ final class PreviewCollectionRepository: CollectionRepository {
             )
         }
     }
+
+    func updateMapOrder(type: CollectionMapType, mapIDs: [Int64]) async throws {}
 
     func joinByInviteCode(_ inviteCode: String) async throws {}
 
