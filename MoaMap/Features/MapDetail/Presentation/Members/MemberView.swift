@@ -19,10 +19,8 @@ struct MemberView: View {
         VStack(spacing: 0) {
             MoaMapTopBar(title: "멤버 관리", height: 52, backIconSize: 24, onBack: onBack)
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 20) {
                     header
-                        // 목록 간격 8 과 합쳐 머리글과 목록 사이가 20 이 된다.
-                        .padding(.bottom, 12)
                         .zIndex(1)
                     content
                 }
@@ -102,18 +100,43 @@ struct MemberView: View {
                 }
             }
         } else {
-            ForEach(state.members) { member in
-                MemberCard(
-                    member: member,
-                    tag: roleDisplay.tag(for: member.role),
-                    // 방장·관리자는 이미 권한이 있다.
-                    canGrant: canGrantRole && (member.role == .member || member.role == .none),
-                    // 오가는 중에는 다른 카드의 버튼도 잠근다.
-                    grantEnabled: !state.granting,
-                    onGrant: { viewModel.grantAdmin(userID: member.id) }
-                )
+            VStack(alignment: .leading, spacing: 16) {
+                if let me = state.me {
+                    section("내 역할") { card(me, isMe: true) }
+                }
+                if !state.otherMembers.isEmpty {
+                    // 내가 목록에 없으면 나눌 기준이 없어 제목 없이 모두 보인다.
+                    section(state.me == nil ? nil : "다른 멤버 \(state.otherMembers.count)명") {
+                        ForEach(state.otherMembers) { card($0, isMe: false) }
+                    }
+                }
             }
         }
+    }
+
+    private func section(_ title: String?, @ViewBuilder cards: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let title {
+                Text(title)
+                    .moaTextStyle(typography.subtitle4)
+                    .foregroundStyle(colors.textNormal)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            cards()
+        }
+    }
+
+    private func card(_ member: MapMember, isMe: Bool) -> some View {
+        MemberCard(
+            member: member,
+            tag: roleDisplay.tag(for: member.role),
+            isMe: isMe,
+            // 방장·관리자는 이미 권한이 있다.
+            canGrant: canGrantRole && (member.role == .member || member.role == .none),
+            // 오가는 중에는 다른 카드의 버튼도 잠근다.
+            grantEnabled: !state.granting,
+            onGrant: { viewModel.grantAdmin(userID: member.id) }
+        )
     }
 
     private func notice(@ViewBuilder _ content: () -> some View) -> some View {
@@ -129,6 +152,8 @@ private struct MemberCard: View {
 
     let member: MapMember
     let tag: MapRole?
+    /// 내 카드는 노란 배경과 테두리로 구분한다.
+    let isMe: Bool
     let canGrant: Bool
     let grantEnabled: Bool
     let onGrant: () -> Void
@@ -178,7 +203,10 @@ private struct MemberCard: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+        .background(isMe ? MoaMapPrimitiveColors.yellow50 : MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            if isMe { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1) }
+        }
         .shadow(color: .black.opacity(0.04), radius: 4)
     }
 
@@ -205,7 +233,7 @@ private struct RoleGuideTooltip: View {
         MoaMapTooltip(tailInset: 14) {
             column("방장", "장소 신청 수락·거절,\n권한 위임, 강퇴")
             column("관리자", "장소 신청 수락·거절")
-            column("멤버", "장소 신청,\n댓글")
+            column("멤버", "장소 신청,\n별점·댓글")
         }
     }
 
@@ -221,7 +249,7 @@ private struct RoleGuideTooltip: View {
 #if DEBUG
 #Preview {
     MemberView(
-        viewModel: MemberViewModel(mapID: 1, repository: PreviewMapMemberRepository()),
+        viewModel: MemberViewModel(mapID: 1, repository: PreviewMapMemberRepository(), currentUserStore: PreviewCurrentUserStore()),
         roleDisplay: .all, canGrantRole: true, onBack: {}
     )
 }

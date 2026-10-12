@@ -7,7 +7,7 @@ struct MemberViewModelTests {
     @Test func 처음_열_때_한_번만_읽는다() async {
         let repository = MapMemberRepositoryStub()
         repository.members = { _ in [.fixture(id: 1, role: .owner), .fixture(id: 2)] }
-        let sut = MemberViewModel(mapID: 7, repository: repository)
+        let sut = MemberViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore())
         #expect(sut.uiState.loading)
         sut.loadOnce()
         await sut.loadTask?.value
@@ -20,7 +20,7 @@ struct MemberViewModelTests {
     @Test func 목록을_못_읽으면_다시_시도할_수_있다() async {
         let repository = MapMemberRepositoryStub()
         repository.members = { _ in throw NetworkError.http(statusCode: 500) }
-        let sut = MemberViewModel(mapID: 7, repository: repository)
+        let sut = MemberViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore())
         sut.loadOnce()
         await sut.loadTask?.value
         #expect(sut.uiState.errorMessage == "멤버 목록을 불러오지 못했어요")
@@ -35,7 +35,7 @@ struct MemberViewModelTests {
     @Test func 권한을_주면_다시_읽지_않고_그_사람만_관리자로_바꾼다() async {
         let repository = MapMemberRepositoryStub()
         repository.members = { _ in [.fixture(id: 1, role: .owner), .fixture(id: 2)] }
-        let sut = MemberViewModel(mapID: 7, repository: repository)
+        let sut = MemberViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore())
         sut.loadOnce()
         await sut.loadTask?.value
         sut.grantAdmin(userID: 2)
@@ -50,7 +50,7 @@ struct MemberViewModelTests {
         let repository = MapMemberRepositoryStub()
         let release = AsyncGate()
         repository.grant = { _ in await release.wait() }
-        let sut = MemberViewModel(mapID: 7, repository: repository)
+        let sut = MemberViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore())
         sut.grantAdmin(userID: 2)
         sut.grantAdmin(userID: 3)
         await release.open()
@@ -62,7 +62,7 @@ struct MemberViewModelTests {
         let repository = MapMemberRepositoryStub()
         repository.members = { _ in [.fixture(id: 2)] }
         repository.grant = { _ in throw NetworkError.server(code: "MAP_003", statusCode: 403) }
-        let sut = MemberViewModel(mapID: 7, repository: repository)
+        let sut = MemberViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore())
         sut.loadOnce()
         await sut.loadTask?.value
         sut.grantAdmin(userID: 2)
@@ -88,5 +88,37 @@ struct MemberViewModelTests {
         #expect(MapDetail.fixture(joined: true, type: .community, role: .owner).canGrantRole)
         #expect(!MapDetail.fixture(joined: true, type: .community, role: .admin).canGrantRole)
         #expect(!MapDetail.fixture(joined: true, type: .private, role: .owner).canGrantRole)
+    }
+
+    @Test func 저장된_내_ID로_나와_다른_멤버를_나눈다() async {
+        let repository = MapMemberRepositoryStub()
+        repository.members = { _ in [.fixture(id: 1, role: .owner), .fixture(id: 2), .fixture(id: 3, role: .admin)] }
+        let sut = MemberViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore(2))
+        sut.loadOnce()
+        await sut.loadTask?.value
+        #expect(sut.uiState.me?.id == 2)
+        #expect(sut.uiState.otherMembers.map(\.id) == [1, 3])
+    }
+
+    @Test(arguments: [nil, Int64(9)])
+    func 내_ID를_모르거나_목록에_없으면_모두_다른_멤버로_보인다(myID: Int64?) async {
+        let repository = MapMemberRepositoryStub()
+        repository.members = { _ in [.fixture(id: 1, role: .owner), .fixture(id: 2)] }
+        let sut = MemberViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore(myID))
+        sut.loadOnce()
+        await sut.loadTask?.value
+        #expect(sut.uiState.me == nil)
+        #expect(sut.uiState.otherMembers.map(\.id) == [1, 2])
+    }
+
+    @Test func 다른_멤버는_방장_관리자_멤버_순으로_보이고_같은_역할은_받은_순서를_지킨다() async {
+        let repository = MapMemberRepositoryStub()
+        repository.members = { _ in
+            [.fixture(id: 1), .fixture(id: 2, role: .admin), .fixture(id: 3), .fixture(id: 4, role: .owner), .fixture(id: 5, role: .admin)]
+        }
+        let sut = MemberViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore(nil))
+        sut.loadOnce()
+        await sut.loadTask?.value
+        #expect(sut.uiState.otherMembers.map(\.id) == [4, 2, 5, 1, 3])
     }
 }

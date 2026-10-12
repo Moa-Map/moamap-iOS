@@ -34,7 +34,6 @@ struct OfficialMapScaffold<Content: View>: View {
         VStack(spacing: 0) {
             MapDetailTopBar(
                 title: title,
-                roleBadge: membership.uiState.roleBadge,
                 action: membership.uiState.map.map?.topBarAction ?? .none,
                 showsMenu: false,
                 inviteCode: nil,

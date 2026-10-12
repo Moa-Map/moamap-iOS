@@ -18,7 +18,6 @@ struct MapDetailTopBar: View {
     @Environment(\.moaTypography) private var typography
 
     let title: String
-    let roleBadge: String?
     let action: MapDetailAction
     let showsMenu: Bool
     /// nil 이면 초대코드 버튼을 띄우지 않는다.
@@ -32,21 +31,11 @@ struct MapDetailTopBar: View {
 
     var body: some View {
         ZStack {
-            VStack(spacing: 4) {
-                Text(title)
-                    .moaTextStyle(typography.title3)
-                    .foregroundStyle(colors.textNormal)
-                    .lineLimit(1)
-                if let roleBadge {
-                    Text(roleBadge)
-                        .moaTextStyle(typography.caption0)
-                        .foregroundStyle(MoaMapPrimitiveColors.blue900)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(MoaMapPrimitiveColors.blue50, in: Capsule())
-                        .overlay { Capsule().strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 1) }
-                }
-            }
+            // 내 역할은 멤버 관리에서 확인한다.
+            Text(title)
+                .moaTextStyle(typography.title3)
+                .foregroundStyle(colors.textNormal)
+                .lineLimit(1)
             // 좌우 버튼과 겹치지 않도록 안쪽으로 밀어 둔다. 초대코드가 붙으면 그만큼 더 민다.
             .padding(.horizontal, inviteCode == nil ? 72 : 132)
 
@@ -258,19 +247,19 @@ struct MyLocationButton: View {
 #Preview {
     VStack(spacing: 20) {
         MapDetailTopBar(
-            title: "서울 데이트 지도", roleBadge: "방장", action: .leaveDisabled, showsMenu: true,
+            title: "서울 데이트 지도", action: .leaveDisabled, showsMenu: true,
             inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
         )
         MapDetailTopBar(
-            title: "성수 카페 투어", roleBadge: nil, action: .join, showsMenu: false,
+            title: "성수 카페 투어", action: .join, showsMenu: false,
             inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
         )
         MapDetailTopBar(
-            title: "우리끼리만 아는 성수동 맛집 모음", roleBadge: nil, action: .leave, showsMenu: true,
+            title: "우리끼리만 아는 성수동 맛집 모음", action: .leave, showsMenu: true,
             inviteCode: "A1B2C3", actionEnabled: true, onBack: {}, onAction: {}
         )
         MapDetailTopBar(
-            title: "서울 무장애 여행지", roleBadge: nil, action: .leave, showsMenu: false,
+            title: "서울 무장애 여행지", action: .leave, showsMenu: false,
             inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
         )
         MapDetailMenu(canLeave: true, onMembers: {}, onManage: {}, onInfo: {}, onLeave: {})

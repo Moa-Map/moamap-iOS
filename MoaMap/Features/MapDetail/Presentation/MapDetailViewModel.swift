@@ -14,7 +14,6 @@ nonisolated struct MapDetailUiState: Equatable, Sendable {
     /// 이 화면에서 참여했는지. 뒤로 갈 때 미리보기 화면을 건너뛰는 데 쓴다.
     var joinedHere = false
 
-    var roleBadge: String? { map.map?.roleBadge }
     var canJoin: Bool { map.map?.canJoin ?? false }
     var showsMenu: Bool { map.map?.showsMenu ?? false }
     var canLeave: Bool { map.map?.canLeaveFromMenu ?? false }
