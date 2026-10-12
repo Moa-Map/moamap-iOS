@@ -15,6 +15,7 @@ struct MapThumbnail: View {
                 RoundedRectangle(cornerRadius: 8)
                     .strokeBorder(colors.lineAlternative, lineWidth: 1)
             }
+            .accessibilityHidden(true)
     }
 }
 

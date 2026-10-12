@@ -140,6 +140,7 @@ private struct MemberCard: View {
                     .frame(width: 50, height: 50)
                     .clipShape(Circle())
                     .overlay { Circle().strokeBorder(colors.lineAlternative, lineWidth: 1) }
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Text(member.name)

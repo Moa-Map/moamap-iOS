@@ -232,6 +232,7 @@ private struct LogAuthor: View {
                 .frame(width: 24, height: 24)
                 .clipShape(Circle())
                 .overlay { Circle().strokeBorder(colors.lineAlternative, lineWidth: 1) }
+                .accessibilityHidden(true)
             Text(name)
                 .moaTextStyle(typography.caption0)
                 .foregroundStyle(colors.textNormal)

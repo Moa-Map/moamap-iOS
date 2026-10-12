@@ -6,13 +6,16 @@ struct RemoteImage: View {
 
     var body: some View {
         AsyncImage(url: url) { phase in
-            if let image = phase.image {
+            switch phase {
+            case .success(let image):
                 image.resizable().scaledToFill()
-            } else {
+            // 받는 동안 기본 이미지를 띄우면 사진이 있는 사람도 잠깐 사진이 없는 것처럼 보인다.
+            case .empty where url != nil:
+                Color.clear
+            default:
                 Image("default-image").resizable().scaledToFill()
             }
         }
-        .accessibilityHidden(true)
     }
 }
 
