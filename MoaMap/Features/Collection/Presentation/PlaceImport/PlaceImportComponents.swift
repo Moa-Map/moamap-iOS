@@ -140,9 +140,8 @@ struct ImportedPlaceCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
-                // 추출 응답에 사진이 없어 늘 기본 사진이다.
-                PhotoThumbnail(imageURL: nil, size: 64)
+            // 추출 응답에 사진이 없어 이름과 주소만 보인다.
+            HStack(spacing: 8) {
                 PlaceImportLabels(place: place)
                 SelectionCheckBox(checked: selected)
             }
@@ -171,8 +170,7 @@ struct EditablePlaceCard: View {
     let onEdit: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            PhotoThumbnail(imageURL: nil, size: 64)
+        HStack(spacing: 8) {
             PlaceImportLabels(place: place, extra: edit.flatMap(Self.summary))
             Button(action: onEdit) {
                 Text("편집하기")
@@ -211,7 +209,7 @@ struct SelectedPlacesCard: View {
     var body: some View {
         if let first = places.first {
             let rest = places.dropFirst()
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 row(first) {
                     if !rest.isEmpty {
                         HStack(spacing: 0) {
@@ -231,10 +229,10 @@ struct SelectedPlacesCard: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, expanded ? 12 : 16)
+            .padding(.vertical, expanded ? 20 : 16)
             .background(MoaMapPrimitiveColors.yellow50, in: RoundedRectangle(cornerRadius: 12))
             .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1) }
-            .shadow(color: .black.opacity(0.08), radius: 4)
+            .shadow(color: .black.opacity(0.04), radius: 4)
             .contentShape(Rectangle())
             .onTapGesture { if !rest.isEmpty { expanded.toggle() } }
             .accessibilityElement(children: .combine)
@@ -243,16 +241,16 @@ struct SelectedPlacesCard: View {
     }
 
     private func row(_ place: ImportedPlace, @ViewBuilder trailing: () -> some View) -> some View {
-        HStack(spacing: 12) {
-            PhotoThumbnail(imageURL: nil, size: 64)
+        HStack(spacing: 8) {
             PlaceImportLabels(place: place)
             trailing()
         }
+        .padding(.horizontal, 2)
     }
 }
 
 /// 화면이 보일 때만 안내를 받는다. 쌓여 있는 아래 화면이 먼저 받아 가려지지 않게 한다.
-private struct OptionalSnackbar: ViewModifier {
+struct OptionalSnackbar: ViewModifier {
     let viewModel: PlaceImportViewModel?
     @State private var visible = false
 
