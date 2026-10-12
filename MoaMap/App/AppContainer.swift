@@ -189,7 +189,7 @@ final class AppContainer {
     }
 
     func makeCollectionViewModel() -> CollectionViewModel {
-        CollectionViewModel(repository: collectionRepository)
+        CollectionViewModel(repository: collectionRepository, mapRepository: mapDetailRepository)
     }
 
     func makeCreateMapViewModel() -> CreateMapViewModel {

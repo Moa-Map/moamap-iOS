@@ -7,6 +7,7 @@ private enum MainRoute: Hashable {
     case communityMaps
     case officialMaps
     case createMap
+    case editMap(MapDetail)
     case placeImport(PlaceImportStep)
     case mapIntro(mapID: Int64)
     case mapDetail(mapID: Int64, title: String)
@@ -29,6 +30,7 @@ struct MainTabView: View {
     private let makeSettingsViewModel: () -> SettingsViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCreateMapViewModel: () -> CreateMapViewModel
+    private let makeEditMapViewModel: (MapDetail) -> EditMapViewModel
     private let makePlaceImportViewModel: (PlaceImportSource, String) -> PlaceImportViewModel
     private let sharedLinkInbox: SharedLinkInbox
     @State private var shareNotice: String?
@@ -48,6 +50,7 @@ struct MainTabView: View {
         makeSettingsViewModel: @escaping () -> SettingsViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCreateMapViewModel: @escaping () -> CreateMapViewModel,
+        makeEditMapViewModel: @escaping (MapDetail) -> EditMapViewModel,
         makePlaceImportViewModel: @escaping (PlaceImportSource, String) -> PlaceImportViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeOfficialMapListViewModel: @escaping () -> OfficialMapListViewModel,
@@ -65,6 +68,7 @@ struct MainTabView: View {
         self.makeSettingsViewModel = makeSettingsViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCreateMapViewModel = makeCreateMapViewModel
+        self.makeEditMapViewModel = makeEditMapViewModel
         self.makePlaceImportViewModel = makePlaceImportViewModel
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.makeOfficialMapListViewModel = makeOfficialMapListViewModel
@@ -102,7 +106,8 @@ struct MainTabView: View {
                     onCreateMap: { collectionPath.append(.createMap) },
                     onImportPlaces: { startPlaceImport($0) },
                     // 모음에는 참여한 지도만 있어 소개를 건너뛴다.
-                    onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) }
+                    onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) },
+                    onEditMap: { collectionPath.append(.editMap($0)) }
                 )
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $collectionPath) }
             }
@@ -111,8 +116,8 @@ struct MainTabView: View {
         }
         .moaSnackbar($shareNotice)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            // 하위 화면에서는 하단 탭을 숨긴다.
-            if isRoot {
+            // 하위 화면과 모음 편집 중에는 하단 탭을 숨긴다. 편집은 자기 하단 바를 띄운다.
+            if isRoot && !(selection == .collection && collectionViewModel.uiState.editing != nil) {
                 MoaMapBottomBar(selection: $selection)
                     .padding(.top, 8)
                     .padding(.bottom, 8)
@@ -178,6 +183,15 @@ struct MainTabView: View {
         case .createMap:
             // 만들기 화면을 남기면 뒤로가기로 돌아와 같은 지도를 또 만들 수 있다.
             CreateMapView(viewModel: makeCreateMapViewModel()) { path.wrappedValue.removeLast() }
+        case .editMap(let map):
+            EditMapView(
+                viewModel: makeEditMapViewModel(map),
+                onBack: { path.wrappedValue.removeLast() },
+                onSaved: {
+                    path.wrappedValue.removeLast()
+                    collectionViewModel.mapEdited()
+                }
+            )
         case .communityMaps:
             CommunityMapListView(viewModel: makeCommunityMapListViewModel()) { path.wrappedValue.append(.map($0)) }
         case .officialMaps:
@@ -282,10 +296,11 @@ private final class PreviewLocationProvider: LocationProvider {
             repository: PreviewExploreRepository(),
             officialMapRepository: PreviewOfficialMapRepository()
         ),
-        collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository()),
+        collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository(), mapRepository: PreviewMapDetailRepository()),
         makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository()) },
+        makeEditMapViewModel: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) },
         makePlaceImportViewModel: {
             PlaceImportViewModel(source: $0, url: $1, importRepository: PreviewPlaceImportRepository(), collectionRepository: PreviewCollectionRepository())
         },

@@ -8,7 +8,10 @@ struct CollectionView: View {
     var onCreateMap: () -> Void = {}
     var onImportPlaces: (PlaceImportSource) -> Void = { _ in }
     var onMapClick: (MyMap) -> Void = { _ in }
+    var onEditMap: (MapDetail) -> Void = { _ in }
     @State private var showsInviteDialog = false
+
+    private var editing: CollectionEditing? { viewModel.uiState.editing }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,9 +28,19 @@ struct CollectionView: View {
             }
             .scrollIndicators(.hidden)
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let editing { editBar(editing) }
+        }
+        .overlay { editDialog }
+        .moaSnackbar(notice)
         .background { MoaMapPrimitiveColors.tabBackground.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
         .task { viewModel.refresh() }
+        .onChange(of: viewModel.uiState.mapToEdit) { _, map in
+            guard let map else { return }
+            viewModel.consumeMapToEdit()
+            onEditMap(map)
+        }
         .fullScreenCover(isPresented: $showsInviteDialog) {
             if case .editing(let editing) = viewModel.uiState.join {
                 JoinMapDialog(
@@ -47,7 +60,12 @@ struct CollectionView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            MoaMapTopBarLogo(action: onHome)
+            MoaMapTopBarLogo {
+                // 진행 중인 요청이 끝나면 이 탭에 화면을 띄운다. 그동안은 떠나지 않는다.
+                guard editing?.processing != true else { return }
+                viewModel.finishEditing()
+                onHome()
+            }
                 .accessibilityLabel("탐색 탭으로 이동")
             Spacer(minLength: 4)
             Button {
@@ -114,25 +132,113 @@ struct CollectionView: View {
                 Text(viewModel.uiState.selectedTab == .community ? "아직 참여한 지도가 없어요" : "아직 만든 지도가 없어요")
                     .moaTextStyle(typography.body2).foregroundStyle(colors.textAssistive)
                     .frame(maxWidth: .infinity).frame(height: 200)
-            } else if viewModel.uiState.selectedTab == .community {
-                mapList(maps, showsMembers: true)
             } else {
-                let sections = PrivateMapSections(maps: maps)
-                VStack(alignment: .leading, spacing: 20) {
-                    section("나만의 지도", maps: sections.personal)
-                    section("전체", maps: sections.others)
+                VStack(alignment: .trailing, spacing: 12) {
+                    editToggle
+                    if viewModel.uiState.selectedTab == .community {
+                        mapList(maps, showsMembers: true)
+                    } else {
+                        let sections = PrivateMapSections(maps: maps)
+                        VStack(alignment: .leading, spacing: 20) {
+                            section("나만의 지도", maps: sections.personal)
+                            section("전체", maps: sections.others)
+                        }
+                    }
                 }
             }
         }
     }
 
+    private var editToggle: some View {
+        Button(editing == nil ? "편집" : "완료") {
+            if editing == nil { viewModel.startEditing() } else { viewModel.finishEditing() }
+        }
+        .moaTextStyle(typography.button1)
+        .foregroundStyle(colors.textNormal)
+        .buttonStyle(.plain)
+        .frame(minHeight: 44)
+        .disabled(editing?.processing == true)
+        // 위 탭과의 간격은 시안의 20 을 지키고, 커진 터치 영역만큼 목록 쪽으로 당긴다.
+        .padding(.vertical, -11)
+    }
+
     private func mapList(_ maps: [MyMap], showsMembers: Bool) -> some View {
         LazyVStack(spacing: 8) {
             ForEach(maps) { map in
-                Button { onMapClick(map) } label: { CollectionMapCard(map: map, showsMembers: showsMembers) }
-                    .buttonStyle(.plain)
+                Button {
+                    if editing == nil { onMapClick(map) } else { viewModel.toggleSelection(mapID: map.id) }
+                } label: {
+                    CollectionMapCard(map: map, showsMembers: showsMembers, selected: editing.map { $0.selectedIDs.contains(map.id) })
+                }
+                .buttonStyle(.plain)
             }
         }
+    }
+
+    /// 편집 중에는 하단 탭 대신 띄운다.
+    private func editBar(_ editing: CollectionEditing) -> some View {
+        HStack(spacing: 16) {
+            Text("\(editing.selectedIDs.count)개 선택됨")
+                .moaTextStyle(typography.subtitle2)
+                .foregroundStyle(colors.textNormal)
+            Spacer(minLength: 0)
+            if editing.processing {
+                ProgressView()
+            }
+            if editing.selectedIDs.count == 1 {
+                Button(action: viewModel.requestEditInfo) {
+                    Text("정보 수정")
+                        .moaTextStyle(typography.button2)
+                        .foregroundStyle(colors.textWhite)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(colors.primary, in: Capsule())
+                }
+                .disabled(!editing.canEditInfo)
+            }
+            Button(action: viewModel.requestLeave) {
+                Text("나가기")
+                    .moaTextStyle(typography.button2)
+                    .foregroundStyle(editing.selectedIDs.isEmpty ? colors.textAssistive : colors.statusAlert)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .disabled(!editing.canLeave)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding + 16)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity)
+        .background {
+            MoaMapPrimitiveColors.white
+                .shadow(color: .black.opacity(0.04), radius: 4)
+                .ignoresSafeArea(edges: .bottom)
+        }
+    }
+
+    @ViewBuilder private var editDialog: some View {
+        switch viewModel.uiState.editDialog {
+        case .ownerCannotLeave:
+            OwnerCannotLeaveNotice(onDismiss: viewModel.dismissEditDialog)
+        case .confirmLeave(let count, let outcome):
+            MoaMapConfirmDialog(
+                title: "\(count)개의 지도",
+                titleSuffix: "에서 나가시겠습니까?",
+                message: outcome.confirmMessage,
+                confirmText: "나가기",
+                onConfirm: viewModel.confirmLeave,
+                onDismiss: viewModel.dismissEditDialog
+            )
+        case nil:
+            EmptyView()
+        }
+    }
+
+    private var notice: Binding<String?> {
+        Binding(
+            get: { viewModel.uiState.notice },
+            set: { if $0 == nil { viewModel.consumeNotice() } }
+        )
     }
 
     @ViewBuilder private func section(_ title: String, maps: [MyMap]) -> some View {
@@ -170,6 +276,48 @@ struct CollectionView: View {
     }
 }
 
+/// 방장인 지도를 골라 나가려 할 때 띄운다. 버튼 없이 바깥을 누르거나 잠시 뒤에 닫힌다.
+private struct OwnerCannotLeaveNotice: View {
+    @Environment(\.moaColors) private var colors
+    @Environment(\.moaTypography) private var typography
+
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.clear
+                .contentShape(Rectangle())
+                .ignoresSafeArea()
+                .onTapGesture(perform: onDismiss)
+                .accessibilityHidden(true)
+            VStack(spacing: 4) {
+                Text("방장은 지도를 나갈 수 없습니다.")
+                    .moaTextStyle(typography.title3)
+                    .foregroundStyle(colors.textNormal)
+                    .accessibilityAddTraits(.isHeader)
+                Text("방장인 지도를 빼고 다시 골라주세요")
+                    .moaTextStyle(typography.body2)
+                    .foregroundStyle(colors.textAlternative)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 32)
+            .frame(width: 300)
+            .background(colors.backgroundSecondary, in: RoundedRectangle(cornerRadius: 12))
+            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 2) }
+            .shadow(color: .black.opacity(0.08), radius: 30, y: 4)
+            .onTapGesture(perform: onDismiss)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isModal)
+            .accessibilityAction(.escape, onDismiss)
+        }
+        .task {
+            try? await Task.sleep(for: .seconds(2.5))
+            if !Task.isCancelled { onDismiss() }
+        }
+    }
+}
+
 #if DEBUG
 @MainActor
 final class PreviewCollectionRepository: CollectionRepository {
@@ -199,6 +347,6 @@ final class PreviewCollectionRepository: CollectionRepository {
 }
 
 #Preview {
-    CollectionView(viewModel: CollectionViewModel(repository: PreviewCollectionRepository()), onHome: {})
+    CollectionView(viewModel: CollectionViewModel(repository: PreviewCollectionRepository(), mapRepository: PreviewMapDetailRepository()), onHome: {})
 }
 #endif

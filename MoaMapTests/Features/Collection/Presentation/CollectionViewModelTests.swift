@@ -12,7 +12,7 @@ struct CollectionViewModelTests {
         let repository = CollectionRepositoryStub()
         let community = [map(1)]
         repository.fetch = { $0 == .community ? community : [] }
-        let sut = CollectionViewModel(repository: repository)
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         #expect(repository.calls.isEmpty)
         sut.loadIfNeeded()
         #expect(sut.uiState.currentMaps == .loading)
@@ -29,7 +29,7 @@ struct CollectionViewModelTests {
 
     @Test func 오류는_서버_원문을_숨기고_현재_탭만_재시도한다() async throws {
         let repository = CollectionRepositoryStub()
-        let sut = CollectionViewModel(repository: repository)
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.loadIfNeeded()
         try await sut.loadTask?.value
         repository.fetch = { _ in throw NetworkError.server(code: "COMMON_005", statusCode: 500) }
@@ -49,7 +49,7 @@ struct CollectionViewModelTests {
         let repository = CollectionRepositoryStub()
         let maps = [map(1)]
         repository.fetch = { _ in maps }
-        let sut = CollectionViewModel(repository: repository)
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.selectTab(.private)
         try await sut.loadTask?.value
         sut.selectTab(.community)
@@ -77,7 +77,7 @@ struct CollectionViewModelTests {
             if fails { throw NetworkError.http(statusCode: 500) }
             return []
         }
-        let sut = CollectionViewModel(repository: repository)
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.loadIfNeeded()
         let oldTask = sut.loadTask
         await started.wait()
@@ -98,7 +98,7 @@ struct CollectionViewModelTests {
             if type == .community { await release.wait(); return maps }
             return []
         }
-        let sut = CollectionViewModel(repository: repository)
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.loadIfNeeded()
         let communityTask = sut.loadTask
         sut.selectTab(.private)
@@ -112,7 +112,7 @@ struct CollectionViewModelTests {
     }
 
     @Test func 초대_코드는_영문_대문자와_숫자만_남기고_입력하면_에러를_지운다() {
-        let sut = CollectionViewModel(repository: CollectionRepositoryStub())
+        let sut = CollectionViewModel(repository: CollectionRepositoryStub(), mapRepository: MapDetailRepositoryStub())
         sut.updateInviteCode("ab")
         #expect(sut.uiState.join == .hidden)
         sut.openJoinDialog()
@@ -122,7 +122,7 @@ struct CollectionViewModelTests {
 
     @Test func 빈_코드는_제출하지_않는다() {
         let repository = CollectionRepositoryStub()
-        let sut = CollectionViewModel(repository: repository)
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.openJoinDialog()
         sut.join()
         #expect(sut.joinTask == nil)
@@ -133,7 +133,7 @@ struct CollectionViewModelTests {
         let repository = CollectionRepositoryStub()
         let joined = [map(5)]
         repository.fetch = { $0 == .private ? joined : [] }
-        let sut = CollectionViewModel(repository: repository)
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.selectTab(.private)
         try await sut.loadTask?.value
         sut.selectTab(.community)
@@ -160,7 +160,7 @@ struct CollectionViewModelTests {
     func 참여_실패는_서버_원문_대신_안내_문구를_보여준다(error: NetworkError, message: String) async throws {
         let repository = CollectionRepositoryStub()
         repository.join = { _ in throw error }
-        let sut = CollectionViewModel(repository: repository)
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.openJoinDialog()
         sut.updateInviteCode("WRONG1")
         sut.join()
@@ -175,7 +175,7 @@ struct CollectionViewModelTests {
         let repository = CollectionRepositoryStub()
         let release = AsyncGate()
         repository.join = { _ in await release.wait() }
-        let sut = CollectionViewModel(repository: repository)
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.openJoinDialog()
         sut.updateInviteCode("VH4YXZ")
         sut.join()
@@ -199,5 +199,137 @@ struct CollectionViewModelTests {
         #expect(sections.personal == [personal])
         #expect(sections.others == others)
         #expect(PrivateMapSections(maps: []).personal.isEmpty)
+    }
+
+    private func editing(
+        _ repository: CollectionRepositoryStub = CollectionRepositoryStub(),
+        mapRepository: MapDetailRepositoryStub,
+        selecting ids: [Int64]
+    ) async throws -> CollectionViewModel {
+        let sut = CollectionViewModel(repository: repository, mapRepository: mapRepository)
+        sut.loadIfNeeded()
+        try await sut.loadTask?.value
+        sut.startEditing()
+        ids.forEach { sut.toggleSelection(mapID: $0) }
+        return sut
+    }
+
+    @Test func 편집은_지도를_골랐다_풀고_탭을_바꾸면_끝난다() async throws {
+        let sut = try await editing(mapRepository: MapDetailRepositoryStub(), selecting: [1, 2])
+        #expect(sut.uiState.editing?.selectedIDs == [1, 2])
+        #expect(sut.uiState.editing?.canLeave == true)
+        #expect(sut.uiState.editing?.canEditInfo == false)
+        sut.toggleSelection(mapID: 2)
+        #expect(sut.uiState.editing?.selectedIDs == [1])
+        #expect(sut.uiState.editing?.canEditInfo == true)
+        sut.selectTab(.private)
+        #expect(sut.uiState.editing == nil)
+    }
+
+    @Test func 방장인_지도가_섞이면_나가지_않고_막는다() async throws {
+        let mapRepository = MapDetailRepositoryStub()
+        mapRepository.detail = { MapDetail.fixture(id: $0, joined: true, role: $0 == 2 ? .owner : .member) }
+        let sut = try await editing(mapRepository: mapRepository, selecting: [1, 2])
+        sut.requestLeave()
+        #expect(sut.uiState.editing?.processing == true)
+        await sut.editTask?.value
+        #expect(sut.uiState.editDialog == .ownerCannotLeave)
+        #expect(sut.uiState.editing?.processing == false)
+        sut.confirmLeave()
+        #expect(mapRepository.leaveCalls == 0)
+    }
+
+    @Test(arguments: [(MapType.community, LeaveOutcome.leave), (.private, .leaveNeedsInviteCode)])
+    func 확인하면_고른_지도에서_모두_나가고_목록을_다시_읽는다(type: MapType, outcome: LeaveOutcome) async throws {
+        let repository = CollectionRepositoryStub()
+        let mapRepository = MapDetailRepositoryStub()
+        mapRepository.detail = { MapDetail.fixture(id: $0, joined: true, type: type, role: .member) }
+        var left: [Int64] = []
+        mapRepository.leave = { left.append($0) }
+        let sut = try await editing(repository, mapRepository: mapRepository, selecting: [3, 1])
+        sut.requestLeave()
+        await sut.editTask?.value
+        #expect(sut.uiState.editDialog == .confirmLeave(count: 2, outcome: outcome))
+        sut.confirmLeave()
+        #expect(sut.uiState.editDialog == nil)
+        await sut.editTask?.value
+        #expect(left == [1, 3])
+        #expect(sut.uiState.editing == nil)
+        try await sut.loadTask?.value
+        #expect(repository.calls == [.community, .community])
+    }
+
+    @Test func 일부만_나가지_못하면_실패한_지도만_남기고_안내한다() async throws {
+        let repository = CollectionRepositoryStub()
+        // 나가지 못한 지도는 다시 읽은 목록에도 남아 있다.
+        repository.fetch = { _ in [self.map(2)] }
+        let mapRepository = MapDetailRepositoryStub()
+        mapRepository.detail = { MapDetail.fixture(id: $0, joined: true, role: .member) }
+        mapRepository.leave = { if $0 == 2 { throw NetworkError.http(statusCode: 500) } }
+        let sut = try await editing(repository, mapRepository: mapRepository, selecting: [1, 2])
+        sut.requestLeave()
+        await sut.editTask?.value
+        sut.confirmLeave()
+        await sut.editTask?.value
+        #expect(sut.uiState.editing?.selectedIDs == [2])
+        #expect(sut.uiState.notice == MapDetailMessage.leaveFailed)
+        try await sut.loadTask?.value
+        #expect(repository.calls == [.community, .community])
+    }
+
+    @Test func 역할을_확인하지_못하면_안내하고_편집은_남긴다() async throws {
+        let mapRepository = MapDetailRepositoryStub()
+        mapRepository.detail = { _ in throw NetworkError.connection(.notConnectedToInternet) }
+        let sut = try await editing(mapRepository: mapRepository, selecting: [1])
+        sut.requestLeave()
+        await sut.editTask?.value
+        #expect(sut.uiState.editDialog == nil)
+        #expect(sut.uiState.notice == "네트워크에 연결할 수 없어요")
+        #expect(sut.uiState.editing == CollectionEditing(selectedIDs: [1]))
+    }
+
+    @Test(arguments: [MapRole.owner, .admin, .member])
+    func 정보_수정은_방장과_관리자에게만_연다(role: MapRole) async throws {
+        let mapRepository = MapDetailRepositoryStub()
+        mapRepository.detail = { MapDetail.fixture(id: $0, joined: true, role: role) }
+        let sut = try await editing(mapRepository: mapRepository, selecting: [4])
+        sut.requestEditInfo()
+        await sut.editTask?.value
+        if role == .member {
+            #expect(sut.uiState.mapToEdit == nil)
+            #expect(sut.uiState.notice == EditMapViewModel.noPermissionMessage)
+        } else {
+            #expect(sut.uiState.mapToEdit?.id == 4)
+            sut.consumeMapToEdit()
+            #expect(sut.uiState.mapToEdit == nil)
+        }
+    }
+
+    @Test func 정보를_고치면_편집을_끝내고_목록을_다시_읽는다() async throws {
+        let repository = CollectionRepositoryStub()
+        let sut = try await editing(repository, mapRepository: MapDetailRepositoryStub(), selecting: [1])
+        sut.mapEdited()
+        #expect(sut.uiState.editing == nil)
+        try await sut.loadTask?.value
+        #expect(repository.calls == [.community, .community])
+    }
+
+    @Test func 편집_중_목록이_비면_편집을_끝낸다() async throws {
+        let repository = CollectionRepositoryStub()
+        repository.fetch = { _ in [self.map(1)] }
+        let sut = try await editing(repository, mapRepository: MapDetailRepositoryStub(), selecting: [1])
+        repository.fetch = { _ in [] }
+        sut.refresh()
+        try await sut.loadTask?.value
+        #expect(sut.uiState.editing == nil)
+    }
+
+    @Test func 혼자_남은_프라이빗_방장도_여러_개_나가기에서는_막는다() async throws {
+        let mapRepository = MapDetailRepositoryStub()
+        mapRepository.detail = { MapDetail.fixture(id: $0, joined: true, type: .private, role: .owner) }
+        let sut = try await editing(mapRepository: mapRepository, selecting: [1])
+        sut.requestLeave()
+        await sut.editTask?.value
+        #expect(sut.uiState.editDialog == .ownerCannotLeave)
     }
 }
