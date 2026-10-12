@@ -192,12 +192,8 @@ struct ProfileEditView: View {
     private var imageContent: some View {
         if let picked = viewModel.uiState.pickedImage, let image = UIImage(data: picked.image.data) {
             Image(uiImage: image).resizable().scaledToFill()
-        } else if case .loaded(_, let url?) = viewModel.uiState.load {
-            AsyncImage(url: url) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Color.clear
-            }
+        } else if case .loaded(_, let url) = viewModel.uiState.load {
+            RemoteImage(url: url)
         } else {
             Color.clear
         }

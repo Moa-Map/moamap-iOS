@@ -1,40 +1,20 @@
 import SwiftUI
 
-/// 지도 대표 이미지. 이미지가 없거나 불러오지 못하면 기본 썸네일을 보여준다.
+/// 지도 대표 이미지. 이미지가 없거나 불러오지 못하면 기본 이미지를 보여준다.
 struct MapThumbnail: View {
+    @Environment(\.moaColors) private var colors
+
     var imageURL: URL?
     let size: CGFloat
-    var cornerRadius: CGFloat = 12
-    var placeholderHorizontalPadding: CGFloat = 25
 
     var body: some View {
-        ZStack {
-            MoaMapPrimitiveColors.blue50
-            AsyncImage(url: imageURL) { phase in
-                if let image = phase.image {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    placeholder
-                }
+        RemoteImage(url: imageURL)
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(colors.lineAlternative, lineWidth: 1)
             }
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-        .overlay {
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .strokeBorder(.black.opacity(0.2), lineWidth: 1)
-        }
-        .accessibilityHidden(true)
-    }
-
-    private var placeholder: some View {
-        Image("map-thumbnail-placeholder")
-            .resizable()
-            .scaledToFit()
-            // 시안의 좌우 여백 24 에 테두리 1 을 더한 값.
-            .padding(.horizontal, placeholderHorizontalPadding)
     }
 }
 
