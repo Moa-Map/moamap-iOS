@@ -164,8 +164,7 @@ struct PhotoLibraryPicker: View {
         loading = true
         let ids = selection
         finishTask = Task {
-            var photos: [PickedPhoto] = []
-            for id in ids { photos.append(await library.photo(for: id)) }
+            var photos = await library.photos(for: ids)
             if let captured { photos.append(captured) }
             loading = false
             guard !Task.isCancelled else { return }
@@ -206,7 +205,9 @@ private struct PhotoLibraryCell: View {
             .overlay(alignment: .topTrailing) { indicator.padding(.top, 5).padding(.trailing, 4.67) }
             .contentShape(Rectangle())
             // 칸은 화면 폭의 4분의 1 남짓이다. 배율을 곱해야 흐려지지 않는다.
-            .task(id: asset.localIdentifier) { image = await library.thumbnail(for: asset, side: 100 * displayScale) }
+            .task(id: asset.localIdentifier) {
+                for await thumbnail in library.thumbnails(for: asset, side: 100 * displayScale) { image = thumbnail }
+            }
             .accessibilityElement()
             .accessibilityLabel(order.map { "사진, \($0)번째로 고름" } ?? "사진")
             .accessibilityAddTraits(order == nil ? .isButton : [.isButton, .isSelected])
@@ -238,7 +239,7 @@ private final class PhotoLibrary: NSObject, PHPhotoLibraryChangeObserver {
     /// 배열로 옮기지 않는다. 사진이 수만 장이어도 보이는 칸만 꺼내 쓴다.
     private(set) var assets = PHFetchResult<PHAsset>()
 
-    @ObservationIgnored private let imageManager = PHCachingImageManager()
+    @ObservationIgnored private let imageManager = PHImageManager.default()
     @ObservationIgnored private var registered = false
 
     /// 일부만 허용해도 그 사진들은 보여 준다.
@@ -278,21 +279,40 @@ private final class PhotoLibrary: NSObject, PHPhotoLibraryChangeObserver {
         assets = Self.images(in: album)
     }
 
-    /// 격자 칸 크기에 맞춘 미리보기.
-    func thumbnail(for asset: PHAsset, side: CGFloat) async -> UIImage? {
+    /// 격자 칸 크기에 맞춘 미리보기. 흐린 것을 먼저 주고 선명한 것으로 바꾼다.
+    /// iCloud 에서 받지는 않는다. 기기에 남아 있는 작은 사진으로 충분하고, 스크롤할 때마다 받으면 데이터를 쓴다.
+    /// 칸이 화면에서 사라지면 요청을 거둔다.
+    func thumbnails(for asset: PHAsset, side: CGFloat) -> AsyncStream<UIImage> {
         let options = PHImageRequestOptions()
-        options.deliveryMode = .highQualityFormat
+        options.deliveryMode = .opportunistic
         options.resizeMode = .fast
-        options.isNetworkAccessAllowed = true
-        return await withCheckedContinuation { continuation in
-            imageManager.requestImage(
+        let manager = imageManager
+        return AsyncStream { continuation in
+            let request = manager.requestImage(
                 for: asset, targetSize: CGSize(width: side, height: side), contentMode: .aspectFill, options: options
-            ) { image, _ in continuation.resume(returning: image) }
+            ) { image, info in
+                if let image { continuation.yield(image) }
+                let degraded = info?[PHImageResultIsDegradedKey] as? Bool ?? false
+                if !degraded { continuation.finish() }
+            }
+            continuation.onTermination = { _ in manager.cancelImageRequest(request) }
+        }
+    }
+
+    /// 고른 순서대로 원본을 받는다. iCloud 에 있는 사진은 함께 내려받아 가장 늦은 한 장만큼만 기다린다.
+    func photos(for ids: [String]) async -> [PickedPhoto] {
+        await withTaskGroup(of: (Int, PickedPhoto).self) { group in
+            for (index, id) in ids.enumerated() {
+                group.addTask { (index, await self.photo(for: id)) }
+            }
+            var photos = [PickedPhoto?](repeating: nil, count: ids.count)
+            for await (index, photo) in group { photos[index] = photo }
+            return photos.compactMap { $0 }
         }
     }
 
     /// 올릴 원본. iCloud 에만 있는 사진은 내려받는다. 그새 지워졌으면 읽지 못한 사진으로 넘긴다.
-    func photo(for id: String) async -> PickedPhoto {
+    private func photo(for id: String) async -> PickedPhoto {
         guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [id], options: nil).firstObject else {
             return PickedPhoto(data: nil, type: nil)
         }
@@ -306,9 +326,13 @@ private final class PhotoLibrary: NSObject, PHPhotoLibraryChangeObserver {
         }
     }
 
-    /// 허용한 사진을 바꾸거나 새로 찍으면 다시 읽는다.
+    /// 허용한 사진을 바꾸거나 새로 찍으면 보던 앨범의 사진만 고친다.
+    /// 앨범 목록은 열 때 한 번만 만든다. 바뀔 때마다 앨범마다 조회하면 iCloud 동기화 중에 격자가 버벅인다.
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
-        Task { @MainActor in self.reload() }
+        Task { @MainActor in
+            guard let details = changeInstance.changeDetails(for: self.assets) else { return }
+            self.assets = details.fetchResultAfterChanges
+        }
     }
 
     /// 최근 항목을 맨 앞에 두고, 사진이 없는 앨범은 뺀다. 보던 앨범이 남아 있으면 그대로 둔다.
