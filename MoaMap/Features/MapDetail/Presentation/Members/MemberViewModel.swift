@@ -15,8 +15,12 @@ nonisolated struct MemberUiState: Equatable, Sendable {
 
     /// 내 역할 칸에 따로 보인다. 내 ID 를 모르거나 목록에 없으면 nil 이다.
     var me: MapMember? { members.first { $0.id == myUserID } }
-    /// 내 ID 가 목록에 없으면 아무도 빠지지 않는다.
-    var otherMembers: [MapMember] { members.filter { $0.id != myUserID } }
+    /// 내 ID 가 목록에 없으면 아무도 빠지지 않는다. 방장·관리자·멤버 순이고 같은 역할은 받은 순서를 지킨다.
+    var otherMembers: [MapMember] {
+        let others = members.filter { $0.id != myUserID }
+        return [MapRole.owner, .admin].flatMap { role in others.filter { $0.role == role } }
+            + others.filter { $0.role != .owner && $0.role != .admin }
+    }
 }
 
 /// 지도 멤버 관리. 화면을 열 때만 필요해 지도 상세 상태에 섞지 않는다.

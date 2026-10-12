@@ -110,4 +110,15 @@ struct MemberViewModelTests {
         #expect(sut.uiState.me == nil)
         #expect(sut.uiState.otherMembers.map(\.id) == [1, 2])
     }
+
+    @Test func 다른_멤버는_방장_관리자_멤버_순으로_보이고_같은_역할은_받은_순서를_지킨다() async {
+        let repository = MapMemberRepositoryStub()
+        repository.members = { _ in
+            [.fixture(id: 1), .fixture(id: 2, role: .admin), .fixture(id: 3), .fixture(id: 4, role: .owner), .fixture(id: 5, role: .admin)]
+        }
+        let sut = MemberViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore(nil))
+        sut.loadOnce()
+        await sut.loadTask?.value
+        #expect(sut.uiState.otherMembers.map(\.id) == [4, 2, 5, 1, 3])
+    }
 }
