@@ -20,7 +20,7 @@ struct CollectionMapCard: View {
                     .padding(.trailing, -8)
                     .accessibilityHidden(true)
             }
-            MapThumbnail(imageURL: map.imageURL, size: 64, cornerRadius: 4, placeholderHorizontalPadding: 18)
+            MapThumbnail(imageURL: map.imageURL, size: 64)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 2) {
                     Text(map.title)

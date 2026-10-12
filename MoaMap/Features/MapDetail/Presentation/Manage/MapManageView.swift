@@ -228,14 +228,11 @@ private struct LogAuthor: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            AsyncImage(url: imageURL) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                MoaMapPrimitiveColors.blue50
-            }
-            .frame(width: 24, height: 24)
-            .clipShape(Circle())
-            .accessibilityHidden(true)
+            RemoteImage(url: imageURL)
+                .frame(width: 24, height: 24)
+                .clipShape(Circle())
+                .overlay { Circle().strokeBorder(colors.lineAlternative, lineWidth: 1) }
+                .accessibilityHidden(true)
             Text(name)
                 .moaTextStyle(typography.caption0)
                 .foregroundStyle(colors.textNormal)

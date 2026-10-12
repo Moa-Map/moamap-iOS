@@ -161,14 +161,11 @@ private struct MemberCard: View {
     var body: some View {
         HStack(spacing: 8) {
             HStack(spacing: 12) {
-                AsyncImage(url: member.imageURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    MoaMapPrimitiveColors.blue50
-                }
-                .frame(width: 50, height: 50)
-                .clipShape(Circle())
-                .accessibilityHidden(true)
+                RemoteImage(url: member.imageURL)
+                    .frame(width: 50, height: 50)
+                    .clipShape(Circle())
+                    .overlay { Circle().strokeBorder(colors.lineAlternative, lineWidth: 1) }
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Text(member.name)
