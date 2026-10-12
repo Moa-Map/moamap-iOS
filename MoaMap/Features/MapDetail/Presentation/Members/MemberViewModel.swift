@@ -10,6 +10,12 @@ nonisolated struct MemberUiState: Equatable, Sendable {
     var granting = false
     /// 한 번 보여주고 지우는 권한 부여 실패 안내.
     var grantErrorMessage: String?
+    /// 멤버 목록은 누가 나인지 알려 주지 않아 저장해 둔 내 ID 로 골라낸다.
+    var myUserID: Int64?
+
+    /// 내 역할 칸에 따로 보인다. 내 ID 를 모르거나 목록에 없으면 nil 이다.
+    var me: MapMember? { members.first { $0.id == myUserID } }
+    var otherMembers: [MapMember] { members.filter { $0.id != me?.id } }
 }
 
 /// 지도 멤버 관리. 화면을 열 때만 필요해 지도 상세 상태에 섞지 않는다.
@@ -23,9 +29,10 @@ final class MemberViewModel {
 
     private let repository: any MapMemberRepository
 
-    init(mapID: Int64, repository: any MapMemberRepository) {
+    init(mapID: Int64, repository: any MapMemberRepository, currentUserStore: any CurrentUserStore) {
         self.mapID = mapID
         self.repository = repository
+        uiState.myUserID = try? currentUserStore.load()
     }
 
     /// 화면을 여닫을 때마다 다시 받지 않는다.

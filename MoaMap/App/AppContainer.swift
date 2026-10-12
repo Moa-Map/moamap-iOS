@@ -181,7 +181,7 @@ final class AppContainer {
                 mapID: mapID, searchRepository: placeSearchRepository, addRepository: placeAddRepository,
                 sleep: { try await Task.sleep(for: $0) }
             ),
-            member: MemberViewModel(mapID: mapID, repository: mapMemberRepository),
+            member: MemberViewModel(mapID: mapID, repository: mapMemberRepository, currentUserStore: currentUserStore),
             activity: MapActivityViewModel(mapID: mapID, repository: mapActivityRepository, now: Date.init),
             pending: PendingRequestViewModel(mapID: mapID, repository: pendingPlaceRepository)
         )

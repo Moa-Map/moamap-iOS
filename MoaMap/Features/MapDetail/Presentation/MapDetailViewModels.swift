@@ -95,7 +95,7 @@ extension MapDetailViewModels {
                 mapID: mapID, searchRepository: PreviewPlaceSearchRepository(), addRepository: PreviewPlaceAddRepository(),
                 sleep: { try await Task.sleep(for: $0) }
             ),
-            member: MemberViewModel(mapID: mapID, repository: PreviewMapMemberRepository()),
+            member: MemberViewModel(mapID: mapID, repository: PreviewMapMemberRepository(), currentUserStore: PreviewCurrentUserStore()),
             activity: MapActivityViewModel(mapID: mapID, repository: PreviewMapActivityRepository(), now: Date.init),
             pending: PendingRequestViewModel(mapID: mapID, repository: PreviewPendingPlaceRepository())
         )

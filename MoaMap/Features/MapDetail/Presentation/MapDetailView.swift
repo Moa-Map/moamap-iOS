@@ -107,7 +107,6 @@ struct MapDetailView: View {
         VStack(spacing: 0) {
             MapDetailTopBar(
                 title: title,
-                roleBadge: viewModel.uiState.roleBadge,
                 action: viewModel.uiState.map.map?.topBarAction ?? .none,
                 showsMenu: viewModel.uiState.showsMenu,
                 inviteCode: viewModel.uiState.inviteCode,
