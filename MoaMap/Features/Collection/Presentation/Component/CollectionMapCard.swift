@@ -7,9 +7,19 @@ struct CollectionMapCard: View {
     let showsMembers: Bool
     /// nil 이 아니면 체크박스를 붙이고, 고르면 파란 테두리를 두른다.
     var selected: Bool?
+    /// 끌어서 순서를 바꿀 수 있다는 표시.
+    var showsDragHandle = false
 
     var body: some View {
         HStack(spacing: 12) {
+            if showsDragHandle {
+                Image(systemName: "equal")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(colors.textAssistive)
+                    .frame(width: 24, height: 24)
+                    .padding(.trailing, -8)
+                    .accessibilityHidden(true)
+            }
             MapThumbnail(imageURL: map.imageURL, size: 64, cornerRadius: 4, placeholderHorizontalPadding: 18)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 2) {

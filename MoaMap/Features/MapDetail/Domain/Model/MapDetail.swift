@@ -1,7 +1,7 @@
 import Foundation
 
 /// 지도 미리보기와 상세 화면이 함께 쓰는 지도 한 건.
-nonisolated struct MapDetail: Identifiable, Equatable, Sendable {
+nonisolated struct MapDetail: Identifiable, Hashable, Sendable {
     let id: Int64
     let title: String
     let description: String?
@@ -82,6 +82,9 @@ nonisolated extension MapDetail {
         guard type == .private, joined, !personal else { return nil }
         return inviteCode
     }
+
+    /// 서버가 방장·관리자에게만 수정을 허용한다.
+    var canEditInfo: Bool { joined && type != .official && (role == .owner || role == .admin) }
 
     /// 공식지도는 공공데이터라 사용자가 장소를 더하지 않는다.
     var canAddPlace: Bool { joined && (type == .private || type == .community) }

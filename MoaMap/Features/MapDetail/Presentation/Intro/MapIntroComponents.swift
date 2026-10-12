@@ -10,6 +10,8 @@ struct MapIntroHero: View {
     let title: String
     let ownerName: String?
     let imageURL: URL?
+    /// 지도 정보 화면은 소개보다 낮다.
+    var height = Self.height
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -57,7 +59,7 @@ struct MapIntroHero: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
         }
-        .frame(height: Self.height)
+        .frame(height: height)
         .frame(maxWidth: .infinity)
     }
 }

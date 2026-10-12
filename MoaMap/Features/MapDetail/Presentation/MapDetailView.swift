@@ -13,6 +13,7 @@ struct MapDetailView: View {
     @State private var memberViewModel: MemberViewModel
     @State private var activityViewModel: MapActivityViewModel
     @State private var pendingViewModel: PendingRequestViewModel
+    private let makeEditMap: (MapDetail) -> EditMapViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
     private let initialTitle: String
@@ -32,6 +33,7 @@ struct MapDetailView: View {
         _memberViewModel = State(initialValue: viewModels.member)
         _activityViewModel = State(initialValue: viewModels.activity)
         _pendingViewModel = State(initialValue: viewModels.pending)
+        makeEditMap = viewModels.makeEditMap
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
         self.onBack = onBack
@@ -60,6 +62,9 @@ struct MapDetailView: View {
     @State private var addPlaceVisible = false
     @State private var membersVisible = false
     @State private var manageVisible = false
+    @State private var infoVisible = false
+    /// 열려 있는 지도 정보 수정. 닫으면 비워 다음에 열 때 새로 시작한다.
+    @State private var editMapViewModel: EditMapViewModel?
     /// 장소 등록 완료처럼 지도 위에 잠깐 띄우는 안내.
     @State private var notice: String?
 
@@ -189,6 +194,26 @@ struct MapDetailView: View {
                 )
             }
 
+            if infoVisible, let map = viewModel.uiState.map.map {
+                MapInfoView(
+                    map: map,
+                    onBack: { infoVisible = false },
+                    onEdit: { editMapViewModel = makeEditMap(map) }
+                )
+            }
+
+            if let editMapViewModel {
+                EditMapView(
+                    viewModel: editMapViewModel,
+                    onBack: { self.editMapViewModel = nil },
+                    onSaved: {
+                        self.editMapViewModel = nil
+                        // 지도 정보와 상단 제목이 고친 값을 보여야 한다.
+                        viewModel.refresh()
+                    }
+                )
+            }
+
             // 나가서 참여가 풀리면 메뉴도 함께 닫힌다.
             if menuVisible && viewModel.uiState.showsMenu { menu }
 
@@ -273,12 +298,17 @@ struct MapDetailView: View {
                     menuVisible = false
                     manageVisible = true
                 },
+                onInfo: {
+                    menuVisible = false
+                    infoVisible = true
+                },
                 onLeave: {
                     menuVisible = false
                     leaveDialogVisible = true
                 }
             )
-            .padding(.top, 58)
+            // 시안은 상단바 아래쪽에 살짝 걸쳐 띄운다.
+            .padding(.top, 45)
             .padding(.trailing, MoaMapDimens.screenHorizontalPadding)
             .accessibilityAction(.escape) { menuVisible = false }
         }

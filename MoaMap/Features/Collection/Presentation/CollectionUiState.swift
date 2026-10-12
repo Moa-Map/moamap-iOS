@@ -18,11 +18,34 @@ nonisolated enum JoinMapState: Equatable, Sendable {
     case editing(JoinMapEditing)
 }
 
+/// 모음 편집. 고른 지도에서 나가거나 하나를 골라 정보를 고친다.
+nonisolated struct CollectionEditing: Equatable, Sendable {
+    var selectedIDs: Set<Int64> = []
+    /// 고른 지도의 역할을 확인하거나 나가는 중. 두 번 눌러도 서버에는 한 번만 간다.
+    var processing = false
+
+    /// 정보 수정은 한 지도씩 한다.
+    var canEditInfo: Bool { selectedIDs.count == 1 && !processing }
+    var canLeave: Bool { !selectedIDs.isEmpty && !processing }
+}
+
+nonisolated enum CollectionEditDialog: Equatable, Sendable {
+    /// 서버가 방장의 탈퇴를 막는다. 하나라도 섞이면 아무 지도에서도 나가지 않는다.
+    case ownerCannotLeave
+    case confirmLeave(count: Int, outcome: LeaveOutcome)
+}
+
 nonisolated struct CollectionUiState: Equatable, Sendable {
     var selectedTab: CollectionMapType = .community
     var community: CollectionMapsState = .idle
     var privateMaps: CollectionMapsState = .idle
     var join: JoinMapState = .hidden
+    var editing: CollectionEditing?
+    var editDialog: CollectionEditDialog?
+    /// 정보 수정으로 열 지도. 화면이 열고 나면 비운다.
+    var mapToEdit: MapDetail?
+    /// 한 번 보여주고 지우는 안내.
+    var notice: String?
 
     var currentMaps: CollectionMapsState { state(of: selectedTab) }
 

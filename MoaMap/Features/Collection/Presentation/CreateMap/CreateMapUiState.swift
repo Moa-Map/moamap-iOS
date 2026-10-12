@@ -19,7 +19,6 @@ nonisolated struct CreateMapUiState: Equatable, Sendable {
     /// 서버 `MapCreateRequest` 의 `@Size` 제약.
     static let nameMaxLength = 100
     static let descriptionMaxLength = 500
-    static let tagMaxLength = 30
 
     var pickedImage: PickedCoverImage?
     var name = ""

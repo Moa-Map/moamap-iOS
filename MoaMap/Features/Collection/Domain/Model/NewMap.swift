@@ -19,3 +19,11 @@ nonisolated struct CreatedMap: Equatable, Sendable {
     let id: Int64
     let inviteCode: String?
 }
+
+/// 고친 지도 정보. 서버가 통째로 덮어쓰므로 바꾸지 않은 값도 담는다.
+nonisolated struct MapUpdate: Equatable, Sendable {
+    var name: String
+    var description: String
+    var tags: [String]
+    var imageURL: String?
+}

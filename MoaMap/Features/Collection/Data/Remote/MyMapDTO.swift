@@ -2,6 +2,7 @@ import Foundation
 
 nonisolated struct MyMapPageResponse: Decodable, Sendable {
     let content: [MyMapResponse]?
+    let last: Bool?
 }
 
 nonisolated struct MyMapResponse: Decodable, Sendable {
@@ -28,6 +29,11 @@ nonisolated struct MyMapResponse: Decodable, Sendable {
     }
 }
 
+nonisolated struct MapOrderUpdateRequest: Encodable, Sendable {
+    let type: String
+    let mapIds: [Int64]
+}
+
 nonisolated struct JoinByInviteCodeRequest: Encodable, Sendable {
     let inviteCode: String
 }
@@ -46,6 +52,21 @@ nonisolated struct MapCreateRequest: Encodable, Sendable {
         imageUrl = newMap.imageURL?.nonBlank
         visibility = newMap.visibility == .public ? "PUBLIC" : "PRIVATE"
         tags = newMap.tags.isEmpty ? nil : newMap.tags
+    }
+}
+
+/// 빠진 값은 서버가 비운다. 설명·사진을 지우려는 게 아니면 원래 값을 담아 보낸다.
+nonisolated struct MapUpdateRequest: Encodable, Sendable {
+    let name: String
+    let description: String?
+    let imageUrl: String?
+    let tags: [String]
+
+    init(_ update: MapUpdate) {
+        name = update.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        description = update.description.nonBlank
+        imageUrl = update.imageURL?.nonBlank
+        tags = update.tags
     }
 }
 

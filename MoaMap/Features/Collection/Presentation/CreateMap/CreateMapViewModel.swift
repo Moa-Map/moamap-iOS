@@ -47,19 +47,12 @@ final class CreateMapViewModel {
         uiState.visibility = visibility
     }
 
-    /// 공백이나 줄바꿈이 들어오면 그 앞까지 태그로 확정한다. 붙여넣기로 여러 개가 들어와도 같다.
     func updateTagInput(_ input: String) {
-        let tokens = input.split(omittingEmptySubsequences: false, whereSeparator: Self.isTagSeparator).map(String.init)
-        guard tokens.count > 1, let pending = tokens.last else {
-            uiState.tagInput = String(input.prefix(CreateMapUiState.tagMaxLength))
-            return
-        }
-        uiState.tags = Self.adding(tokens.dropLast(), to: uiState.tags)
-        uiState.tagInput = String(pending.prefix(CreateMapUiState.tagMaxLength))
+        (uiState.tags, uiState.tagInput) = MapTagInput.apply(input, to: uiState.tags)
     }
 
     func commitTag() {
-        uiState.tags = Self.adding([uiState.tagInput], to: uiState.tags)
+        uiState.tags = MapTagInput.adding([uiState.tagInput], to: uiState.tags)
         uiState.tagInput = ""
     }
 
@@ -123,20 +116,6 @@ final class CreateMapViewModel {
         let fileURL = try await repository.uploadCoverImage(picked.image)
         uploaded = (picked.selection, fileURL)
         return fileURL
-    }
-
-    private static func isTagSeparator(_ character: Character) -> Bool {
-        character == " " || character.isNewline
-    }
-
-    /// 빈 값과 이미 담긴 태그는 거른다.
-    private static func adding(_ candidates: some Sequence<String>, to tags: [String]) -> [String] {
-        var result = tags
-        for candidate in candidates {
-            let tag = String(candidate.trimmingCharacters(in: .whitespacesAndNewlines).prefix(CreateMapUiState.tagMaxLength))
-            if !tag.isEmpty, !result.contains(tag) { result.append(tag) }
-        }
-        return result
     }
 
     /// 사진을 바꿔야 하는 실패와 다시 누르면 되는 실패를 나눠 안내한다.
