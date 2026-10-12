@@ -131,8 +131,8 @@ struct MemberView: View {
             member: member,
             tag: roleDisplay.tag(for: member.role),
             isMe: isMe,
-            // 방장·관리자는 이미 권한이 있다. 나에게는 줄 일이 없다.
-            canGrant: !isMe && canGrantRole && (member.role == .member || member.role == .none),
+            // 방장·관리자는 이미 권한이 있다.
+            canGrant: canGrantRole && (member.role == .member || member.role == .none),
             // 오가는 중에는 다른 카드의 버튼도 잠근다.
             grantEnabled: !state.granting,
             onGrant: { viewModel.grantAdmin(userID: member.id) }

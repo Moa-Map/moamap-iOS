@@ -12,8 +12,11 @@ struct MoaMapTooltip<Content: View>: View {
         let shape = RoundedRectangle(cornerRadius: 12)
         // 반투명이라 꼬리와 몸통을 겹치면 겹친 곳만 짙어진다. 맞붙여 둔다.
         VStack(alignment: .leading, spacing: 0) {
-            TooltipTail()
-                .fill(Self.fill)
+            // 몸통과 같은 블러를 깔아야 꼬리만 옅어 보이지 않는다.
+            ZStack {
+                TooltipTail().fill(.ultraThinMaterial)
+                TooltipTail().fill(Self.fill)
+            }
                 .frame(width: 16, height: 8)
                 .padding(.leading, tailInset)
             HStack(alignment: .top, spacing: 10) { content() }
