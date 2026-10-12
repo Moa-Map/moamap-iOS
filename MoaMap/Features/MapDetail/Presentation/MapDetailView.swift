@@ -149,11 +149,19 @@ struct MapDetailView: View {
     @ViewBuilder
     private var overlays: some View {
         ZStack {
-            // 펼치면 상단바까지 덮는다.
-            if selectedTab == .places { placeSheet }
-
             // 검색으로 목록에서 빠진 장소라도, 마커로 눌러 열어 둔 상세는 닫히면 안 된다.
-            if let place = viewModel.uiState.places.first(where: { $0.id == selectedPlaceID }) {
+            let selectedPlace = viewModel.uiState.places.first(where: { $0.id == selectedPlaceID })
+
+            // 펼치면 상단바까지 덮는다. 장소 상세가 떠 있는 동안은 감춘다. 두 시트가 겹쳐 보이면 안 된다.
+            // 빼지 않고 감춰야 돌아왔을 때 보던 목록 위치가 남는다.
+            if selectedTab == .places {
+                placeSheet
+                    .opacity(selectedPlace == nil ? 1 : 0)
+                    .allowsHitTesting(selectedPlace == nil)
+                    .accessibilityHidden(selectedPlace != nil)
+            }
+
+            if let place = selectedPlace {
                 // 장소마다 입력 중인 글과 사진을 새로 시작한다.
                 placeDetail(place).id(place.id)
             }
@@ -317,9 +325,12 @@ struct MapDetailView: View {
             canWriteReview: viewModel.uiState.canAddPlace,
             onBack: { selectedPlaceID = nil },
             onClose: resetToInitial,
-            onExternalLink: { openKakaoMap(place) },
+            onInstagram: { if let url = place.instagramURL { openURL(url) } },
+            onViewMap: { openKakaoMap(place) },
             onAddToPersonalMap: { personalMapViewModel.add() },
-            onLike: { viewModel.toggleLike(placeID: place.id) }
+            onLike: { viewModel.toggleLike(placeID: place.id) },
+            // 시트 높이가 정해진 뒤에야 장소를 가리지 않는 자리를 안다.
+            onCollapsedHeightSettle: { height in moveCamera(to: place, bottomPadding: height) }
         )
     }
 
@@ -327,6 +338,19 @@ struct MapDetailView: View {
     private func selectPlace(_ placeID: Int64) {
         expandedClusterIDs = []
         selectedPlaceID = placeID
+    }
+
+    /// 장소를 상세 시트에 가리지 않는 위쪽 가운데로 옮긴다.
+    private func moveCamera(to place: MapPlace, bottomPadding: CGFloat) {
+        let center = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
+        withViewportAnimation(.easeOut(duration: 0.6)) {
+            viewport = .camera(center: center, zoom: zoomKeepingCloser).padding(.bottom, bottomPadding)
+        }
+    }
+
+    /// 이미 더 확대해 봤으면 그 줌을 뺏지 않는다.
+    private var zoomKeepingCloser: Double {
+        max(currentZoom ?? MapCameraDefaults.zoom, MapCameraDefaults.zoom)
     }
 
     /// 지도 상세에 처음 들어왔을 때로 되돌린다.
@@ -443,9 +467,8 @@ struct MapDetailView: View {
                 return
             }
             // 기울기는 그대로 둔다. 2D 로 보던 지도가 버튼 하나에 기울어지면 안 된다.
-            // 이미 더 확대해 봤으면 그 줌을 뺏지 않는다.
             withViewportAnimation(.easeOut(duration: 0.6)) {
-                viewport = .camera(center: point, zoom: max(currentZoom ?? MapCameraDefaults.zoom, MapCameraDefaults.zoom))
+                viewport = .camera(center: point, zoom: zoomKeepingCloser)
             }
         }
     }

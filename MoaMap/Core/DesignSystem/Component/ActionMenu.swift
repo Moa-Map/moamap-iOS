@@ -18,6 +18,8 @@ struct ActionMenu: View {
 
     let items: [ActionMenuItem]
     var cornerRadius: CGFloat = 12
+    /// 뒤가 비치는 어두운 메뉴. 흰 글씨를 쓴다.
+    var dark = false
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius)
@@ -32,9 +34,16 @@ struct ActionMenu: View {
         }
         .padding(.horizontal, 4)
         .frame(width: Self.width)
-        .background(colors.backgroundSecondary, in: shape)
-        .overlay { shape.strokeBorder(MoaMapPrimitiveColors.blue600, lineWidth: 1) }
-        .shadow(color: .black.opacity(0.04), radius: 4)
+        .background {
+            if dark {
+                shape.fill(.ultraThinMaterial)
+                shape.fill(MoaMapPrimitiveColors.gray500.opacity(0.7))
+            } else {
+                shape.fill(colors.backgroundSecondary)
+                shape.strokeBorder(MoaMapPrimitiveColors.blue600, lineWidth: 1)
+            }
+        }
+        .shadow(color: .black.opacity(dark ? 0 : 0.04), radius: 4)
     }
 
     private func row(_ item: ActionMenuItem) -> some View {
@@ -46,7 +55,7 @@ struct ActionMenu: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 icon("arrow-right")
             }
-            .foregroundStyle(colors.textNormal)
+            .foregroundStyle(dark ? colors.textWhite : colors.textNormal)
             .padding(.horizontal, 16)
             .frame(height: 50)
             .contentShape(Rectangle())
