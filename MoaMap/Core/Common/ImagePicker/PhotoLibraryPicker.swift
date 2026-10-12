@@ -11,6 +11,7 @@ struct PickedPhoto {
 
 /// 앨범 사진을 격자로 보여 주고 여러 장을 고른다. 맨 앞 칸은 카메라다.
 /// 고른 순서대로 넘기고, 카메라로 찍으면 그때까지 고른 사진 뒤에 붙여 바로 넘긴다.
+/// 한 장만 고르는 곳은 다른 사진을 누르거나 찍으면 고른 사진을 바꾼다.
 struct PhotoLibraryPicker: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
@@ -99,8 +100,8 @@ struct PhotoLibraryPicker: View {
     }
 
     private var cameraCell: some View {
-        // 이미 다 골랐으면 찍어도 붙일 자리가 없다.
-        Button { if selection.count < maxSelection { cameraRequested = true } } label: {
+        // 이미 다 골랐으면 찍어도 붙일 자리가 없다. 한 장만 고르는 곳은 찍은 사진으로 바꾼다.
+        Button { if selection.count < maxSelection || maxSelection == 1 { cameraRequested = true } } label: {
             Color(argb: 0xFF37_3737)
                 .aspectRatio(1, contentMode: .fit)
                 .overlay {
@@ -156,13 +157,17 @@ struct PhotoLibraryPicker: View {
             selection.remove(at: index)
         } else if selection.count < maxSelection {
             selection.append(id)
+        } else if maxSelection == 1 {
+            // 한 장만 고르는 곳은 다른 사진을 누르면 바꾼다.
+            selection = [id]
         }
     }
 
     private func finish(adding captured: PickedPhoto? = nil) {
         guard !loading else { return }
         loading = true
-        let ids = selection
+        // 찍은 사진이 들어갈 자리는 비운다. 한 장만 고르는 곳에서 고른 사진 대신 찍은 사진을 넘긴다.
+        let ids = captured == nil ? selection : Array(selection.prefix(max(0, maxSelection - 1)))
         finishTask = Task {
             var photos = await library.photos(for: ids)
             if let captured { photos.append(captured) }

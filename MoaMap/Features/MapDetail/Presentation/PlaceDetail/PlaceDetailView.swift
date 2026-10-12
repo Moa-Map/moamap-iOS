@@ -56,7 +56,7 @@ struct PlaceDetailView: View {
     /// 밀어 버튼이 드러난 댓글. 한 번에 한 줄만 연다.
     @State private var openReviewID: Int64?
     @State private var deleteTargetID: Int64?
-    @State private var showsSourceMenu = false
+    @State private var showsPhotoPicker = false
     @FocusState private var composerFocused: Bool
 
     var body: some View {
@@ -101,8 +101,16 @@ struct PlaceDetailView: View {
             collapsedHeightSettled = true
             onCollapsedHeightSettle(height)
         }
-        .imageSourcePicker(isPresented: $showsSourceMenu, darkMenu: true) { data, type in
-            reviewPhoto = reviews?.preparePhoto(data: data, type: type)
+        .fullScreenCover(isPresented: $showsPhotoPicker) {
+            PhotoLibraryPicker(
+                maxSelection: 1,
+                onCancel: { showsPhotoPicker = false },
+                onPicked: { photos in
+                    showsPhotoPicker = false
+                    guard let photo = photos.first else { return }
+                    reviewPhoto = reviews?.preparePhoto(data: photo.data, type: photo.type)
+                }
+            )
         }
         .overlay {
             if let id = deleteTargetID, let reviews {
@@ -242,7 +250,7 @@ struct PlaceDetailView: View {
                     photo: reviewPhoto,
                     onAddPhoto: {
                         composerFocused = false
-                        showsSourceMenu = true
+                        showsPhotoPicker = true
                     },
                     onRemovePhoto: { reviewPhoto = nil },
                     // 입력은 여기서 비우지 않는다. 서버가 받아들였는지는 아직 모른다.
@@ -250,13 +258,6 @@ struct PlaceDetailView: View {
                     onCancelEdit: reviews.cancelEdit
                 )
                 .focused($composerFocused)
-                // 사진 메뉴를 입력창 바로 위 왼쪽에 띄운다.
-                .overlay(alignment: .topLeading) {
-                    Color.clear
-                        .frame(width: ActionMenu.width, height: 0)
-                        .padding(EdgeInsets(top: 4, leading: 20, bottom: 0, trailing: 0))
-                        .imageSourceMenuAnchor()
-                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

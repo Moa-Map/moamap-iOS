@@ -504,7 +504,7 @@ struct AddPlaceFormContent: View {
                     ForEach(Array(photos.enumerated()), id: \.offset) { index, photo in
                         photoTile(photo, index: index)
                     }
-                    // 다섯 장이 차면 더 붙일 수 없다. 서버 제한이다.
+                    // 최대 장수가 차면 더 붙일 수 없다.
                     if photos.count < AddPlaceUiState.maxPhotos {
                         Button(action: onAddPhoto) {
                             Image("Icons/add")

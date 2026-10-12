@@ -1,18 +1,12 @@
-import PhotosUI
 import SwiftUI
 
 struct ProfileEditView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
 
     @State private var viewModel: ProfileEditViewModel
-    @State private var photoItem: PhotosPickerItem?
-    @State private var showsSourceMenu = false
-    @State private var showsGallery = false
-    @State private var showsCamera = false
-    @State private var cameraAlert: CameraAlert?
+    @State private var showsPhotoPicker = false
     @FocusState private var focusedField: Field?
     /// 저장이 끝나면 서버가 확정한 프로필을 넘긴다. 다른 화면의 이름을 맞추는 데 쓴다.
     private let onSaved: (MyProfile) -> Void
@@ -39,55 +33,26 @@ struct ProfileEditView: View {
             .scrollDismissesKeyboard(.interactively)
         }
         .safeAreaInset(edge: .bottom) { saveButton }
-        .overlayPreferenceValue(ProfileImageAnchorKey.self) { anchor in
-            if showsSourceMenu, let anchor {
-                GeometryReader { proxy in
-                    let image = proxy[anchor]
-                    ZStack(alignment: .topLeading) {
-                        Color.clear
-                            .contentShape(Rectangle())
-                            .onTapGesture { showsSourceMenu = false }
-                            .accessibilityHidden(true)
-                        // 카메라 버튼 아래 8 에, 오른쪽 끝을 사진 칸 끝에 맞춘다.
-                        sourceMenu
-                            .offset(x: image.maxX - ActionMenu.width, y: image.maxY + 8)
+        .fullScreenCover(isPresented: $showsPhotoPicker) {
+            PhotoLibraryPicker(
+                maxSelection: 1,
+                onCancel: { showsPhotoPicker = false },
+                onPicked: { photos in
+                    showsPhotoPicker = false
+                    guard let photo = photos.first else { return }
+                    if let data = photo.data {
+                        viewModel.selectImage(data: data, type: photo.type)
+                    } else {
+                        viewModel.showImageLoadFailure()
                     }
                 }
-            }
-        }
-        .photosPicker(isPresented: $showsGallery, selection: $photoItem, matching: .images)
-        .fullScreenCover(isPresented: $showsCamera) {
-            CameraPicker { data in viewModel.selectImage(data: data, type: .jpeg) }
-                .ignoresSafeArea()
-        }
-        .alert(cameraAlert?.title ?? "", isPresented: showsCameraAlert, presenting: cameraAlert) { alert in
-            if alert == .denied {
-                Button("설정 열기") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
-                }
-                Button("취소", role: .cancel) {}
-            } else {
-                Button("확인", role: .cancel) {}
-            }
-        } message: { alert in
-            Text(alert.message)
+            )
         }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .contentShape(Rectangle())
         .onTapGesture { focusedField = nil }
         .toolbar(.hidden, for: .navigationBar)
         .task { if viewModel.uiState.load == .loading, viewModel.loadTask == nil { viewModel.load() } }
-        .onChange(of: photoItem) { _, item in
-            guard let item else { return }
-            photoItem = nil
-            Task {
-                if let data = try? await item.loadTransferable(type: Data.self) {
-                    viewModel.selectImage(data: data, type: item.supportedContentTypes.first)
-                } else {
-                    viewModel.showImageLoadFailure()
-                }
-            }
-        }
         .onChange(of: viewModel.uiState.saved) { _, saved in
             guard saved, let profile = viewModel.savedProfile else { return }
             onSaved(profile)
@@ -141,7 +106,7 @@ struct ProfileEditView: View {
                 .shadow(color: .black.opacity(0.08), radius: 5)
                 .accessibilityLabel("프로필 이미지")
 
-            Button { showsSourceMenu = true } label: {
+            Button { showsPhotoPicker = true } label: {
                 Image("Icons/photo-camera")
                     .renderingMode(.template)
                     .resizable()
@@ -155,37 +120,6 @@ struct ProfileEditView: View {
             .disabled(!enabled)
             .accessibilityLabel("프로필 사진 변경")
         }
-        .anchorPreference(key: ProfileImageAnchorKey.self, value: .bounds) { $0 }
-    }
-
-    private var sourceMenu: some View {
-        ActionMenu(items: [
-            ActionMenuItem(icon: "photo-camera", label: "카메라", action: openCamera),
-            ActionMenuItem(icon: "gallery", label: "갤러리") {
-                showsSourceMenu = false
-                showsGallery = true
-            }
-        ])
-        .accessibilityAction(.escape) { showsSourceMenu = false }
-    }
-
-    private func openCamera() {
-        showsSourceMenu = false
-        guard CameraPicker.isAvailable else {
-            cameraAlert = .unavailable
-            return
-        }
-        Task {
-            if await CameraPicker.requestAccess() {
-                showsCamera = true
-            } else {
-                cameraAlert = .denied
-            }
-        }
-    }
-
-    private var showsCameraAlert: Binding<Bool> {
-        Binding(get: { cameraAlert != nil }, set: { if !$0 { cameraAlert = nil } })
     }
 
     @ViewBuilder
@@ -307,13 +241,6 @@ struct ProfileEditView: View {
         .disabled(!enabled)
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-    }
-}
-
-private nonisolated struct ProfileImageAnchorKey: PreferenceKey {
-    static let defaultValue: Anchor<CGRect>? = nil
-    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
-        value = value ?? nextValue()
     }
 }
 

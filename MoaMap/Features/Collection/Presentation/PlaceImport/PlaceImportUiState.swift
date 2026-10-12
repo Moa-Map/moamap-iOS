@@ -9,7 +9,8 @@ nonisolated enum PlaceExtractionState: Equatable, Sendable {
 
 /// 장소 가져오기 단계들이 함께 쓰는 상태. 뒤로 오가도 값이 끊기지 않게 한 곳에 둔다.
 nonisolated struct PlaceImportUiState: Equatable, Sendable {
-    static let maxPhotos = 5
+    /// 서버는 한 장소에 5장까지 받지만, 장소 추가와 같이 지금은 한 장만 붙인다.
+    static let maxPhotos = 1
 
     let source: PlaceImportSource
     var url: String
