@@ -54,7 +54,7 @@ struct PlaceFacepileMarker: View {
     }
 }
 
-/// 흰 테두리 원 안의 사진. 사진이 없거나 받기 전·실패면 카테고리 아이콘이나 기본 그림을 깐다.
+/// 흰 테두리 원 안의 사진. 사진이 없거나 받기 전·실패면 카테고리 아이콘이나 모아맵 기본 이미지를 깐다.
 private struct MarkerAvatar: View {
     let marker: PlaceMarker
     let size: CGFloat
@@ -90,7 +90,7 @@ private struct MarkerAvatar: View {
                     .frame(width: (size - ringWidth * 2) * 0.56)
             }
         } else {
-            Image("marker-placeholder").resizable().scaledToFill()
+            Image("default-image").resizable().scaledToFill()
         }
     }
 }
