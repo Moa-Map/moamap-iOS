@@ -17,7 +17,7 @@ struct MemberView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            MapOverlayTopBar(title: "멤버 관리", height: 52, onBack: onBack)
+            MoaMapTopBar(title: "멤버 관리", height: 52, backIconSize: 24, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     header
@@ -215,41 +215,6 @@ private struct RoleGuideTooltip: View {
             Text(description).moaTextStyle(typography.caption0)
         }
         .foregroundStyle(MoaMapPrimitiveColors.white)
-    }
-}
-
-/// 지도 상세 위에 겹친 화면의 상단바. 가운데 제목과 왼쪽 뒤로가기.
-struct MapOverlayTopBar: View {
-    @Environment(\.moaColors) private var colors
-    @Environment(\.moaTypography) private var typography
-
-    let title: String
-    var height: CGFloat = 58
-    let onBack: () -> Void
-
-    var body: some View {
-        ZStack {
-            Text(title)
-                .moaTextStyle(typography.title3)
-                .foregroundStyle(colors.textNormal)
-                .accessibilityAddTraits(.isHeader)
-            HStack {
-                Button(action: onBack) {
-                    Image("Icons/arrow-left")
-                        .renderingMode(.template)
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                        .foregroundStyle(colors.textNormal)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("뒤로가기")
-                .padding(.leading, 6)
-                Spacer()
-            }
-        }
-        .frame(height: height)
     }
 }
 

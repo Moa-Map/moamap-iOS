@@ -68,7 +68,8 @@ struct AddPlaceView: View {
                     onMemoChange: viewModel.updateMemo
                 )
                 .padding(.top, 16)
-                AddPlaceWideButton(title: map.addPlaceButtonLabel, height: 54, enabled: !state.submitting) {
+                // 입력값은 모두 선택이라 처음부터 누를 수 있다. 비활성은 보내는 중일 때뿐이다.
+                PlaceImportButton(text: map.addPlaceButtonLabel, height: 54, enabled: !state.submitting) {
                     viewModel.submit(map: map)
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
@@ -98,32 +99,6 @@ struct AddPlaceView: View {
 
 enum AddPlaceField: Hashable {
     case search, tag, memo
-}
-
-/// 파란 바탕의 꽉 찬 버튼. 비활성은 보내는 중일 때뿐이다.
-private struct AddPlaceWideButton: View {
-    @Environment(\.moaColors) private var colors
-    @Environment(\.moaTypography) private var typography
-
-    let title: String
-    let height: CGFloat
-    var enabled = true
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .moaTextStyle(typography.button0)
-                .foregroundStyle(colors.textWhite)
-                .frame(maxWidth: .infinity)
-                .frame(height: height)
-                .background(enabled ? MoaMapPrimitiveColors.blue500 : MoaMapPrimitiveColors.gray200,
-                            in: RoundedRectangle(cornerRadius: 8))
-                .shadow(color: .black.opacity(0.1), radius: 2.5)
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-    }
 }
 
 struct AddPlaceSearchContent: View {
@@ -334,7 +309,7 @@ struct AddPlaceLocationContent: View {
                     .moaTextStyle(typography.body2)
             }
             .foregroundStyle(colors.textAssistive)
-            AddPlaceWideButton(title: "이 위치로 장소 추가하기", height: 49, action: onConfirm)
+            PlaceImportButton(text: "이 위치로 장소 추가하기", action: onConfirm)
         }
         .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
         .padding(.top, 80)

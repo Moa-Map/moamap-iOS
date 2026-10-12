@@ -28,10 +28,7 @@ struct PhotoLibraryPicker: View {
     @State private var loading = false
     /// 원본을 받는 작업. 받는 도중에 나가면 멈춰서, 늦게 끝난 결과가 폼에 붙지 않게 한다.
     @State private var finishTask: Task<Void, Never>?
-    @State private var showsCamera = false
-    /// 찍은 사진. 카메라가 다 닫힌 뒤에 넘긴다. 닫히는 중에 이 화면까지 닫으면 UIKit 이 무시한다.
-    @State private var captured: PickedPhoto?
-    @State private var cameraAlert: CameraAlert?
+    @State private var cameraRequested = false
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 4)
 
@@ -78,24 +75,7 @@ struct PhotoLibraryPicker: View {
             finishTask?.cancel()
             library.stop()
         }
-        .fullScreenCover(isPresented: $showsCamera, onDismiss: {
-            guard let photo = captured else { return }
-            captured = nil
-            finish(adding: photo)
-        }) {
-            CameraPicker { data in captured = PickedPhoto(data: data, type: .jpeg) }
-                .ignoresSafeArea()
-        }
-        .alert(cameraAlert?.title ?? "", isPresented: showsCameraAlert, presenting: cameraAlert) { alert in
-            if alert == .denied {
-                Button("설정 열기", action: openSettings)
-                Button("취소", role: .cancel) {}
-            } else {
-                Button("확인", role: .cancel) {}
-            }
-        } message: { alert in
-            Text(alert.message)
-        }
+        .cameraCapture(isRequested: $cameraRequested) { data in finish(adding: PickedPhoto(data: data, type: .jpeg)) }
     }
 
     /// 앨범이 하나뿐이면 고를 것이 없어 이름만 보인다.
@@ -119,7 +99,8 @@ struct PhotoLibraryPicker: View {
     }
 
     private var cameraCell: some View {
-        Button(action: openCamera) {
+        // 이미 다 골랐으면 찍어도 붙일 자리가 없다.
+        Button { if selection.count < maxSelection { cameraRequested = true } } label: {
             Color(argb: 0xFF37_3737)
                 .aspectRatio(1, contentMode: .fit)
                 .overlay {
@@ -197,24 +178,8 @@ struct PhotoLibraryPicker: View {
         onCancel()
     }
 
-    /// 이미 다 골랐으면 찍어도 붙일 자리가 없다.
-    private func openCamera() {
-        guard selection.count < maxSelection else { return }
-        guard CameraPicker.isAvailable else {
-            cameraAlert = .unavailable
-            return
-        }
-        Task {
-            if await CameraPicker.requestAccess() { showsCamera = true } else { cameraAlert = .denied }
-        }
-    }
-
     private func openSettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
-    }
-
-    private var showsCameraAlert: Binding<Bool> {
-        Binding(get: { cameraAlert != nil }, set: { if !$0 { cameraAlert = nil } })
     }
 }
 
