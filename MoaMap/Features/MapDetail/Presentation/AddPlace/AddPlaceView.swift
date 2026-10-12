@@ -68,7 +68,8 @@ struct AddPlaceView: View {
                     onMemoChange: viewModel.updateMemo
                 )
                 .padding(.top, 16)
-                AddPlaceWideButton(title: map.addPlaceButtonLabel, height: 54, enabled: !state.submitting) {
+                // 입력값은 모두 선택이라 처음부터 누를 수 있다. 비활성은 보내는 중일 때뿐이다.
+                PlaceImportButton(text: map.addPlaceButtonLabel, height: 54, enabled: !state.submitting) {
                     viewModel.submit(map: map)
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
@@ -98,32 +99,6 @@ struct AddPlaceView: View {
 
 enum AddPlaceField: Hashable {
     case search, tag, memo
-}
-
-/// 파란 바탕의 꽉 찬 버튼. 비활성은 보내는 중일 때뿐이다.
-private struct AddPlaceWideButton: View {
-    @Environment(\.moaColors) private var colors
-    @Environment(\.moaTypography) private var typography
-
-    let title: String
-    let height: CGFloat
-    var enabled = true
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .moaTextStyle(typography.button0)
-                .foregroundStyle(colors.textWhite)
-                .frame(maxWidth: .infinity)
-                .frame(height: height)
-                .background(enabled ? MoaMapPrimitiveColors.blue500 : MoaMapPrimitiveColors.gray200,
-                            in: RoundedRectangle(cornerRadius: 8))
-                .shadow(color: .black.opacity(0.1), radius: 2.5)
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-    }
 }
 
 struct AddPlaceSearchContent: View {
@@ -334,7 +309,7 @@ struct AddPlaceLocationContent: View {
                     .moaTextStyle(typography.body2)
             }
             .foregroundStyle(colors.textAssistive)
-            AddPlaceWideButton(title: "이 위치로 장소 추가하기", height: 49, action: onConfirm)
+            PlaceImportButton(text: "이 위치로 장소 추가하기", height: 49, action: onConfirm)
         }
         .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
         .padding(.top, 80)
@@ -405,65 +380,80 @@ struct AddPlaceFormContent: View {
     @State private var tagDraft = ""
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                SelectedPlaceCard(name: name, address: address)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        Text("사진")
-                            .moaTextStyle(typography.subtitle1)
-                            .foregroundStyle(colors.textNormal)
-                        optionalLabel
-                    }
-                    photoSection
-                }
-                // 시안상 태그에는 (선택) 표시가 없다. 태그 없이도 등록은 된다.
-                field("태그", optional: false) {
-                    if !tags.isEmpty {
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 4) {
-                                ForEach(tags, id: \.self) { tagChip($0) }
-                            }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    SelectedPlaceCard(name: name, address: address)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Text("사진")
+                                .moaTextStyle(typography.subtitle1)
+                                .foregroundStyle(colors.textNormal)
+                            optionalLabel
                         }
-                        .scrollIndicators(.hidden)
+                        photoSection
                     }
-                    // Binding setter 안에서 값을 비우면 TextField가 화면에 반영하지 않는다.
-                    // 그래서 입력은 그대로 받아 두고, 확정과 되돌려 받기는 onChange에서 한다.
-                    inputField(text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터")
-                    .focused(focus, equals: .tag)
-                    .onChange(of: tagDraft) { _, draft in
-                        // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 "카페 "를 붙여넣는 경우 등.
-                        let remaining = onTagInputChange(draft)
-                        if remaining != draft { tagDraft = remaining }
+                    // 시안상 태그에는 (선택) 표시가 없다. 태그 없이도 등록은 된다.
+                    field("태그", optional: false) {
+                        if !tags.isEmpty {
+                            ScrollView(.horizontal) {
+                                HStack(spacing: 4) {
+                                    ForEach(tags, id: \.self) { tagChip($0) }
+                                }
+                            }
+                            .scrollIndicators(.hidden)
+                        }
+                        // Binding setter 안에서 값을 비우면 TextField가 화면에 반영하지 않는다.
+                        // 그래서 입력은 그대로 받아 두고, 확정과 되돌려 받기는 onChange에서 한다.
+                        inputField(text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터")
+                        .focused(focus, equals: .tag)
+                        .onChange(of: tagDraft) { _, draft in
+                            // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 "카페 "를 붙여넣는 경우 등.
+                            let remaining = onTagInputChange(draft)
+                            if remaining != draft { tagDraft = remaining }
+                        }
+                        .onChange(of: tagInput, initial: true) { _, input in
+                            if tagDraft != input { tagDraft = input }
+                        }
+                        .onChange(of: focus.wrappedValue) { old, new in
+                            // 엔터 없이 입력창을 벗어나도 입력 중이던 태그를 확정한다.
+                            if old == .tag, new != .tag { _ = onTagInputChange(tagInput + "\n") }
+                        }
+                        .submitLabel(.next)
+                        .onSubmit {
+                            // 엔터는 줄바꿈과 같이 태그를 확정한다. 키보드는 내리지 않는다.
+                            _ = onTagInputChange(tagInput + "\n")
+                            focus.wrappedValue = .tag
+                        }
+                        .onKeyPress(.delete) {
+                            guard tagInput.isEmpty, !tags.isEmpty else { return .ignored }
+                            onTagBackspace()
+                            return .handled
+                        }
+                        .id(AddPlaceField.tag)
                     }
-                    .onChange(of: tagInput, initial: true) { _, input in
-                        if tagDraft != input { tagDraft = input }
-                    }
-                    .onChange(of: focus.wrappedValue) { old, new in
-                        // 엔터 없이 입력창을 벗어나도 입력 중이던 태그를 확정한다.
-                        if old == .tag, new != .tag { _ = onTagInputChange(tagInput + "\n") }
-                    }
-                    .submitLabel(.next)
-                    .onSubmit {
-                        // 엔터는 줄바꿈과 같이 태그를 확정한다. 키보드는 내리지 않는다.
-                        _ = onTagInputChange(tagInput + "\n")
-                        focus.wrappedValue = .tag
-                    }
-                    .onKeyPress(.delete) {
-                        guard tagInput.isEmpty, !tags.isEmpty else { return .ignored }
-                        onTagBackspace()
-                        return .handled
+                    field("메모", optional: true) {
+                        inputField(text: Binding(get: { memo }, set: onMemoChange), placeholder: "메모를 남겨보세요")
+                            .focused(focus, equals: .memo)
+                            .id(AddPlaceField.memo)
                     }
                 }
-                field("메모", optional: true) {
-                    inputField(text: Binding(get: { memo }, set: onMemoChange), placeholder: "메모를 남겨보세요")
-                        .focused(focus, equals: .memo)
-                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .scrollDismissesKeyboard(.interactively)
+            // 키보드가 올라오면 시스템은 글자 한 줄만 보이게 스크롤해서, 입력칸의 흰 배경이 아래 버튼에 잘린다.
+            // 입력칸 전체가 보이게 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
+            .onChange(of: focus.wrappedValue) { _, field in scroll(proxy, to: field) }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                scroll(proxy, to: focus.wrappedValue)
+            }
         }
-        .scrollDismissesKeyboard(.interactively)
+    }
+
+    private func scroll(_ proxy: ScrollViewProxy, to field: AddPlaceField?) {
+        guard let field, field != .search else { return }
+        withAnimation { proxy.scrollTo(field, anchor: .bottom) }
     }
 
     private var optionalLabel: some View {

@@ -69,3 +69,65 @@ enum CameraAlert {
         }
     }
 }
+
+extension View {
+    /// `isRequested` 가 켜지면 카메라를 연다. 기기에 없거나 권한이 없으면 안내를 띄운다.
+    /// 찍은 사진은 카메라가 다 닫힌 뒤에 넘긴다. 닫히는 중에 다른 화면을 닫으면 UIKit 이 무시한다.
+    func cameraCapture(isRequested: Binding<Bool>, onCaptured: @escaping (Data) -> Void) -> some View {
+        modifier(CameraCaptureModifier(isRequested: isRequested, onCaptured: onCaptured))
+    }
+}
+
+private struct CameraCaptureModifier: ViewModifier {
+    @Environment(\.openURL) private var openURL
+
+    @Binding var isRequested: Bool
+    let onCaptured: (Data) -> Void
+
+    @State private var showsCamera = false
+    @State private var captured: Data?
+    @State private var alert: CameraAlert?
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: isRequested) { _, requested in
+                guard requested else { return }
+                isRequested = false
+                open()
+            }
+            .fullScreenCover(isPresented: $showsCamera, onDismiss: {
+                guard let data = captured else { return }
+                captured = nil
+                onCaptured(data)
+            }) {
+                CameraPicker { captured = $0 }
+                    .ignoresSafeArea()
+            }
+            .alert(alert?.title ?? "", isPresented: showsAlert, presenting: alert) { alert in
+                if alert == .denied {
+                    Button("설정 열기") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                    }
+                    Button("취소", role: .cancel) {}
+                } else {
+                    Button("확인", role: .cancel) {}
+                }
+            } message: { alert in
+                Text(alert.message)
+            }
+    }
+
+    private func open() {
+        guard CameraPicker.isAvailable else {
+            alert = .unavailable
+            return
+        }
+        Task {
+            if await CameraPicker.requestAccess() { showsCamera = true } else { alert = .denied }
+        }
+    }
+
+    private var showsAlert: Binding<Bool> {
+        Binding(get: { alert != nil }, set: { if !$0 { alert = nil } })
+    }
+}

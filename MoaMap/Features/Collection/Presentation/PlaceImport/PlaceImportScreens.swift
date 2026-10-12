@@ -56,7 +56,7 @@ struct PlaceImportLoadingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PlaceImportTopBar(onBack: onCancel)
+            MoaMapTopBar(title: "장소 가져오기", height: 52, onBack: onCancel)
             VStack(spacing: 24) {
                 CircularProgressRing(color: colors.primary)
                     .frame(width: 80, height: 80)
@@ -174,7 +174,7 @@ struct PlaceImportEditDetailView: View {
     var body: some View {
         let edit = viewModel.uiState.edit(of: place)
         VStack(spacing: 0) {
-            PlaceImportTopBar(onBack: finish)
+            MoaMapTopBar(title: "장소 가져오기", height: 52, onBack: finish)
             AddPlaceFormContent(
                 name: place.name,
                 address: place.displayAddress,

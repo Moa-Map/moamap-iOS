@@ -14,7 +14,7 @@ struct PlaceImportScaffold<Content: View, Buttons: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PlaceImportTopBar(onBack: onBack)
+            MoaMapTopBar(title: "장소 가져오기", height: 52, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     PlaceImportHeader(title: title, description: description)
@@ -31,38 +31,6 @@ struct PlaceImportScaffold<Content: View, Buttons: View>: View {
         .safeAreaInset(edge: .bottom) { PlaceImportBottomBar(content: buttons) }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
-    }
-}
-
-struct PlaceImportTopBar: View {
-    @Environment(\.moaColors) private var colors
-    @Environment(\.moaTypography) private var typography
-
-    let onBack: () -> Void
-
-    var body: some View {
-        ZStack {
-            Text("장소 가져오기")
-                .moaTextStyle(typography.title3)
-                .foregroundStyle(MoaMapPrimitiveColors.black)
-                .accessibilityAddTraits(.isHeader)
-            HStack {
-                Button(action: onBack) {
-                    Image("Icons/arrow-left")
-                        .renderingMode(.template)
-                        .resizable()
-                        .frame(width: 32, height: 32)
-                        .foregroundStyle(colors.textNormal)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("뒤로가기")
-                Spacer()
-            }
-            .padding(.leading, MoaMapDimens.screenHorizontalPadding - 6)
-        }
-        .frame(height: 52)
     }
 }
 
@@ -107,6 +75,8 @@ struct PlaceImportButton: View {
 
     let text: String
     var style = Style.primary
+    /// 정하지 않으면 글자 위아래 여백으로 높이가 정해진다.
+    var height: CGFloat?
     var enabled = true
     let action: () -> Void
 
@@ -117,8 +87,9 @@ struct PlaceImportButton: View {
                 .foregroundStyle(colors.textWhite)
                 .lineLimit(1)
                 .padding(.horizontal, style == .primary ? 10 : 24)
-                .padding(.vertical, 14)
+                .padding(.vertical, height == nil ? 14 : 0)
                 .frame(maxWidth: style == .primary ? .infinity : nil)
+                .frame(height: height)
                 .background(
                     style == .primary && enabled ? colors.primary : MoaMapPrimitiveColors.gray200,
                     in: RoundedRectangle(cornerRadius: 8)
