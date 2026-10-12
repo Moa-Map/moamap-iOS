@@ -309,7 +309,7 @@ struct AddPlaceLocationContent: View {
                     .moaTextStyle(typography.body2)
             }
             .foregroundStyle(colors.textAssistive)
-            PlaceImportButton(text: "이 위치로 장소 추가하기", action: onConfirm)
+            PlaceImportButton(text: "이 위치로 장소 추가하기", height: 49, action: onConfirm)
         }
         .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
         .padding(.top, 80)

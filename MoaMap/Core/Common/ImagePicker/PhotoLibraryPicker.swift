@@ -305,9 +305,9 @@ private final class PhotoLibrary: NSObject, PHPhotoLibraryChangeObserver {
             for (index, id) in ids.enumerated() {
                 group.addTask { (index, await self.photo(for: id)) }
             }
-            var photos = [PickedPhoto?](repeating: nil, count: ids.count)
-            for await (index, photo) in group { photos[index] = photo }
-            return photos.compactMap { $0 }
+            var results: [(Int, PickedPhoto)] = []
+            for await result in group { results.append(result) }
+            return results.sorted { $0.0 < $1.0 }.map(\.1)
         }
     }
 
@@ -327,11 +327,16 @@ private final class PhotoLibrary: NSObject, PHPhotoLibraryChangeObserver {
     }
 
     /// 허용한 사진을 바꾸거나 새로 찍으면 보던 앨범의 사진만 고친다.
-    /// 앨범 목록은 열 때 한 번만 만든다. 바뀔 때마다 앨범마다 조회하면 iCloud 동기화 중에 격자가 버벅인다.
+    /// 전체를 허용했으면 앨범 목록은 열 때 한 번만 만든다. 바뀔 때마다 앨범마다 조회하면 iCloud 동기화 중에 격자가 버벅인다.
+    /// 일부만 허용했으면 허용한 사진이 바뀔 때 앨범이 생기거나 사라지므로 목록까지 다시 만든다. 사진이 적어 부담이 없다.
+    /// 보던 앨범이 없으면(허용한 사진이 없었으면) 고칠 대상이 없어 역시 다시 만든다.
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            guard let details = changeInstance.changeDetails(for: self.assets) else { return }
-            self.assets = details.fetchResultAfterChanges
+            if self.access == .limited || self.album == nil {
+                self.reload()
+            } else if let details = changeInstance.changeDetails(for: self.assets) {
+                self.assets = details.fetchResultAfterChanges
+            }
         }
     }
 
