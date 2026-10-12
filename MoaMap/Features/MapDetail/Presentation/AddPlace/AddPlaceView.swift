@@ -1,27 +1,51 @@
+import MapboxMaps
 import SwiftUI
 
-/// 장소 추가. 지도 상세 위를 덮는 한 장이고, 검색과 등록 폼 두 단계가 이 안에서 오간다.
+/// 장소 추가. 지도 상세 위를 덮는 한 장이고, 검색, 지도에서 위치 확인, 등록 폼 세 단계가 이 안에서 오간다.
 struct AddPlaceView: View {
     @Environment(\.moaColors) private var colors
-    @Environment(\.moaTypography) private var typography
 
     let viewModel: AddPlaceViewModel
     let map: MapDetail
-    /// 어느 단계든 닫는다.
+    /// 검색 단계에서 뒤로가면 닫는다.
     let onClose: () -> Void
 
-    @State private var showsSourceMenu = false
+    @State private var showsPhotoPicker = false
     @State private var errorMessage: String?
     @FocusState private var focusedField: AddPlaceField?
 
     private var state: AddPlaceUiState { viewModel.uiState }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // 등록 폼이면 검색으로, 검색이면 닫는다.
-            BackCloseControls(onBack: { state.isFormStep ? viewModel.backToSearch() : onClose() }, onClose: onClose)
-                .padding(.bottom, 8)
-            if let selected = state.selected {
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(colors.backgroundSecondary)
+            // 뒤에 깔린 지도로 터치가 새지 않게 하고, 빈 곳을 누르면 키보드를 내린다.
+            .contentShape(Rectangle())
+            .onTapGesture { focusedField = nil }
+            .fullScreenCover(isPresented: $showsPhotoPicker) {
+                PhotoLibraryPicker(
+                    maxSelection: AddPlaceUiState.maxPhotos - state.photos.count,
+                    onCancel: { showsPhotoPicker = false },
+                    onPicked: { photos in
+                        showsPhotoPicker = false
+                        for photo in photos { viewModel.addPhoto(data: photo.data, type: photo.type) }
+                    }
+                )
+            }
+            .moaSnackbar($errorMessage)
+            .onChange(of: state.errorMessage, initial: true) { _, message in
+                guard let message else { return }
+                errorMessage = message
+                viewModel.consumeErrorMessage()
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let selected = state.selected, state.isFormStep {
+            VStack(spacing: 0) {
+                MoaMapTopBar(title: "장소 추가", onBack: viewModel.backToLocation)
                 AddPlaceFormContent(
                     name: selected.name,
                     address: selected.displayAddress,
@@ -30,7 +54,10 @@ struct AddPlaceView: View {
                     tagInput: state.tagInput,
                     memo: state.memo,
                     focus: $focusedField,
-                    onAddPhoto: { showsSourceMenu = true },
+                    onAddPhoto: {
+                        focusedField = nil
+                        showsPhotoPicker = true
+                    },
                     onRemovePhoto: viewModel.removePhoto(at:),
                     onTagInputChange: {
                         viewModel.updateTagInput($0)
@@ -40,8 +67,22 @@ struct AddPlaceView: View {
                     onRemoveTag: viewModel.removeTag,
                     onMemoChange: viewModel.updateMemo
                 )
-                submitButton
-            } else {
+                .padding(.top, 16)
+                AddPlaceWideButton(title: map.addPlaceButtonLabel, height: 54, enabled: !state.submitting) {
+                    viewModel.submit(map: map)
+                }
+                .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+                .padding(.bottom, 16)
+            }
+        } else if let selected = state.selected {
+            AddPlaceLocationContent(
+                candidate: selected,
+                onBack: viewModel.backToSearch,
+                onConfirm: viewModel.confirmLocation
+            )
+        } else {
+            VStack(spacing: 0) {
+                MoaMapTopBar(title: "장소 검색", onBack: onClose)
                 AddPlaceSearchContent(
                     query: state.query,
                     search: state.search,
@@ -52,41 +93,37 @@ struct AddPlaceView: View {
                 )
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(colors.backgroundSecondary)
-        // 뒤에 깔린 지도로 터치가 새지 않게 하고, 빈 곳을 누르면 키보드를 내린다.
-        .contentShape(Rectangle())
-        .onTapGesture { focusedField = nil }
-        .imageSourcePicker(isPresented: $showsSourceMenu) { data, type in viewModel.addPhoto(data: data, type: type) }
-        .moaSnackbar($errorMessage)
-        .onChange(of: state.errorMessage, initial: true) { _, message in
-            guard let message else { return }
-            errorMessage = message
-            viewModel.consumeErrorMessage()
-        }
-    }
-
-    /// 입력값은 모두 선택이라 처음부터 누를 수 있다. 비활성은 보내는 중일 때뿐이다.
-    private var submitButton: some View {
-        Button { viewModel.submit(map: map) } label: {
-            Text(map.addPlaceButtonLabel)
-                .moaTextStyle(typography.button0)
-                .foregroundStyle(colors.textWhite)
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
-                .background(state.submitting ? MoaMapPrimitiveColors.gray200 : MoaMapPrimitiveColors.blue500,
-                            in: RoundedRectangle(cornerRadius: 8))
-                .shadow(color: .black.opacity(0.1), radius: 1.25)
-        }
-        .buttonStyle(.plain)
-        .disabled(state.submitting)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
     }
 }
 
 enum AddPlaceField: Hashable {
     case search, tag, memo
+}
+
+/// 파란 바탕의 꽉 찬 버튼. 비활성은 보내는 중일 때뿐이다.
+private struct AddPlaceWideButton: View {
+    @Environment(\.moaColors) private var colors
+    @Environment(\.moaTypography) private var typography
+
+    let title: String
+    let height: CGFloat
+    var enabled = true
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .moaTextStyle(typography.button0)
+                .foregroundStyle(colors.textWhite)
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
+                .background(enabled ? MoaMapPrimitiveColors.blue500 : MoaMapPrimitiveColors.gray200,
+                            in: RoundedRectangle(cornerRadius: 8))
+                .shadow(color: .black.opacity(0.1), radius: 2.5)
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+    }
 }
 
 struct AddPlaceSearchContent: View {
@@ -102,16 +139,15 @@ struct AddPlaceSearchContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("장소 추가")
-                .moaTextStyle(typography.title3)
-                .foregroundStyle(colors.textNormal)
-                .padding(.horizontal, 20)
+            PlaceImportHeader(title: "어떤 장소를 추가할까요?", description: "장소나 도로명으로 검색해보세요")
+                .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+                .padding(.top, 20)
             searchField
-                .padding(.horizontal, 20)
+                .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                 .padding(.top, 20)
             switch search {
             case .idle:
-                placeholder { message("장소를 검색해보세요") }
+                searchGuide
             case .loading:
                 placeholder { ProgressView() }
             case .failed(let text):
@@ -128,15 +164,8 @@ struct AddPlaceSearchContent: View {
                 placeholder { message("검색 결과가 없어요") }
             case .loaded(let candidates):
                 ScrollView {
-                    LazyVStack(spacing: 8) {
-                        ForEach(candidates) { candidate in
-                            Button { onSelect(candidate) } label: {
-                                CandidateCard(name: candidate.name, address: candidate.displayAddress)
-                            }
-                                .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(EdgeInsets(top: 20, leading: 20, bottom: 32, trailing: 20))
+                    resultList(candidates)
+                        .padding(EdgeInsets(top: 4, leading: 20, bottom: 32, trailing: 20))
                 }
                 .scrollDismissesKeyboard(.immediately)
             }
@@ -164,8 +193,58 @@ struct AddPlaceSearchContent: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 44)
-        .background(MoaMapPrimitiveColors.white, in: Capsule())
+        .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.04), radius: 4)
+    }
+
+    /// 검색어를 넣기 전에 어떻게 찾으면 되는지 알려 준다.
+    private var searchGuide: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("이렇게 검색해보세요")
+                .foregroundStyle(colors.textAlternative)
+            Group {
+                Text("- 도로명 + 건물번호 (위례성대로 2)")
+                Text("- 건물명 + 번지 (방이동 44-2)")
+                Text("- 건물명, 학교명 (반포 자이, 숭실대학교)")
+            }
+            .foregroundStyle(colors.textAssistive)
+        }
+        .moaTextStyle(typography.body3)
+        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding + 4)
+        .padding(.top, 86)
+    }
+
+    /// 카카오 키워드 검색은 사진을 주지 않아 이름과 주소만 보인다.
+    private func resultList(_ candidates: [PlaceCandidate]) -> some View {
+        LazyVStack(alignment: .leading, spacing: 16) {
+            ForEach(Array(candidates.enumerated()), id: \.element.id) { index, candidate in
+                if index > 0 {
+                    Rectangle().fill(colors.lineAlternative).frame(height: 1)
+                }
+                Button { onSelect(candidate) } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(candidate.name)
+                            .moaTextStyle(typography.subtitle2)
+                            .lineLimit(1)
+                        if !candidate.displayAddress.isEmpty {
+                            Text(candidate.displayAddress)
+                                .moaTextStyle(typography.caption0)
+                                .lineLimit(1)
+                        }
+                    }
+                    .foregroundStyle(colors.textNormal)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 20)
+        .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.lineAlternative, lineWidth: 1) }
+        .shadow(color: .black.opacity(0.04), radius: 2)
     }
 
     private func message(_ text: String) -> some View {
@@ -181,19 +260,108 @@ struct AddPlaceSearchContent: View {
     }
 }
 
-/// 검색 결과 카드. 카카오 키워드 검색은 사진을 주지 않아 늘 기본 사진이다.
-private struct CandidateCard: View {
+/// 고른 장소를 지도에 찍어 맞는 곳인지 확인한다.
+struct AddPlaceLocationContent: View {
+    @Environment(\.moaColors) private var colors
+    @Environment(\.moaTypography) private var typography
+
+    let candidate: PlaceCandidate
+    let onBack: () -> Void
+    let onConfirm: () -> Void
+
+    @State private var viewport: Viewport
+    @State private var sheetHeight: CGFloat = 0
+
+    init(candidate: PlaceCandidate, onBack: @escaping () -> Void, onConfirm: @escaping () -> Void) {
+        self.candidate = candidate
+        self.onBack = onBack
+        self.onConfirm = onConfirm
+        let point = CLLocationCoordinate2D(latitude: candidate.latitude, longitude: candidate.longitude)
+        _viewport = State(initialValue: .camera(center: point, zoom: Self.zoom))
+    }
+
+    /// 건물과 길 이름이 읽히는 배율.
+    private static let zoom = 16.0
+
+    private var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: candidate.latitude, longitude: candidate.longitude)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            MoaMapTopBar(title: "지도에서 위치 확인", onBack: onBack)
+            PlaceMarkerMap(places: [marker], viewport: $viewport, allowsRotation: false)
+                // 시트에 가리지 않게 시트 위 남은 칸의 가운데에 장소를 둔다.
+                .onChange(of: sheetHeight) { _, height in
+                    viewport = .overview(
+                        geometry: Point(coordinate),
+                        geometryPadding: SwiftUI.EdgeInsets(top: 0, leading: 0, bottom: height, trailing: 0),
+                        maxZoom: Self.zoom
+                    )
+                }
+                .overlay(alignment: .bottom) { sheet }
+        }
+    }
+
+    /// 마커는 장소 분류에 맞는 아이콘으로 그린다. 아직 등록 전이라 id 는 쓰지 않는다.
+    private var marker: MapPlace {
+        MapPlace(
+            id: 0, name: candidate.name, address: candidate.displayAddress,
+            latitude: candidate.latitude, longitude: candidate.longitude, photoURL: nil,
+            category: candidate.category ?? ""
+        )
+    }
+
+    private var sheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(candidate.name)
+                    .moaTextStyle(typography.title3)
+                if !candidate.displayAddress.isEmpty {
+                    Text(candidate.displayAddress)
+                        .moaTextStyle(typography.subtitle4)
+                }
+            }
+            .foregroundStyle(colors.textNormal)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 4) {
+                Image("Icons/info")
+                    .renderingMode(.template)
+                    .resizable()
+                    .frame(width: 20, height: 20)
+                    .accessibilityHidden(true)
+                Text("표시된 장소가 맞는지 확인해주세요")
+                    .moaTextStyle(typography.body2)
+            }
+            .foregroundStyle(colors.textAssistive)
+            AddPlaceWideButton(title: "이 위치로 장소 추가하기", height: 49, action: onConfirm)
+        }
+        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+        .padding(.top, 80)
+        .padding(.bottom, 12)
+        .overlay(alignment: .top) { SheetGrabber().padding(.top, 5) }
+        .background {
+            UnevenRoundedRectangle(topLeadingRadius: 38, topTrailingRadius: 38)
+                .fill(colors.backgroundSecondary)
+                .shadow(color: .black.opacity(0.18), radius: 18.75, y: 15)
+                .ignoresSafeArea(edges: .bottom)
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { sheetHeight = $0 }
+    }
+}
+
+/// 등록 폼 맨 위에 고른 장소를 보여 준다. 카카오 검색은 사진을 주지 않아 늘 기본 사진이다.
+private struct SelectedPlaceCard: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
     let name: String
     let address: String
-    var highlighted = false
 
     var body: some View {
         HStack(spacing: 12) {
             PhotoThumbnail(imageURL: nil, size: 64)
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(name)
                     .moaTextStyle(typography.subtitle2)
                     .lineLimit(1)
@@ -206,17 +374,10 @@ private struct CandidateCard: View {
             .foregroundStyle(colors.textNormal)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, highlighted ? 12 : 16)
-        .background(highlighted ? MoaMapPrimitiveColors.yellow50 : MoaMapPrimitiveColors.white,
-                    in: RoundedRectangle(cornerRadius: highlighted ? 16 : 12))
-        .overlay {
-            if highlighted {
-                RoundedRectangle(cornerRadius: 16).strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1)
-            }
-        }
-        .shadow(color: .black.opacity(0.04), radius: 4)
-        .contentShape(Rectangle())
+        .padding(16)
+        .background(MoaMapPrimitiveColors.yellow50, in: RoundedRectangle(cornerRadius: 12))
+        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1) }
+        .shadow(color: .black.opacity(0.04), radius: 2)
     }
 }
 
@@ -246,12 +407,18 @@ struct AddPlaceFormContent: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("장소등록")
-                    .moaTextStyle(typography.title3)
-                    .foregroundStyle(colors.textNormal)
-                CandidateCard(name: name, address: address, highlighted: true)
-                section("사진") { photoSection }
-                section("태그") {
+                SelectedPlaceCard(name: name, address: address)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Text("사진")
+                            .moaTextStyle(typography.subtitle1)
+                            .foregroundStyle(colors.textNormal)
+                        optionalLabel
+                    }
+                    photoSection
+                }
+                // 시안상 태그에는 (선택) 표시가 없다. 태그 없이도 등록은 된다.
+                field("태그", optional: false) {
                     if !tags.isEmpty {
                         ScrollView(.horizontal) {
                             HStack(spacing: 4) {
@@ -259,7 +426,6 @@ struct AddPlaceFormContent: View {
                             }
                         }
                         .scrollIndicators(.hidden)
-                        .padding(.bottom, 4)
                     }
                     // Binding setter 안에서 값을 비우면 TextField가 화면에 반영하지 않는다.
                     // 그래서 입력은 그대로 받아 두고, 확정과 되돌려 받기는 onChange에서 한다.
@@ -289,7 +455,7 @@ struct AddPlaceFormContent: View {
                         return .handled
                     }
                 }
-                section("메모") {
+                field("메모", optional: true) {
                     inputField(text: Binding(get: { memo }, set: onMemoChange), placeholder: "메모를 남겨보세요")
                         .focused(focus, equals: .memo)
                 }
@@ -300,13 +466,22 @@ struct AddPlaceFormContent: View {
         .scrollDismissesKeyboard(.interactively)
     }
 
-    private func section(_ title: String, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Text(title).moaTextStyle(typography.subtitle1)
-                Text("(선택)").moaTextStyle(typography.body2)
+    private var optionalLabel: some View {
+        Text("(선택)")
+            .moaTextStyle(typography.body2)
+            .foregroundStyle(colors.textAlternative)
+    }
+
+    /// 입력칸 묶음. 사진 묶음보다 제목이 한 단계 작다.
+    private func field(_ title: String, optional: Bool, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                Text(title)
+                    .moaTextStyle(typography.subtitle2)
+                    .foregroundStyle(colors.textNormal)
+                if optional { optionalLabel }
             }
-            .foregroundStyle(MoaMapPrimitiveColors.black)
+            .padding(.leading, 2)
             content()
         }
     }
