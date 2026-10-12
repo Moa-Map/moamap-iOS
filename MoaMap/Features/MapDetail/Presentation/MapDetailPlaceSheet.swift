@@ -33,7 +33,8 @@ struct MapDetailPlaceSheet: View {
     /// 펼친 목록이 내려가도 되는 홈 표시줄 칸. 실제 칸보다 넉넉하면 된다.
     private static let homeIndicatorAllowance: CGFloat = 100
 
-    @GestureState private var dragOffset: CGFloat = 0
+    /// 짧게 끌고 놓아 펼침이 그대로면 제자리로 부드럽게 돌아간다.
+    @GestureState(resetTransaction: Transaction(animation: .easeOut(duration: 0.25))) private var dragOffset: CGFloat = 0
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -114,7 +115,8 @@ struct MapDetailPlaceSheet: View {
     }
 
     private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 4)
+        // 손잡이는 시트와 함께 움직인다. 손잡이 기준으로 재면 시트가 커질 때마다 거리가 흔들려 화면 기준으로 잰다.
+        DragGesture(minimumDistance: 4, coordinateSpace: .global)
             .updating($dragOffset) { value, state, _ in state = value.translation.height }
             .onEnded { value in
                 let predicted = value.predictedEndTranslation.height
