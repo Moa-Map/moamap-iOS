@@ -112,7 +112,7 @@ struct PlaceImportPlaceView: View {
             title: state.source == .instagram ? "이 장소가 맞나요?" : "지도의 장소들을 불러왔어요",
             description: state.source == .instagram
                 ? "영상에서 \(state.places.count)곳을 찾았어요!\n맞는 곳을 골라주세요."
-                : "추가하고 싶지 않은 장소들은 선택 해제를 해주세요",
+                : "지도에서 \(state.places.count)곳을 찾았어요!\n추가하고 싶지 않은 장소들은 선택 해제를 해주세요",
             errorSource: viewModel,
             onBack: onBack
         ) {
@@ -168,7 +168,7 @@ struct PlaceImportEditDetailView: View {
 
     /// 태그가 되기 전의 입력 중인 글자. 저장할 값이 아니라 화면이 들고 있는다.
     @State private var tagInput = ""
-    @State private var showsSourceMenu = false
+    @State private var showsPhotoPicker = false
     @FocusState private var focusedField: AddPlaceField?
 
     var body: some View {
@@ -185,7 +185,7 @@ struct PlaceImportEditDetailView: View {
                 focus: $focusedField,
                 onAddPhoto: {
                     focusedField = nil
-                    showsSourceMenu = true
+                    showsPhotoPicker = true
                 },
                 onRemovePhoto: { viewModel.removeEditPhoto(place.id, at: $0) },
                 onTagInputChange: { applyTagInput($0) },
@@ -194,6 +194,8 @@ struct PlaceImportEditDetailView: View {
                 onMemoChange: { viewModel.updateEditMemo(place.id, memo: $0) }
             )
             .padding(.top, 8)
+            // 고른 사진을 읽지 못하면 이 화면에서 바로 알린다.
+            .modifier(OptionalSnackbar(viewModel: viewModel))
         }
         .safeAreaInset(edge: .bottom) {
             PlaceImportBottomBar { PlaceImportButton(text: "완료", action: finish) }
@@ -201,8 +203,15 @@ struct PlaceImportEditDetailView: View {
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .contentShape(Rectangle())
         .onTapGesture { focusedField = nil }
-        .imageSourcePicker(isPresented: $showsSourceMenu) { data, type in
-            viewModel.addEditPhoto(place.id, data: data, type: type)
+        .fullScreenCover(isPresented: $showsPhotoPicker) {
+            PhotoLibraryPicker(
+                maxSelection: PlaceImportUiState.maxPhotos - edit.photos.count,
+                onCancel: { showsPhotoPicker = false },
+                onPicked: { photos in
+                    showsPhotoPicker = false
+                    for photo in photos { viewModel.addEditPhoto(place.id, data: photo.data, type: photo.type) }
+                }
+            )
         }
         .toolbar(.hidden, for: .navigationBar)
     }
