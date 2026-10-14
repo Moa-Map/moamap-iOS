@@ -40,7 +40,8 @@ struct PlaceDetailView: View {
     private static let contentTopID = "placeDetailTop"
 
     @State private var expanded = false
-    @GestureState private var dragOffset: CGFloat = 0
+    /// 짧게 끌고 놓아 펼침이 그대로면 제자리로 부드럽게 돌아간다.
+    @GestureState(resetTransaction: Transaction(animation: .easeOut(duration: 0.25))) private var dragOffset: CGFloat = 0
     /// 반만 올라온 시트의 높이를 정하는 치수.
     /// 상태 표시줄·홈 표시줄까지 친 화면의 절반. 홈 표시줄 위부터 잰다.
     @State private var halfScreenHeight: CGFloat = 0
@@ -165,7 +166,8 @@ struct PlaceDetailView: View {
 
     /// 위로 끌면 끝까지 펼치고, 아래로 끌면 반으로 접는다.
     private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 4)
+        // 손잡이와 스크롤 영역은 시트와 함께 움직인다. 그 기준으로 재면 시트가 커질 때마다 거리가 흔들려 화면 기준으로 잰다.
+        DragGesture(minimumDistance: 4, coordinateSpace: .global)
             .updating($dragOffset) { value, state, _ in state = value.translation.height }
             .onEnded { value in
                 let predicted = value.predictedEndTranslation.height
