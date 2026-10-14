@@ -70,7 +70,6 @@ struct MapPhotoField: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(hasImage ? "지도 사진 바꾸기" : "지도 사진 추가하기")
-            .imageSourceMenuAnchor()
         }
     }
 

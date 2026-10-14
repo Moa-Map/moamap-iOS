@@ -7,7 +7,7 @@ struct CreateMapView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var viewModel: CreateMapViewModel
-    @State private var showsSourceMenu = false
+    @State private var showsPhotoPicker = false
     /// 고를 때 한 번만 풀어 둔다. 입력할 때마다 사진을 다시 풀지 않게 한다.
     @State private var previewImage: UIImage?
     /// 화면만 있다. 서버에 보내는 값이 아니다.
@@ -34,7 +34,7 @@ struct CreateMapView: View {
                         // 올리는 중에는 열지 않는다. 고른 사진이 반영되지 않는다.
                         guard !state.isSubmitting else { return }
                         focusedField = nil
-                        showsSourceMenu = true
+                        showsPhotoPicker = true
                     }
                     CreateMapInputField(
                         label: "지도 이름", required: true,
@@ -110,8 +110,20 @@ struct CreateMapView: View {
             // 스크롤한 내용이 버튼 뒤로 비치지 않게 한다.
             .background(colors.backgroundSecondary)
         }
-        .imageSourcePicker(isPresented: $showsSourceMenu) { data, type in
-            if let data { viewModel.selectImage(data: data, type: type) } else { viewModel.showImageLoadFailure() }
+        .fullScreenCover(isPresented: $showsPhotoPicker) {
+            PhotoLibraryPicker(
+                maxSelection: 1,
+                onCancel: { showsPhotoPicker = false },
+                onPicked: { photos in
+                    showsPhotoPicker = false
+                    guard let photo = photos.first else { return }
+                    if let data = photo.data {
+                        viewModel.selectImage(data: data, type: photo.type)
+                    } else {
+                        viewModel.showImageLoadFailure()
+                    }
+                }
+            )
         }
         .overlay {
             if case .showingInviteCode(_, let inviteCode) = state.submit {

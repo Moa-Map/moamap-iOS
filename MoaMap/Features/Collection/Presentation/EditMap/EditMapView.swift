@@ -7,7 +7,7 @@ struct EditMapView: View {
     @Environment(\.moaTypography) private var typography
 
     @State private var viewModel: EditMapViewModel
-    @State private var showsSourceMenu = false
+    @State private var showsPhotoPicker = false
     /// 고를 때 한 번만 풀어 둔다. 입력할 때마다 사진을 다시 풀지 않게 한다.
     @State private var previewImage: UIImage?
     /// TextField에 붙는 입력 중인 글자. 확정된 결과는 `tagInput`으로 다시 받는다.
@@ -42,7 +42,7 @@ struct EditMapView: View {
                         // 올리는 중에는 열지 않는다. 고른 사진이 반영되지 않는다.
                         guard !state.saving else { return }
                         focusedField = nil
-                        showsSourceMenu = true
+                        showsPhotoPicker = true
                     }
                     CreateMapInputField(
                         label: "지도 이름",
@@ -78,8 +78,20 @@ struct EditMapView: View {
             // 스크롤한 내용이 버튼 뒤로 비치지 않게 한다.
             .background(colors.backgroundSecondary)
         }
-        .imageSourcePicker(isPresented: $showsSourceMenu) { data, type in
-            if let data { viewModel.selectImage(data: data, type: type) } else { viewModel.showImageLoadFailure() }
+        .fullScreenCover(isPresented: $showsPhotoPicker) {
+            PhotoLibraryPicker(
+                maxSelection: 1,
+                onCancel: { showsPhotoPicker = false },
+                onPicked: { photos in
+                    showsPhotoPicker = false
+                    guard let photo = photos.first else { return }
+                    if let data = photo.data {
+                        viewModel.selectImage(data: data, type: photo.type)
+                    } else {
+                        viewModel.showImageLoadFailure()
+                    }
+                }
+            )
         }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .contentShape(Rectangle())

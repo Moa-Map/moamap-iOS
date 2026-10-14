@@ -123,15 +123,14 @@ struct PlaceImportViewModelTests {
         #expect(sut.uiState.selectedEntries.first?.edit.memo == "")
     }
 
-    @Test func 사진은_5장까지_같은_사진_없이_붙인다() async throws {
+    @Test func 사진은_한_장만_붙인다() async throws {
         let place = ImportedPlace.fixture(id: "1")
         let sut = try await extracted([place], select: ["1"])
         sut.addEditPhoto("1", data: photo.data, type: .png)
-        sut.addEditPhoto("1", data: photo.data, type: .png)
-        for byte in 3...8 { sut.addEditPhoto("1", data: Data([UInt8(byte)]), type: .png) }
-        #expect(sut.uiState.edit(of: place).photos.count == 5)
+        sut.addEditPhoto("1", data: Data([3]), type: .png)
+        #expect(sut.uiState.edit(of: place).photos.count == 1)
         sut.removeEditPhoto("1", at: 0)
-        #expect(sut.uiState.edit(of: place).photos.count == 4)
+        #expect(sut.uiState.edit(of: place).photos.isEmpty)
         sut.addEditPhoto("1", data: nil, type: nil)
         #expect(sut.uiState.errorMessage == "사진을 불러오지 못했어요")
     }
@@ -185,6 +184,7 @@ struct PlaceImportViewModelTests {
         sut.savePlaces()
         try await sut.saveTask?.value
         #expect(repository.uploadCalls == 1)
+        sut.removeEditPhoto("1", at: 0)
         sut.addEditPhoto("1", data: Data([9]), type: .png)
         sut.savePlaces()
         try await sut.saveTask?.value
