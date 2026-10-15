@@ -24,6 +24,12 @@ nonisolated struct CommunityMapListUiState: Equatable, Sendable {
     var sort: MapSortOrder = .popular
     var list: CommunityMapListState = .loading
     var paging: PagingState = .idle
+    /// 검색창에 적힌 글자.
+    var query = ""
+    /// 지금 목록이 검색 결과면 그 검색어. 검색 중에도 `selectedTag`·`sort` 는 남겨 두었다가 검색어를 지우면 되돌린다.
+    var searchKeyword: String?
+
+    var isSearching: Bool { searchKeyword != nil }
 
     var maps: [MapSummary] {
         if case .loaded(let maps) = list { maps } else { [] }
@@ -35,16 +41,25 @@ final class CommunityMapListViewModel {
     nonisolated static let pageSize = 20
     /// 칩 줄이 끝없이 길어지지 않게 많이 쓰인 것부터 자른다.
     nonisolated static let maxTagChips = 10
+    /// 넘으면 서버가 400 을 준다.
+    nonisolated static let searchKeywordMaxLength = 50
+    nonisolated static let searchDebounce: Duration = .milliseconds(300)
 
     private(set) var uiState = CommunityMapListUiState()
     /// 첫 페이지·다음 페이지·다시 읽기가 한 자리를 쓴다. 조건을 바꾸면 이전 응답을 버린다.
     private(set) var loadTask: Task<Void, Never>?
+    /// 입력을 멈추길 기다리는 검색. 글자가 바뀌면 버리고 다시 기다린다.
+    private(set) var searchTask: Task<Void, Never>?
 
     /// 다음에 받을 페이지 번호. 0 이면 아직 한 페이지도 받지 못했다.
     private var nextPage = 0
     private let repository: any ExploreRepository
+    private let sleep: @Sendable (Duration) async throws -> Void
 
-    init(repository: any ExploreRepository) { self.repository = repository }
+    init(repository: any ExploreRepository, sleep: @escaping @Sendable (Duration) async throws -> Void) {
+        self.repository = repository
+        self.sleep = sleep
+    }
 
     /// 화면이 보일 때 부른다. 돌아왔으면 참여 여부가 바뀌었을 수 있어 받아 둔 만큼을 한 번에 다시 읽는다.
     func refresh() {
@@ -52,15 +67,14 @@ final class CommunityMapListViewModel {
             if loadTask == nil { loadFirstPage() }
             return
         }
-        let tag = uiState.selectedTag
-        let sort = uiState.sort
+        let query = CommunityMapQuery(uiState)
         let size = nextPage * Self.pageSize
         if uiState.paging == .loading { uiState.paging = .idle }
         loadTask?.cancel()
         loadTask = Task { [weak self, repository] in
             defer { if !Task.isCancelled { self?.loadTask = nil } }
             do {
-                let page = try await repository.fetchCommunityMaps(tag: tag, sort: sort, page: 0, size: size)
+                let page = try await query.fetch(from: repository, page: 0, size: size)
                 try Task.checkCancellation()
                 self?.uiState.list = .loaded(page.maps)
                 self?.uiState.paging = page.isLast ? .end : .idle
@@ -87,15 +101,14 @@ final class CommunityMapListViewModel {
     /// 첫 페이지를 받기 전이나 실패했으면 부르지 않는다. 둘째 페이지만 붙는 것을 막는다.
     func loadMore() {
         guard case .loaded = uiState.list, uiState.paging == .idle || uiState.paging == .failed else { return }
-        let tag = uiState.selectedTag
-        let sort = uiState.sort
+        let query = CommunityMapQuery(uiState)
         let page = nextPage
         uiState.paging = .loading
         loadTask?.cancel()
         loadTask = Task { [weak self, repository] in
             defer { if !Task.isCancelled { self?.loadTask = nil } }
             do {
-                let result = try await repository.fetchCommunityMaps(tag: tag, sort: sort, page: page, size: Self.pageSize)
+                let result = try await query.fetch(from: repository, page: page, size: Self.pageSize)
                 try Task.checkCancellation()
                 self?.appendPage(result, pageNumber: page)
             } catch {
@@ -105,9 +118,45 @@ final class CommunityMapListViewModel {
         }
     }
 
+    /// 입력을 멈추고 `searchDebounce` 뒤에 찾는다. 다 지우면 기다리지 않고 검색 전 목록으로 돌아간다.
+    func updateQuery(_ text: String) {
+        let query = String(text.prefix(Self.searchKeywordMaxLength))
+        uiState.query = query
+        searchTask?.cancel()
+        guard let keyword = Self.keyword(query) else {
+            searchTask = nil
+            applySearchKeyword(nil)
+            return
+        }
+        searchTask = Task { [weak self, sleep] in
+            do { try await sleep(Self.searchDebounce) } catch { return }
+            guard !Task.isCancelled else { return }
+            self?.applySearchKeyword(keyword)
+        }
+    }
+
+    /// 키보드 검색 버튼. 기다리지 않고 바로 찾는다.
+    func searchNow() {
+        searchTask?.cancel()
+        searchTask = nil
+        guard let keyword = Self.keyword(uiState.query) else { return }
+        applySearchKeyword(keyword)
+    }
+
+    /// 같은 검색어면 다시 읽지 않는다. 자동 검색 뒤 검색 버튼을 눌러도 요청은 한 번이다.
+    private func applySearchKeyword(_ keyword: String?) {
+        guard keyword != uiState.searchKeyword else { return }
+        uiState.searchKeyword = keyword
+        loadFirstPage()
+    }
+
+    private static func keyword(_ query: String) -> String? {
+        let keyword = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return keyword.isEmpty ? nil : keyword
+    }
+
     private func loadFirstPage() {
-        let tag = uiState.selectedTag
-        let sort = uiState.sort
+        let query = CommunityMapQuery(uiState)
         uiState.list = .loading
         uiState.paging = .idle
         nextPage = 0
@@ -115,9 +164,9 @@ final class CommunityMapListViewModel {
         loadTask = Task { [weak self, repository] in
             defer { if !Task.isCancelled { self?.loadTask = nil } }
             do {
-                let page = try await repository.fetchCommunityMaps(tag: tag, sort: sort, page: 0, size: Self.pageSize)
+                let page = try await query.fetch(from: repository, page: 0, size: Self.pageSize)
                 try Task.checkCancellation()
-                self?.applyFirstPage(page, tag: tag)
+                self?.applyFirstPage(page, query: query)
             } catch {
                 guard !Task.isCancelled, !(error is CancellationError) else { return }
                 self?.uiState.list = .failed(Self.message(for: error))
@@ -125,12 +174,12 @@ final class CommunityMapListViewModel {
         }
     }
 
-    private func applyFirstPage(_ page: MapPage, tag: String?) {
+    private func applyFirstPage(_ page: MapPage, query: CommunityMapQuery) {
         nextPage = 1
         uiState.list = .loaded(page.maps)
         uiState.paging = page.isLast ? .end : .idle
-        // 서버에 태그 목록 API 가 없어 거르지 않은 첫 페이지에서 한 번만 만든다.
-        if uiState.tags.isEmpty, tag == nil {
+        // 서버에 태그 목록 API 가 없어 거르지 않은 첫 페이지에서 한 번만 만든다. 검색 결과로는 만들지 않는다.
+        if uiState.tags.isEmpty, query.keyword == nil, query.tag == nil {
             uiState.tags = Self.tagsByFrequency(page.maps)
         }
     }
@@ -161,5 +210,27 @@ final class CommunityMapListViewModel {
 
     private static func message(for error: any Error) -> String {
         (error as? NetworkError)?.userMessage ?? "지도 목록을 불러오지 못했어요"
+    }
+}
+
+/// 요청을 보낼 때의 조건. 검색어가 있으면 검색, 없으면 태그·정렬 목록이다.
+private nonisolated struct CommunityMapQuery: Sendable {
+    let keyword: String?
+    let tag: String?
+    let sort: MapSortOrder
+
+    init(_ state: CommunityMapListUiState) {
+        keyword = state.searchKeyword
+        tag = state.selectedTag
+        sort = state.sort
+    }
+
+    @MainActor
+    func fetch(from repository: any ExploreRepository, page: Int, size: Int) async throws -> MapPage {
+        if let keyword {
+            try await repository.searchMaps(keyword: keyword, page: page, size: size)
+        } else {
+            try await repository.fetchCommunityMaps(tag: tag, sort: sort, page: page, size: size)
+        }
     }
 }

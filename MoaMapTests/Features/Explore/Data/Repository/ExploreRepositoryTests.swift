@@ -45,6 +45,23 @@ struct ExploreRepositoryTests {
         _ = try await sut.fetchCommunityMaps(tag: "카페", sort: .popular, page: 0, size: 20)
     }
 
+    @Test func 검색은_검색어와_페이지로_요청하고_정렬은_보내지_않는다() async throws {
+        let sut = try repository(body: #"""
+        {"success":true,"data":{"content":[
+          {"id":5,"name":"성수 카페","tags":["카페"],"memberCount":3,"placeCount":2,"joined":true}
+        ],"last":false}}
+        """#) { request in
+            #expect(request.httpMethod == "GET")
+            #expect(request.url?.path == "/api/v1/maps/search")
+            #expect(Self.query(request) == ["keyword": "성수 카페", "page": "1", "size": "20"])
+        }
+        let page = try await sut.searchMaps(keyword: "성수 카페", page: 1, size: 20)
+        #expect(page.isLast == false)
+        #expect(page.maps == [
+            MapSummary(id: 5, title: "성수 카페", imageURL: nil, tags: ["카페"], memberCount: 3, placeCount: 2, joined: true)
+        ])
+    }
+
     @Test func 식별자나_이름이_없는_지도는_버린다() async throws {
         let sut = try repository(body: #"""
         {"success":true,"data":{"content":[{"name":"이름만"},{"id":2,"name":""},{"id":3,"name":"정상"}],"last":true}}

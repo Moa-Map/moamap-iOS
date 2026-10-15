@@ -154,7 +154,7 @@ final class AppContainer {
     }
 
     func makeCommunityMapListViewModel() -> CommunityMapListViewModel {
-        CommunityMapListViewModel(repository: exploreRepository)
+        CommunityMapListViewModel(repository: exploreRepository, sleep: { try await Task.sleep(for: $0) })
     }
 
     func makeOfficialMapListViewModel() -> OfficialMapListViewModel {

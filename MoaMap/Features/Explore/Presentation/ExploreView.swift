@@ -204,6 +204,9 @@ final class PreviewExploreRepository: ExploreRepository {
     func fetchCommunityMaps(tag: String?, sort: MapSortOrder, page: Int, size: Int) async throws -> MapPage {
         MapPage(maps: Self.maps, isLast: true)
     }
+    func searchMaps(keyword: String, page: Int, size: Int) async throws -> MapPage {
+        MapPage(maps: Self.maps, isLast: true)
+    }
     func fetchMyNickname() async throws -> String? { "00" }
 }
 
