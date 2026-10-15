@@ -90,7 +90,8 @@ struct MapPostCreateView: View {
         VStack(alignment: .trailing, spacing: 4) {
             TextField(
                 "",
-                text: Binding(get: { state.content }, set: viewModel.updateContent),
+                // 메서드를 그대로 넘기면 Swift 6.3 컴파일러가 IR 생성 중에 죽는다(CI).
+                text: Binding(get: { state.content }, set: { viewModel.updateContent($0) }),
                 prompt: Text("텍스트를 입력해주세요.").foregroundStyle(colors.textAssistive),
                 axis: .vertical
             )
