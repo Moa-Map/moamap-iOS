@@ -29,6 +29,22 @@ struct MapDetailRuleTests {
         #expect(map(type: .private, role: .owner, joined: true, personal: true).leaveOutcome == nil)
     }
 
+    @Test func 프라이빗_지도_메뉴에는_나가기가_없지만_모음_편집에서는_나갈_수_있다() {
+        #expect(map(type: .community, role: .member, joined: true).canLeaveFromMenu)
+        #expect(!map(type: .private, role: .member, joined: true).canLeaveFromMenu)
+        #expect(!map(type: .private, role: .owner, joined: true).canLeaveFromMenu)
+        #expect(map(type: .private, role: .member, joined: true).leaveOutcome != nil)
+    }
+
+    @Test func 메뉴의_지도_정보는_방장에게만_보인다() {
+        #expect(map(type: .community, role: .owner, joined: true).showsInfoMenu)
+        #expect(map(type: .private, role: .owner, joined: true).showsInfoMenu)
+        #expect(!map(type: .community, role: .admin, joined: true).showsInfoMenu)
+        #expect(!map(type: .community, role: .member, joined: true).showsInfoMenu)
+        #expect(!map(type: .private, role: .owner, joined: true, personal: true).showsInfoMenu)
+        #expect(!map(type: .official, role: .owner, joined: true).showsInfoMenu)
+    }
+
     @Test func 지도_삭제는_혼자_남은_프라이빗_방장만_한다() {
         #expect(map(type: .private, role: .owner, joined: true).leavingDeletesMap)
         #expect(!map(type: .private, role: .owner, joined: true, personal: true).leavingDeletesMap)

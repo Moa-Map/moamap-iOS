@@ -17,6 +17,7 @@ nonisolated struct MapDetailUiState: Equatable, Sendable {
     var canJoin: Bool { map.map?.canJoin ?? false }
     var showsMenu: Bool { map.map?.showsMenu ?? false }
     var canLeave: Bool { map.map?.canLeaveFromMenu ?? false }
+    var showsInfoMenu: Bool { map.map?.showsInfoMenu ?? false }
     var leaveOutcome: LeaveOutcome? { map.map?.leaveOutcome }
     var inviteCode: String? { map.map?.shareableInviteCode }
     var canAddPlace: Bool { map.map?.canAddPlace ?? false }

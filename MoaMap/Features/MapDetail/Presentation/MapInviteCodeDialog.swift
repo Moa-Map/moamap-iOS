@@ -8,7 +8,7 @@ struct MapInviteCodeDialog: View {
 
     let mapName: String
     let inviteCode: String
-    var title = "초대코드"
+    var title = "친구 초대하기"
     let onDismiss: () -> Void
 
     @State private var copied = false

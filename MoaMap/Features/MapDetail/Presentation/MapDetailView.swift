@@ -125,14 +125,12 @@ struct MapDetailView: View {
                 title: title,
                 action: viewModel.uiState.map.map?.topBarAction ?? .none,
                 showsMenu: viewModel.uiState.showsMenu,
-                inviteCode: viewModel.uiState.inviteCode,
                 actionEnabled: !viewModel.uiState.actionInProgress,
                 onBack: { onBack(viewModel.uiState.joinedHere) },
                 onAction: {
                     // 메뉴가 없는 공식지도의 나가기도 같은 확인을 거친다.
                     if viewModel.uiState.canJoin { viewModel.join() } else { leaveDialogVisible = true }
                 },
-                onInviteCode: { inviteCodeVisible = true },
                 onMenu: { menuVisible = true }
             )
             ZStack(alignment: .top) {
@@ -351,6 +349,8 @@ struct MapDetailView: View {
                 .onTapGesture { menuVisible = false }
                 .accessibilityHidden(true)
             MapDetailMenu(
+                showsInfo: viewModel.uiState.showsInfoMenu,
+                showsInviteCode: viewModel.uiState.inviteCode != nil,
                 canLeave: viewModel.uiState.canLeave,
                 onMembers: {
                     menuVisible = false
@@ -363,6 +363,10 @@ struct MapDetailView: View {
                 onInfo: {
                     menuVisible = false
                     infoVisible = true
+                },
+                onInviteCode: {
+                    menuVisible = false
+                    inviteCodeVisible = true
                 },
                 onLeave: {
                     menuVisible = false
