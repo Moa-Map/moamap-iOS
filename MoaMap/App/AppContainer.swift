@@ -187,6 +187,7 @@ final class AppContainer {
             activity: MapActivityViewModel(mapID: mapID, repository: mapActivityRepository, now: Date.init),
             pending: PendingRequestViewModel(mapID: mapID, repository: pendingPlaceRepository),
             posts: MapPostListViewModel(mapID: mapID, repository: mapPostRepository),
+            postCalendar: MapPostCalendarViewModel(mapID: mapID, repository: mapPostRepository, timeZone: .current, now: Date.init),
             makeEditMap: makeEditMapViewModel(map:)
         )
     }

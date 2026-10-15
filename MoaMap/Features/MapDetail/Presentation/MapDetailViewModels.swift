@@ -11,6 +11,7 @@ struct MapDetailViewModels {
     let activity: MapActivityViewModel
     let pending: PendingRequestViewModel
     let posts: MapPostListViewModel
+    let postCalendar: MapPostCalendarViewModel
     /// 지도 정보 수정은 열 때마다 그 순간의 지도로 새로 시작한다.
     let makeEditMap: (MapDetail) -> EditMapViewModel
 }
@@ -117,6 +118,9 @@ extension MapDetailViewModels {
             activity: MapActivityViewModel(mapID: mapID, repository: PreviewMapActivityRepository(), now: Date.init),
             pending: PendingRequestViewModel(mapID: mapID, repository: PreviewPendingPlaceRepository()),
             posts: MapPostListViewModel(mapID: mapID, repository: PreviewMapPostRepository()),
+            postCalendar: MapPostCalendarViewModel(
+                mapID: mapID, repository: PreviewMapPostRepository(), timeZone: .current, now: Date.init
+            ),
             makeEditMap: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) }
         )
     }

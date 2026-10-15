@@ -6,10 +6,11 @@ struct MapPostsView: View {
     @Environment(\.moaTypography) private var typography
 
     let viewModel: MapPostListViewModel
+    let onViewModeSelect: (MapPostViewMode) -> Void
 
     /// 위에 겹친 탭 바(위 16 + 높이 46) 밑으로 18 을 띄운다.
     static let tabBarClearance: CGFloat = 80
-    private static let bottomClearance: CGFloat = 88
+    static let bottomClearance: CGFloat = 88
     private static let cardGap: CGFloat = 12
     /// 끝에서 이만큼 남았을 때 다음 페이지를 부른다.
     private static let loadMoreThreshold = 4
@@ -17,7 +18,12 @@ struct MapPostsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Self.cardGap) {
-                MapPostsToolbar(sort: viewModel.uiState.sort, onSortSelect: viewModel.selectSort)
+                MapPostsToolbar(
+                    viewMode: .card,
+                    onViewModeSelect: onViewModeSelect,
+                    sort: viewModel.uiState.sort,
+                    onSortSelect: viewModel.selectSort
+                )
                     .padding(.bottom, 8)
                 content
             }
@@ -124,25 +130,41 @@ nonisolated enum MapPostColumns {
     }
 }
 
-/// 정렬만 둔다. 보기 방식 칩은 달력과 함께 붙인다.
-private struct MapPostsToolbar: View {
+nonisolated enum MapPostViewMode: CaseIterable, Sendable {
+    case card
+    case calendar
+
+    var label: String {
+        switch self {
+        case .card: "카드 형식"
+        case .calendar: "달력 형식"
+        }
+    }
+}
+
+/// 보기 방식 칩과 정렬. 달력 형식에는 정렬이 없어 `sort` 를 nil 로 넘기면 숨긴다.
+struct MapPostsToolbar: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
-    let sort: MapPostSort
-    let onSortSelect: (MapPostSort) -> Void
+    let viewMode: MapPostViewMode
+    let onViewModeSelect: (MapPostViewMode) -> Void
+    var sort: MapPostSort?
+    var onSortSelect: (MapPostSort) -> Void = { _ in }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
+            MapPostViewModeChip(viewMode: viewMode, onSelect: onViewModeSelect)
             Spacer()
-            option("등록순", .oldest)
-            option("최신순", .latest)
+            if let sort {
+                option("등록순", .oldest, selected: sort == .oldest)
+                option("최신순", .latest, selected: sort == .latest)
+            }
         }
     }
 
-    private func option(_ label: String, _ value: MapPostSort) -> some View {
-        let selected = sort == value
-        return Button { onSortSelect(value) } label: {
+    private func option(_ label: String, _ value: MapPostSort, selected: Bool) -> some View {
+        Button { onSortSelect(value) } label: {
             Text(label)
                 .moaTextStyle(selected ? typography.button2 : typography.button3)
                 .foregroundStyle(selected ? colors.textNormal : colors.textAssistive)
@@ -151,6 +173,57 @@ private struct MapPostsToolbar: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
+/// 누르면 아래로 다른 보기 방식이 펼쳐진다.
+private struct MapPostViewModeChip: View {
+    @Environment(\.moaColors) private var colors
+    @Environment(\.moaTypography) private var typography
+    @State private var expanded = false
+
+    let viewMode: MapPostViewMode
+    let onSelect: (MapPostViewMode) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button { expanded.toggle() } label: {
+                HStack(spacing: 2) {
+                    Text(viewMode.label)
+                        .moaTextStyle(typography.button3)
+                    // 오른쪽 화살표를 돌려 쓴다. 닫혀 있으면 아래, 펼치면 위를 가리킨다.
+                    Image("Icons/arrow-right")
+                        .renderingMode(.template)
+                        .resizable()
+                        .frame(width: 20, height: 20)
+                        .rotationEffect(.degrees(expanded ? -90 : 90))
+                }
+                .foregroundStyle(colors.textNormal)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+            }
+            .accessibilityLabel(viewMode.label)
+            .accessibilityHint(expanded ? "보기 방식 닫기" : "보기 방식 펼치기")
+            if expanded {
+                ForEach(MapPostViewMode.allCases.filter { $0 != viewMode }, id: \.self) { mode in
+                    Button {
+                        expanded = false
+                        onSelect(mode)
+                    } label: {
+                        Text(mode.label)
+                            .moaTextStyle(typography.button3)
+                            .foregroundStyle(colors.textNormal)
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 8)
+                            .contentShape(Rectangle())
+                    }
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 18))
+        .overlay { RoundedRectangle(cornerRadius: 18).strokeBorder(MoaMapPrimitiveColors.gray300, lineWidth: 1) }
     }
 }
 
@@ -204,15 +277,17 @@ struct MapPostCard: View {
     }
 }
 
-private struct MapPostPlacePill: View {
+struct MapPostPlacePill: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
     let name: String
+    /// 기본은 caption0 이다.
+    var style: MoaMapTextStyle?
 
     var body: some View {
         Text(name)
-            .moaTextStyle(typography.caption0)
+            .moaTextStyle(style ?? typography.caption0)
             .foregroundStyle(colors.textNormal)
             .lineLimit(1)
             .padding(.horizontal, 4)
@@ -224,6 +299,6 @@ private struct MapPostPlacePill: View {
 #if DEBUG
 #Preview {
     let viewModel = MapPostListViewModel(mapID: 1, repository: PreviewMapPostRepository())
-    MapPostsView(viewModel: viewModel)
+    MapPostsView(viewModel: viewModel, onViewModeSelect: { _ in })
 }
 #endif

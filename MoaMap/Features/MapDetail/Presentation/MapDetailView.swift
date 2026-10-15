@@ -14,6 +14,7 @@ struct MapDetailView: View {
     @State private var activityViewModel: MapActivityViewModel
     @State private var pendingViewModel: PendingRequestViewModel
     @State private var postListViewModel: MapPostListViewModel
+    @State private var postCalendarViewModel: MapPostCalendarViewModel
     private let makeEditMap: (MapDetail) -> EditMapViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
@@ -35,6 +36,7 @@ struct MapDetailView: View {
         _activityViewModel = State(initialValue: viewModels.activity)
         _pendingViewModel = State(initialValue: viewModels.pending)
         _postListViewModel = State(initialValue: viewModels.posts)
+        _postCalendarViewModel = State(initialValue: viewModels.postCalendar)
         makeEditMap = viewModels.makeEditMap
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
@@ -42,6 +44,7 @@ struct MapDetailView: View {
     }
 
     @State private var selectedTab: MapDetailTab = .places
+    @State private var postViewMode: MapPostViewMode = .card
     @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: .init())
     /// 초기 카메라는 한 번만 맞춘다. 사용자가 옮긴 카메라가 튀지 않게 한다.
     @State private var cameraSettled = false
@@ -133,7 +136,13 @@ struct MapDetailView: View {
                     .allowsHitTesting(selectedTab == .places)
                     .accessibilityHidden(selectedTab != .places)
                 if selectedTab == .logs {
-                    MapPostsView(viewModel: postListViewModel)
+                    // 보기를 바꿔도 카드 목록의 정렬·받은 페이지는 ViewModel 에 남는다.
+                    switch postViewMode {
+                    case .card:
+                        MapPostsView(viewModel: postListViewModel) { postViewMode = $0 }
+                    case .calendar:
+                        MapPostCalendarView(viewModel: postCalendarViewModel) { postViewMode = $0 }
+                    }
                 }
                 // 공식지도는 로그 탭이 없다.
                 if !viewModel.uiState.isOfficial {
