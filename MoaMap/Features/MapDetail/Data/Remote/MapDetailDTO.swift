@@ -47,6 +47,7 @@ nonisolated struct PlaceLikeResponse: Decodable, Sendable {
 nonisolated struct UserProfileResponse: Decodable, Sendable {
     let id: Int64?
     let nickname: String?
+    let profileImageUrl: String?
 }
 
 nonisolated extension MapDetailResponse {

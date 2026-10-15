@@ -273,56 +273,26 @@ struct PlaceReviewComposer: View {
                 }
             }
             if let photo { draftPhoto(photo) }
-            HStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    Button(action: onAddPhoto) {
-                        Image("Icons/add")
-                            .renderingMode(.template)
-                            .resizable()
-                            .frame(width: 20, height: 20)
-                            .foregroundStyle(canAddPhoto ? colors.textNormal : colors.textDisable)
-                            .frame(width: 32, height: 32)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!canAddPhoto)
-                    .accessibilityLabel("사진 첨부")
-                    TextField(
-                        "", text: $text,
-                        prompt: Text(canWrite ? "이 장소에 대한 경험을 공유해주세요" : "지도에 참여하면 댓글을 남길 수 있어요")
-                            .foregroundStyle(colors.textAssistive)
-                    )
-                    .moaTextStyle(typography.body2)
-                    .foregroundStyle(colors.textNormal)
-                    .tint(MoaMapPrimitiveColors.blue500)
-                    .disabled(!inputEnabled)
-                    .submitLabel(.send)
-                    .onSubmit { if canSend { onSubmit() } }
-                }
-                .padding(.leading, 10)
-                .padding(.trailing, 16)
-                .frame(height: 44)
-                .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
-                .shadow(color: .black.opacity(0.04), radius: 4)
-
-                Button(action: onSubmit) {
-                    ZStack {
-                        if state.submitting {
-                            ProgressView().tint(MoaMapPrimitiveColors.white)
-                        } else {
-                            Image("Icons/send")
-                                .renderingMode(.template)
-                                .resizable()
-                                .frame(width: 32, height: 32)
-                                .foregroundStyle(MoaMapPrimitiveColors.white)
-                        }
-                    }
-                    .frame(width: 40, height: 40)
-                    .background(canSend ? MoaMapPrimitiveColors.blue500 : MoaMapPrimitiveColors.gray200, in: Circle())
+            CommentInputRow(
+                text: $text,
+                placeholder: canWrite ? "이 장소에 대한 경험을 공유해주세요" : "지도에 참여하면 댓글을 남길 수 있어요",
+                enabled: inputEnabled,
+                canSend: canSend,
+                sending: state.submitting,
+                onSend: onSubmit
+            ) {
+                Button(action: onAddPhoto) {
+                    Image("Icons/add")
+                        .renderingMode(.template)
+                        .resizable()
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(canAddPhoto ? colors.textNormal : colors.textDisable)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .disabled(!canSend)
-                .accessibilityLabel("댓글 보내기")
+                .disabled(!canAddPhoto)
+                .accessibilityLabel("사진 첨부")
             }
             if let message = state.submitErrorMessage {
                 Text(message)
