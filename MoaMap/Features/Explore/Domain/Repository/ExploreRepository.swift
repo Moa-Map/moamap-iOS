@@ -3,5 +3,7 @@ protocol ExploreRepository {
     func fetchRecommendedMaps(size: Int) async throws -> [MapSummary]
     /// `tag` 가 nil 이면 전체. 그 외에는 태그가 정확히 일치하는 지도만 온다.
     func fetchCommunityMaps(tag: String?, sort: MapSortOrder, page: Int, size: Int) async throws -> MapPage
+    /// 이름·설명·태그 일부로 찾는다. 목록과 달리 참여한 지도도 온다.
+    func searchMaps(keyword: String, page: Int, size: Int) async throws -> MapPage
     func fetchMyNickname() async throws -> String?
 }

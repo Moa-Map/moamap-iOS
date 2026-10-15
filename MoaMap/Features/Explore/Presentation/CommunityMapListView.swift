@@ -22,20 +22,31 @@ struct CommunityMapListView: View {
             topBar
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ExploreSearchBar()
-                        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-                    tagChips
-                        .padding(.top, 12)
-                    CommunityMapSortRow(selected: viewModel.uiState.sort) { viewModel.selectSort($0) }
-                        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-                        .padding(.top, 20)
-                        .padding(.bottom, 12)
+                    ExploreSearchBar(
+                        query: viewModel.uiState.query,
+                        maxLength: CommunityMapListViewModel.searchKeywordMaxLength,
+                        onQueryChange: { viewModel.updateQuery($0) },
+                        onSearch: { viewModel.searchNow() }
+                    )
+                    .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+                    if viewModel.uiState.isSearching {
+                        // 칩·정렬이 빠진 자리. 검색창과 목록 사이 간격은 그대로 둔다.
+                        Color.clear.frame(height: 20)
+                    } else {
+                        tagChips
+                            .padding(.top, 12)
+                        CommunityMapSortRow(selected: viewModel.uiState.sort) { viewModel.selectSort($0) }
+                            .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+                            .padding(.top, 20)
+                            .padding(.bottom, 12)
+                    }
                     content
                     paging
                 }
                 .padding(.vertical, 20)
             }
             .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.immediately)
         }
         .background { colors.backgroundPrimary.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
@@ -95,6 +106,9 @@ struct CommunityMapListView: View {
             CommunityMapsPlaceholder {
                 CommunityMapsError(message: message) { viewModel.retry() }
             }
+        case .loaded(let maps) where maps.isEmpty && viewModel.uiState.isSearching:
+            // 검색 결과가 없으면 아무것도 띄우지 않는다.
+            EmptyView()
         case .loaded(let maps) where maps.isEmpty:
             CommunityMapsPlaceholder {
                 Text(viewModel.uiState.selectedTag == nil ? "아직 등록된 지도가 없어요" : "이 태그의 지도가 없어요")
@@ -137,7 +151,7 @@ struct CommunityMapListView: View {
 #if DEBUG
 #Preview {
     NavigationStack {
-        CommunityMapListView(viewModel: CommunityMapListViewModel(repository: PreviewExploreRepository()), onMapClick: { _ in })
+        CommunityMapListView(viewModel: CommunityMapListViewModel(repository: PreviewExploreRepository(), sleep: { try await Task.sleep(for: $0) }), onMapClick: { _ in })
     }
 }
 #endif

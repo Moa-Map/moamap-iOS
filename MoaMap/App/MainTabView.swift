@@ -304,7 +304,7 @@ private final class PreviewLocationProvider: LocationProvider {
         makePlaceImportViewModel: {
             PlaceImportViewModel(source: $0, url: $1, importRepository: PreviewPlaceImportRepository(), collectionRepository: PreviewCollectionRepository())
         },
-        makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository()) },
+        makeCommunityMapListViewModel: { CommunityMapListViewModel(repository: PreviewExploreRepository(), sleep: { try await Task.sleep(for: $0) }) },
         makeOfficialMapListViewModel: { OfficialMapListViewModel(repository: PreviewOfficialMapRepository()) },
         makeDensityMapViewModel: { DensityMapViewModel(repository: PreviewFootTrafficRepository()) },
         makeRestroomMapViewModel: { RestroomMapViewModel(repository: PreviewRestroomRepository()) },
