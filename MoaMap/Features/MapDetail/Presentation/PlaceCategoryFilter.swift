@@ -34,12 +34,11 @@ nonisolated enum PlaceCategoryFilter: Hashable, Sendable {
 }
 
 nonisolated extension Array where Element == MapPlace {
-    /// 카테고리와 이름 검색을 함께 적용한다. 지도 마커와 목록이 같은 결과를 본다.
+    /// 검색어가 있으면 고른 칩과 상관없이 전체에서 이름으로 찾고, 없으면 칩으로 거른다. 지도 마커와 목록이 같은 결과를 본다.
     /// 주소는 보지 않는다. "서울" 같은 걸 치면 거른 티가 안 난다.
     func filtered(by category: PlaceCategoryFilter, query: String) -> [MapPlace] {
         let keyword = query.trimmingCharacters(in: .whitespaces)
-        return filter { place in
-            category.matches(place) && (keyword.isEmpty || place.name.localizedCaseInsensitiveContains(keyword))
-        }
+        guard !keyword.isEmpty else { return filter(category.matches) }
+        return filter { $0.name.localizedCaseInsensitiveContains(keyword) }
     }
 }

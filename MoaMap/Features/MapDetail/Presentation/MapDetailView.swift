@@ -56,7 +56,7 @@ struct MapDetailView: View {
     /// 장소가 없는 지도는 현재 위치로 열어야 해서 권한 답을 기다린다.
     @State private var permissionAnswered = false
     @State private var is3D = false
-    @State private var currentZoom: Double?
+    @State private var currentCamera: CameraState?
     @State private var locating = false
     @State private var alert: MapDetailAlert?
     @State private var menuVisible = false
@@ -79,9 +79,10 @@ struct MapDetailView: View {
     @State private var notice: String?
 
     private static let pitch3D: CGFloat = 55
-    /// 마커를 맞출 때 가장자리 여백. 위는 탭 바, 아래는 접힌 시트를 피한다.
+    /// 마커를 맞출 때 가장자리 여백. 위는 탭 바, 아래는 접힌 시트를 피한다. 좌우는 가장자리 묶음 마커가 잘리지 않게 둔다.
     private var fitPadding: SwiftUI.EdgeInsets {
-        SwiftUI.EdgeInsets(top: 80, leading: 40, bottom: sheetCollapsedHeight + 40, trailing: 40)
+        let side = PlaceFacepileMarker.maxWidth / 2 + 8
+        return SwiftUI.EdgeInsets(top: 80, leading: side, bottom: sheetCollapsedHeight + 40, trailing: side)
     }
 
     var body: some View {
@@ -439,6 +440,8 @@ struct MapDetailView: View {
         }
     }
 
+    private var currentZoom: Double? { currentCamera.map { Double($0.zoom) } }
+
     /// 이미 더 확대해 봤으면 그 줌을 뺏지 않는다.
     private var zoomKeepingCloser: Double {
         max(currentZoom ?? MapCameraDefaults.zoom, MapCameraDefaults.zoom)
@@ -469,6 +472,25 @@ struct MapDetailView: View {
         viewModel.uiState.places.filtered(by: selectedCategory, query: searchQuery)
     }
 
+    /// 묶인 장소가 보이는 칸에 꽉 차게 확대한다. 끝까지 확대해도 안 갈라지면 목록으로 연다.
+    private func tapCluster(_ cluster: MarkerCluster) {
+        guard cluster.splitsByZoom, !MarkerClustering.isZoomMaxed(currentZoom) else {
+            expandedClusterIDs = cluster.members.map(\.id)
+            return
+        }
+        let coordinates = cluster.members.map(\.coordinate)
+        // 기울기·방향을 넘기지 않으면 3D 로 보던 지도가 펴진다.
+        withViewportAnimation(.easeOut(duration: 0.6)) {
+            viewport = .overview(
+                geometry: MultiPoint(coordinates),
+                bearing: CGFloat(currentCamera?.bearing ?? 0),
+                pitch: currentCamera?.pitch ?? 0,
+                geometryPadding: fitPadding,
+                maxZoom: MarkerClustering.maxZoom
+            )
+        }
+    }
+
     private var expandedClusterPlaces: [MapPlace] {
         let byID = Dictionary(viewModel.uiState.places.map { ($0.id, $0) }) { first, _ in first }
         return expandedClusterIDs.compactMap { byID[$0] }
@@ -489,10 +511,9 @@ struct MapDetailView: View {
             shows3DObjects: is3D,
             // 들어올 때 권한을 묻는다. 허용되는 순간부터 내 위치가 보인다.
             showsMyLocation: locationProvider.authorization == .granted,
-            onCameraChanged: { currentZoom = $0.zoom },
+            onCameraChanged: { currentCamera = $0 },
             onMarkerTap: selectPlace,
-            // 좌표가 같은 장소는 확대해도 갈라지지 않아 목록으로 펼친다.
-            onClusterTap: { cluster in expandedClusterIDs = cluster.members.map(\.id) }
+            onClusterTap: tapCluster
         )
         .overlay(alignment: .bottom) {
             HStack(alignment: .bottom) {

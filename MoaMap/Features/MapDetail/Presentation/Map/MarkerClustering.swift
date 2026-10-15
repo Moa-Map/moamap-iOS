@@ -10,6 +10,9 @@ nonisolated struct MarkerCluster: Identifiable, Equatable, Sendable {
     var isSingle: Bool { members.count == 1 }
     /// 시드 좌표에 고정한다. 평균 좌표를 쓰면 버블끼리 임계값보다 가까워져 겹친다.
     var anchor: CLLocationCoordinate2D { members[0].coordinate }
+
+    /// 끝까지 확대하면 둘 이상으로 갈라진다. 아니면 확대 대신 목록으로 연다.
+    var splitsByZoom: Bool { MarkerClustering.cluster(members, zoom: MarkerClustering.maxZoom).count > 1 }
 }
 
 /// 웹 메르카토르 투영과 클러스터링. 단위는 pt 다.
@@ -22,6 +25,16 @@ nonisolated enum MarkerClustering {
     static let centerStepPoints = 16.0
     /// 기울기·회전을 셈에 넣지 않는 오차를 덮는 경계 여유. 폭·높이의 비율이다.
     static let cullMargin = 0.3
+    /// 묶음을 눌러 확대할 때의 한도.
+    static let maxZoom = 20.0
+    /// 카메라 줌은 한도에 딱 맞지 않고 소수점 오차가 남는다.
+    private static let maxZoomTolerance = 0.01
+
+    /// 카메라가 아직 없으면 확대 쪽으로 보낸다.
+    static func isZoomMaxed(_ zoom: Double?) -> Bool {
+        guard let zoom else { return false }
+        return zoom >= maxZoom - maxZoomTolerance
+    }
 
     private static let tileSize = 512.0
     private static let maxLatitude = 85.05112878

@@ -20,16 +20,25 @@ struct PlaceCategoryFilterTests {
         #expect(PlaceCategoryFilter.available(in: []) == [.all])
     }
 
-    @Test func 카테고리와_이름_검색을_함께_적용한다() {
-        let places = [
+    private var places: [MapPlace] {
+        [
             place(1, "Coffee 나무", category: "음식점 > 카페"),
             place(2, "커피 식당", category: "음식점 > 한식"),
             place(3, "기타 커피", category: "")
         ]
+    }
+
+    @Test func 검색어가_없으면_고른_칩으로_거른다() {
         #expect(places.filtered(by: .group(.cafe), query: "").map(\.id) == [1])
+        #expect(places.filtered(by: .group(.cafe), query: "  ").map(\.id) == [1])
+        #expect(places.filtered(by: .other, query: "").map(\.id) == [3])
+    }
+
+    @Test func 검색어가_있으면_고른_칩과_상관없이_전체에서_찾는다() {
         #expect(places.filtered(by: .all, query: " coffee ").map(\.id) == [1])
-        #expect(places.filtered(by: .other, query: "커피").map(\.id) == [3])
-        #expect(places.filtered(by: .group(.restaurant), query: "커피").map(\.id) == [2])
+        #expect(places.filtered(by: .other, query: "커피").map(\.id) == [2, 3])
+        #expect(places.filtered(by: .group(.cafe), query: "식당").map(\.id) == [2])
+        #expect(places.filtered(by: .group(.restaurant), query: "없는 이름").isEmpty)
     }
 
     @Test func 검색은_주소를_보지_않는다() {

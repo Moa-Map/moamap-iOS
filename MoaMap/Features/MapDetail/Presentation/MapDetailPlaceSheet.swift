@@ -32,6 +32,7 @@ struct MapDetailPlaceSheet: View {
     private static let officialPeekBelowHeader: CGFloat = 160
     /// 펼친 목록이 내려가도 되는 홈 표시줄 칸. 실제 칸보다 넉넉하면 된다.
     private static let homeIndicatorAllowance: CGFloat = 100
+    private static let listTopID = "listTop"
 
     /// 짧게 끌고 놓아 펼침이 그대로면 제자리로 부드럽게 돌아간다.
     @GestureState(resetTransaction: Transaction(animation: .easeOut(duration: 0.25))) private var dragOffset: CGFloat = 0
@@ -66,6 +67,8 @@ struct MapDetailPlaceSheet: View {
         VStack(spacing: 0) {
             header
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight in
+                    // 검색 중에는 칩 줄이 빠져도 접힌 높이를 두어 시트와 지도 버튼이 들썩이지 않게 한다.
+                    guard !searching else { return }
                     collapsedHeight = headerHeight + (official ? Self.officialPeekBelowHeader : Self.headerBottomGap)
                 }
             content
@@ -108,8 +111,10 @@ struct MapDetailPlaceSheet: View {
             if !official {
                 searchField
                     .padding(.top, 20)
-                chips
-                    .padding(.top, 16)
+                if !searching {
+                    chips
+                        .padding(.top, 16)
+                }
             }
         }
     }
@@ -146,7 +151,7 @@ struct MapDetailPlaceSheet: View {
         .padding(.horizontal, 20)
     }
 
-    /// 장소가 없어도 전체 칩만 두고 줄은 남긴다. 줄이 사라지면 접힌 높이가 지도마다 달라진다.
+    /// 장소가 없어도 전체 칩만 두고 줄은 남긴다. 줄이 사라지면 접힌 높이가 지도마다 달라진다. 검색 중에만 숨긴다.
     private var chips: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 6) {
@@ -173,27 +178,35 @@ struct MapDetailPlaceSheet: View {
                 .padding(.top, 56)
             Spacer(minLength: 0)
         } else {
-            ScrollView {
-                LazyVStack(spacing: 8) {
-                    ForEach(places) { place in
-                        PlaceListItem(
-                            place: place,
-                            showsReactions: !official,
-                            onClick: { onPlaceClick(place.id) },
-                            onLikeClick: { onLikeClick(place.id) }
-                        )
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(places) { place in
+                            PlaceListItem(
+                                place: place,
+                                showsReactions: !official,
+                                onClick: { onPlaceClick(place.id) },
+                                onLikeClick: { onLikeClick(place.id) }
+                            )
+                        }
                     }
+                    // 칩 줄과의 간격을 목록 안에 둬야 첫 카드 그림자가 잘리지 않는다.
+                    .padding(EdgeInsets(top: official ? 20 : 16, leading: 20, bottom: 20, trailing: 20))
+                    .id(Self.listTopID)
                 }
-                // 칩 줄과의 간격을 목록 안에 둬야 첫 카드 그림자가 잘리지 않는다.
-                .padding(EdgeInsets(top: official ? 20 : 16, leading: 20, bottom: 20, trailing: 20))
+                .scrollDismissesKeyboard(.immediately)
+                .ignoresSafeArea(.container, edges: .bottom)
+                // 앞 결과의 위치가 남으면 첫 장소가 칩 줄 아래에 잘려 보인다.
+                .onChange(of: searchQuery) { proxy.scrollTo(Self.listTopID, anchor: .top) }
+                .onChange(of: selectedCategory) { proxy.scrollTo(Self.listTopID, anchor: .top) }
             }
-            .scrollDismissesKeyboard(.immediately)
-            .ignoresSafeArea(.container, edges: .bottom)
         }
     }
 
+    private var searching: Bool { !searchQuery.trimmingCharacters(in: .whitespaces).isEmpty }
+
     private var emptyMessage: String {
-        if !searchQuery.trimmingCharacters(in: .whitespaces).isEmpty { return "검색 결과가 없어요" }
+        if searching { return "검색 결과가 없어요" }
         if selectedCategory != .all { return "이 카테고리의 장소가 없어요" }
         return "아직 등록된 장소가 없어요"
     }

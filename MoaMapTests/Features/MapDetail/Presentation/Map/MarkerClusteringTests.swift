@@ -88,6 +88,37 @@ struct MarkerClusteringTests {
     }
 }
 
+struct ClusterZoomTests {
+    @Test(arguments: [(14.0 as Double?, false), (19.5, false), (20, true), (21, true), (20 - 1e-6, true), (nil, false)])
+    func 한도_줌에_닿았는지_가린다(zoom: Double?, maxed: Bool) {
+        #expect(MarkerClustering.isZoomMaxed(zoom) == maxed)
+    }
+
+    @Test func 좌표가_같은_묶음은_확대해도_안_갈라진다() {
+        let cluster = MarkerCluster(members: [first, marker(3, latitude: first.coordinate.latitude, longitude: first.coordinate.longitude)])
+        #expect(!cluster.splitsByZoom)
+    }
+
+    @Test func 한도_줌에서도_임계값보다_가까우면_안_갈라진다() {
+        let near = marker(3, latitude: first.coordinate.latitude, longitude: first.coordinate.longitude + 30 * MarkerClustering.degreesPerPoint(zoom: 20))
+        #expect(!MarkerCluster(members: [first, near]).splitsByZoom)
+    }
+
+    @Test func 약_30m_떨어지면_확대해서_갈라진다() {
+        let apart = marker(3, latitude: first.coordinate.latitude, longitude: first.coordinate.longitude + 0.0004)
+        #expect(MarkerCluster(members: [first, apart]).splitsByZoom)
+    }
+
+    @Test func 같은_자리_둘과_떨어진_하나는_갈라진다() {
+        let same = marker(3, latitude: first.coordinate.latitude, longitude: first.coordinate.longitude)
+        #expect(MarkerCluster(members: [first, same, second]).splitsByZoom)
+    }
+
+    @Test func 묶음_마커가_가장_넓을_때의_폭() {
+        #expect(PlaceFacepileMarker.maxWidth == 124)
+    }
+}
+
 struct InitialCameraTests {
     private func place(_ id: Int64, _ latitude: Double, _ longitude: Double) -> MapPlace {
         MapPlace(id: id, name: "", address: "", latitude: latitude, longitude: longitude, photoURL: nil)
