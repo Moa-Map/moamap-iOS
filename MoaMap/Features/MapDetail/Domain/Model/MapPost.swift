@@ -24,3 +24,16 @@ nonisolated struct MapPostPage: Equatable, Sendable {
     /// 더 받을 페이지가 없다.
     let isLast: Bool
 }
+
+/// 게시물에 태그할 장소. 이름은 태그하는 시점의 것을 그대로 보낸다.
+nonisolated struct MapPostPlaceTag: Equatable, Sendable {
+    let placeID: Int64
+    let name: String
+}
+
+/// 새로 올릴 게시물. 사진은 이미 올려 받은 주소다.
+nonisolated struct NewMapPost: Equatable, Sendable {
+    let content: String
+    let photoURLs: [String]
+    let placeTags: [MapPostPlaceTag]
+}

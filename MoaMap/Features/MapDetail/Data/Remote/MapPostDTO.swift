@@ -38,3 +38,26 @@ nonisolated struct MapPostPlaceTagResponse: Decodable, Sendable {
     let placeId: Int64?
     let name: String?
 }
+
+/// `placeTags` 는 서버가 검증하지 않고 받은 이름을 그대로 저장한다.
+nonisolated struct MapPostCreateRequest: Encodable, Sendable {
+    let content: String
+    let imageUrls: [String]
+    let placeTags: [MapPostPlaceTagRequest]
+}
+
+nonisolated struct MapPostPlaceTagRequest: Encodable, Sendable {
+    let placeId: Int64
+    let name: String
+}
+
+/// 한 장씩 발급한다.
+nonisolated struct MapPostPhotoUploadURLRequest: Encodable, Sendable {
+    let contentType: String
+    let fileSize: Int
+}
+
+nonisolated struct MapPostPhotoUploadURLResponse: Decodable, Sendable {
+    let uploadUrl: String?
+    let fileUrl: String?
+}

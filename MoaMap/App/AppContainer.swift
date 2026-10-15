@@ -65,7 +65,9 @@ final class AppContainer {
         mapMemberRepository = MapMemberRepositoryImpl(client: apiClient)
         mapActivityRepository = MapActivityRepositoryImpl(client: apiClient, timeZone: .current)
         pendingPlaceRepository = PendingPlaceRepositoryImpl(client: apiClient, timeZone: .current)
-        mapPostRepository = MapPostRepositoryImpl(client: apiClient, timeZone: .current)
+        mapPostRepository = MapPostRepositoryImpl(
+            client: apiClient, uploader: PresignedImageUploader(transport: transport), timeZone: .current
+        )
         placeAddRepository = PlaceAddRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
         placeImportRepository = PlaceImportRepositoryImpl(
             client: apiClient,

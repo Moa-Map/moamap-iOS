@@ -183,4 +183,6 @@ private final class ConnectionFailingMapPostRepository: MapPostRepository {
     func fetchPosts(mapID: Int64, page: Int, sort: MapPostSort) async throws -> MapPostPage {
         throw NetworkError.connection(.notConnectedToInternet)
     }
+    func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] { [] }
+    func createPost(mapID: Int64, post: NewMapPost) async throws {}
 }

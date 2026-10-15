@@ -6,10 +6,12 @@ final class MapPostRepositoryImpl: MapPostRepository {
     nonisolated static let pageSize = 20
 
     private let client: APIClient
+    private let uploader: any ImageUploader
     private let timeZone: TimeZone
 
-    init(client: APIClient, timeZone: TimeZone) {
+    init(client: APIClient, uploader: any ImageUploader, timeZone: TimeZone) {
         self.client = client
+        self.uploader = uploader
         self.timeZone = timeZone
     }
 
@@ -29,6 +31,43 @@ final class MapPostRepositoryImpl: MapPostRepository {
             posts: content.map { $0.toDomain(timeZone: timeZone) },
             // 빈 페이지도 끝으로 본다. `last` 가 잘못 와도 스크롤할 때마다 헛조회가 반복되지 않는다.
             isLast: response.last ?? true || content.isEmpty
+        )
+    }
+
+    /// 전부 먼저 살펴본 뒤에 올린다. 셋째 사진이 걸렸을 때 앞의 두 장이 이미 올라가 있으면 지울 방법이 없다.
+    func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] {
+        for photo in photos {
+            try ImageUploadRules.validate(
+                contentType: photo.contentType, fileSize: photo.fileSize, maxFileSize: ImageUploadRules.maxPostPhotoFileSize
+            )
+        }
+        var fileURLs: [String] = []
+        for photo in photos {
+            let body = MapPostPhotoUploadURLRequest(contentType: photo.contentType, fileSize: photo.fileSize)
+            let issued = try await client.send(
+                APIRequest(
+                    path: ["api", "v1", "maps", String(mapID), "posts", "photo-upload-url"],
+                    method: .post,
+                    jsonBody: try JSONEncoder().encode(body)
+                ),
+                as: MapPostPhotoUploadURLResponse.self
+            )
+            guard let uploadURL = issued.uploadUrl.flatMap(URL.init(string:)),
+                  let fileURL = issued.fileUrl, !fileURL.isEmpty else { throw NetworkError.invalidResponse }
+            try await uploader.upload(photo, to: uploadURL)
+            fileURLs.append(fileURL)
+        }
+        return fileURLs
+    }
+
+    func createPost(mapID: Int64, post: NewMapPost) async throws {
+        let body = MapPostCreateRequest(
+            content: post.content,
+            imageUrls: post.photoURLs,
+            placeTags: post.placeTags.map { MapPostPlaceTagRequest(placeId: $0.placeID, name: $0.name) }
+        )
+        try await client.sendWithoutResponse(
+            APIRequest(path: ["api", "v1", "maps", String(mapID), "posts"], method: .post, jsonBody: try JSONEncoder().encode(body))
         )
     }
 }

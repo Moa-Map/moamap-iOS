@@ -94,6 +94,8 @@ final class PreviewMapPostRepository: MapPostRepository {
             MapPost(id: 4, authorID: 4, content: "장소 태그 없이 남긴 글", imageURLs: [], placeNames: [], createdAt: nil)
         ], isLast: true)
     }
+    func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] { [] }
+    func createPost(mapID: Int64, post: NewMapPost) async throws {}
 }
 
 nonisolated struct PreviewCurrentUserStore: CurrentUserStore {

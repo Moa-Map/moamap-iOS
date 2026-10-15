@@ -13,6 +13,10 @@ struct MapPostRepositoryTests {
 
     private let seoul = TimeZone(identifier: "Asia/Seoul")!
 
+    private struct NoUploader: ImageUploader {
+        func upload(_ image: UploadImage, to uploadURL: URL) async throws {}
+    }
+
     private func repository(_ log: Log = Log(), body: String) throws -> MapPostRepositoryImpl {
         let client = APIClient(configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"])) { request in
             log.add(request)
@@ -20,7 +24,7 @@ struct MapPostRepositoryTests {
             let response = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil))
             return (Data(body.utf8), response)
         }
-        return MapPostRepositoryImpl(client: client, timeZone: seoul)
+        return MapPostRepositoryImpl(client: client, uploader: NoUploader(), timeZone: seoul)
     }
 
     private func query(_ request: URLRequest?) -> [String: String] {

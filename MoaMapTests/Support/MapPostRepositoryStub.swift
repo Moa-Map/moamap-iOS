@@ -15,6 +15,10 @@ final class MapPostRepositoryStub: MapPostRepository {
     /// 두면 조회가 여기서 멈춘다.
     var gate: AsyncGate?
     private(set) var requests: [Request] = []
+    var upload: ([UploadImage]) async throws -> [String] = { photos in photos.indices.map { "https://cdn/\($0).jpg" } }
+    var create: (NewMapPost) async throws -> Void = { _ in }
+    private(set) var uploadCalls: [[UploadImage]] = []
+    private(set) var created: [NewMapPost] = []
 
     func fetchPosts(mapID: Int64, page: Int, sort: MapPostSort) async throws -> MapPostPage {
         requests.append(Request(page: page, sort: sort))
@@ -22,6 +26,16 @@ final class MapPostRepositoryStub: MapPostRepository {
         if page == failingPage { throw NetworkError.http(statusCode: 500) }
         let sortPages = pages[sort] ?? []
         return page < sortPages.count ? sortPages[page] : MapPostPage(posts: [], isLast: true)
+    }
+
+    func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] {
+        uploadCalls.append(photos)
+        return try await upload(photos)
+    }
+
+    func createPost(mapID: Int64, post: NewMapPost) async throws {
+        created.append(post)
+        try await create(post)
     }
 }
 
