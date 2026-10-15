@@ -22,14 +22,18 @@ struct PlaceFacepileMarker: View {
     @Environment(\.moaTypography) private var typography
 
     let cluster: MarkerCluster
-    var maxVisible = 3
 
+    private static let maxVisible = 3
     private static let avatarSize: CGFloat = 40
+    private static let overlap: CGFloat = 14
+    private static let ringWidth: CGFloat = 3
+    /// 사진 셋과 +N 까지 찼을 때의 폭. 가운데가 좌표에 붙어 좌우로 절반씩 퍼진다.
+    static let maxWidth = avatarSize * CGFloat(maxVisible + 1) - overlap * CGFloat(maxVisible) + ringWidth * 2
 
     var body: some View {
-        let visible = Array(cluster.members.prefix(maxVisible))
+        let visible = Array(cluster.members.prefix(Self.maxVisible))
         let overflow = cluster.members.count - visible.count
-        HStack(spacing: -14) {
+        HStack(spacing: -Self.overlap) {
             ForEach(Array(visible.enumerated()), id: \.element.id) { index, member in
                 MarkerAvatar(marker: member, size: Self.avatarSize, ringWidth: 2)
                     .zIndex(Double(visible.count - index))
@@ -46,7 +50,7 @@ struct PlaceFacepileMarker: View {
                     .zIndex(Double(visible.count + 1))
             }
         }
-        .padding(3)
+        .padding(Self.ringWidth)
         .background(MoaMapPrimitiveColors.white, in: Capsule())
         .shadow(color: .black.opacity(0.2), radius: 3, y: 2)
         .accessibilityElement(children: .ignore)

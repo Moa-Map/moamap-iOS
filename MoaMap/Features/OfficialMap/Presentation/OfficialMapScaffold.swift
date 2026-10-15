@@ -36,7 +36,6 @@ struct OfficialMapScaffold<Content: View>: View {
                 title: title,
                 action: membership.uiState.map.map?.topBarAction ?? .none,
                 showsMenu: false,
-                inviteCode: nil,
                 actionEnabled: !membership.uiState.actionInProgress,
                 onBack: { onBack(membership.uiState.joinedHere) },
                 // 나가기는 바로 하지 않고 팝업에서 한 번 더 묻는다.

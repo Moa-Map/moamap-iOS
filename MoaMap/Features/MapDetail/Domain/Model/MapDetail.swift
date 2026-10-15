@@ -53,7 +53,8 @@ nonisolated extension MapDetail {
     /// 공식지도는 나가도 화면에 남아 참여하기로 돌아간다.
     var staysAfterLeaving: Bool { type == .official }
 
-    var canLeaveFromMenu: Bool { topBarAction == .leave }
+    /// 프라이빗 지도는 모음 편집에서만 나간다.
+    var canLeaveFromMenu: Bool { topBarAction == .leave && type != .private }
 
     /// 되돌릴 수 없는 요청이라 화면 상태를 믿지 않고 조건을 전부 다시 본다.
     var leavingDeletesMap: Bool {
@@ -61,7 +62,7 @@ nonisolated extension MapDetail {
     }
 
     var leaveOutcome: LeaveOutcome? {
-        guard canLeaveFromMenu else { return nil }
+        guard topBarAction == .leave else { return nil }
         if leavingDeletesMap { return .deleteMap }
         return type == .private ? .leaveNeedsInviteCode : .leave
     }
@@ -74,6 +75,9 @@ nonisolated extension MapDetail {
 
     /// 서버가 방장·관리자에게만 수정을 허용한다.
     var canEditInfo: Bool { joined && type != .official && (role == .owner || role == .admin) }
+
+    /// 메뉴의 지도 정보는 지도를 만든 방장에게만 보인다.
+    var showsInfoMenu: Bool { showsMenu && !personal && role == .owner }
 
     /// 공식지도는 공공데이터라 사용자가 장소를 더하지 않는다.
     var canAddPlace: Bool { joined && (type == .private || type == .community) }

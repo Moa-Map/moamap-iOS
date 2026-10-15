@@ -20,13 +20,10 @@ struct MapDetailTopBar: View {
     let title: String
     let action: MapDetailAction
     let showsMenu: Bool
-    /// nil 이면 초대코드 버튼을 띄우지 않는다.
-    let inviteCode: String?
     /// 요청이 도는 동안 잠근다. 라벨은 그대로 두고 누를 수만 없게 한다.
     let actionEnabled: Bool
     let onBack: () -> Void
     let onAction: () -> Void
-    var onInviteCode: () -> Void = {}
     var onMenu: () -> Void = {}
 
     var body: some View {
@@ -36,8 +33,8 @@ struct MapDetailTopBar: View {
                 .moaTextStyle(typography.title3)
                 .foregroundStyle(colors.textNormal)
                 .lineLimit(1)
-            // 좌우 버튼과 겹치지 않도록 안쪽으로 밀어 둔다. 초대코드가 붙으면 그만큼 더 민다.
-            .padding(.horizontal, inviteCode == nil ? 72 : 132)
+            // 좌우 버튼과 겹치지 않도록 안쪽으로 밀어 둔다.
+            .padding(.horizontal, 72)
 
             HStack(spacing: 12) {
                 Button(action: onBack) {
@@ -52,9 +49,6 @@ struct MapDetailTopBar: View {
                 .accessibilityLabel("뒤로가기")
                 .padding(.leading, 6)
                 Spacer()
-                if inviteCode != nil {
-                    textAction("초대코드", color: MoaMapPrimitiveColors.blue600, enabled: true, action: onInviteCode)
-                }
                 trailingAction
             }
             .padding(.trailing, 20)
@@ -100,20 +94,24 @@ struct MapDetailTopBar: View {
     }
 }
 
-/// 상단바 메뉴. 나갈 수 없는 사람에게는 나가기 줄을 넣지 않는다.
+/// 상단바 메뉴. 볼 수 없는 줄은 넣지 않는다.
 struct MapDetailMenu: View {
+    let showsInfo: Bool
+    let showsInviteCode: Bool
     let canLeave: Bool
     let onMembers: () -> Void
     let onManage: () -> Void
     let onInfo: () -> Void
+    let onInviteCode: () -> Void
     let onLeave: () -> Void
 
     var body: some View {
         var items = [
             ActionMenuItem(icon: "person", label: "멤버 관리", action: onMembers),
-            ActionMenuItem(icon: "map", label: "지도 관리", action: onManage),
-            ActionMenuItem(icon: "info", label: "지도 정보", action: onInfo)
+            ActionMenuItem(icon: "map", label: "지도 관리", action: onManage)
         ]
+        if showsInfo { items.append(ActionMenuItem(icon: "info", label: "지도 정보", action: onInfo)) }
+        if showsInviteCode { items.append(ActionMenuItem(icon: "key", label: "초대코드", action: onInviteCode)) }
         if canLeave { items.append(ActionMenuItem(icon: "out", label: "나가기", action: onLeave)) }
         // 지도 위에 뜨므로 뒤가 비치는 어두운 메뉴를 쓴다.
         return ActionMenu(items: items, dark: true)
@@ -248,21 +246,24 @@ struct MyLocationButton: View {
     VStack(spacing: 20) {
         MapDetailTopBar(
             title: "서울 데이트 지도", action: .leaveDisabled, showsMenu: true,
-            inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
+            actionEnabled: true, onBack: {}, onAction: {}
         )
         MapDetailTopBar(
             title: "성수 카페 투어", action: .join, showsMenu: false,
-            inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
+            actionEnabled: true, onBack: {}, onAction: {}
         )
         MapDetailTopBar(
             title: "우리끼리만 아는 성수동 맛집 모음", action: .leave, showsMenu: true,
-            inviteCode: "A1B2C3", actionEnabled: true, onBack: {}, onAction: {}
+            actionEnabled: true, onBack: {}, onAction: {}
         )
         MapDetailTopBar(
             title: "서울 무장애 여행지", action: .leave, showsMenu: false,
-            inviteCode: nil, actionEnabled: true, onBack: {}, onAction: {}
+            actionEnabled: true, onBack: {}, onAction: {}
         )
-        MapDetailMenu(canLeave: true, onMembers: {}, onManage: {}, onInfo: {}, onLeave: {})
+        MapDetailMenu(
+            showsInfo: true, showsInviteCode: true, canLeave: false,
+            onMembers: {}, onManage: {}, onInfo: {}, onInviteCode: {}, onLeave: {}
+        )
         MapDetailTabBar(selection: .places) { _ in }.padding(.horizontal, 20)
         HStack(spacing: 40) {
             MyLocationButton(inProgress: false) {}
