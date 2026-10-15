@@ -13,6 +13,10 @@ struct MapDetailView: View {
     @State private var memberViewModel: MemberViewModel
     @State private var activityViewModel: MapActivityViewModel
     @State private var pendingViewModel: PendingRequestViewModel
+    @State private var postListViewModel: MapPostListViewModel
+    @State private var postCalendarViewModel: MapPostCalendarViewModel
+    @State private var postCreateViewModel: MapPostCreateViewModel
+    @State private var postDetailViewModel: MapPostDetailViewModel
     private let makeEditMap: (MapDetail) -> EditMapViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
@@ -33,6 +37,10 @@ struct MapDetailView: View {
         _memberViewModel = State(initialValue: viewModels.member)
         _activityViewModel = State(initialValue: viewModels.activity)
         _pendingViewModel = State(initialValue: viewModels.pending)
+        _postListViewModel = State(initialValue: viewModels.posts)
+        _postCalendarViewModel = State(initialValue: viewModels.postCalendar)
+        _postCreateViewModel = State(initialValue: viewModels.postCreate)
+        _postDetailViewModel = State(initialValue: viewModels.postDetail)
         makeEditMap = viewModels.makeEditMap
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
@@ -40,6 +48,8 @@ struct MapDetailView: View {
     }
 
     @State private var selectedTab: MapDetailTab = .places
+    @State private var postViewMode: MapPostViewMode = .card
+    @State private var postCreateVisible = false
     @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: .init())
     /// 초기 카메라는 한 번만 맞춘다. 사용자가 옮긴 카메라가 튀지 않게 한다.
     @State private var cameraSettled = false
@@ -131,8 +141,34 @@ struct MapDetailView: View {
                     .allowsHitTesting(selectedTab == .places)
                     .accessibilityHidden(selectedTab != .places)
                 if selectedTab == .logs {
-                    // TODO: 로그 탭(게시물 목록·달력)을 옮긴다.
-                    colors.backgroundSecondary
+                    // 보기를 바꿔도 카드 목록의 정렬·받은 페이지는 ViewModel 에 남는다.
+                    Group {
+                        switch postViewMode {
+                        case .card:
+                            MapPostsView(
+                                viewModel: postListViewModel,
+                                onViewModeSelect: { postViewMode = $0 },
+                                onPostClick: postDetailViewModel.open
+                            )
+                        case .calendar:
+                            MapPostCalendarView(
+                                viewModel: postCalendarViewModel,
+                                onViewModeSelect: { postViewMode = $0 },
+                                onPostClick: postDetailViewModel.open
+                            )
+                        }
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        // 장소를 더할 수 있는 지도와 같은 기준이다. 서버도 멤버만 받는다.
+                        if viewModel.uiState.canAddPlace {
+                            WritePostButton {
+                                // 닫아도 ViewModel 은 살아남는다. 지우지 않으면 쓰다 만 글이 남는다.
+                                postCreateViewModel.reset()
+                                postCreateVisible = true
+                            }
+                            .padding(20)
+                        }
+                    }
                 }
                 // 공식지도는 로그 탭이 없다.
                 if !viewModel.uiState.isOfficial {
@@ -168,6 +204,26 @@ struct MapDetailView: View {
             if let place = selectedPlace {
                 // 장소마다 입력 중인 글과 사진을 새로 시작한다.
                 placeDetail(place).id(place.id)
+            }
+
+            if postCreateVisible {
+                MapPostCreateView(
+                    viewModel: postCreateViewModel,
+                    places: viewModel.uiState.places,
+                    onClose: { postCreateVisible = false }
+                )
+            }
+
+            if let post = postDetailViewModel.uiState.post {
+                MapPostDetailView(
+                    viewModel: postDetailViewModel,
+                    post: post,
+                    dateLabel: postCalendarViewModel.dateLabel(of: post.createdAt),
+                    // 게시물을 쓸 수 있는 사람과 같은 기준이다. 서버도 멤버만 받는다.
+                    canComment: viewModel.uiState.canAddPlace
+                )
+                // 게시물마다 입력 중인 댓글을 새로 시작한다.
+                .id(post.id)
             }
 
             // 지도를 아직 못 읽었으면 열지 않는다. 버튼 글씨가 지도 정보에 달려 있다.
@@ -265,6 +321,12 @@ struct MapDetailView: View {
                 notice = message
                 // 장소 수가 늘었다. 상단과 시트 제목이 옛 값을 들고 있으면 안 된다.
                 viewModel.refresh()
+            }
+            .onChange(of: postCreateViewModel.uiState.postedCount) {
+                // 새 글이 맨 위(최신순)나 맨 아래(등록순)에 붙도록 첫 페이지부터 다시 읽는다.
+                postCreateVisible = false
+                postListViewModel.retry()
+                postCalendarViewModel.refresh()
             }
             .onChange(of: pendingViewModel.uiState.approvedCount) {
                 // 수락한 장소는 지도에 새로 떠야 한다.

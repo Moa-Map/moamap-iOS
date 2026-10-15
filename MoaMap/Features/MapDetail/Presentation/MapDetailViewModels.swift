@@ -10,6 +10,10 @@ struct MapDetailViewModels {
     let member: MemberViewModel
     let activity: MapActivityViewModel
     let pending: PendingRequestViewModel
+    let posts: MapPostListViewModel
+    let postCalendar: MapPostCalendarViewModel
+    let postCreate: MapPostCreateViewModel
+    let postDetail: MapPostDetailViewModel
     /// 지도 정보 수정은 열 때마다 그 순간의 지도로 새로 시작한다.
     let makeEditMap: (MapDetail) -> EditMapViewModel
 }
@@ -79,6 +83,36 @@ final class PreviewPendingPlaceRepository: PendingPlaceRepository {
     func reject(placeID: Int64) async throws {}
 }
 
+@MainActor
+final class PreviewMapPostRepository: MapPostRepository {
+    func fetchPosts(mapID: Int64, page: Int, sort: MapPostSort) async throws -> MapPostPage {
+        let photo = URL(string: "https://example.com/1.jpg")!
+        return MapPostPage(posts: [
+            MapPost(id: 1, authorID: 2, content: "성수 카페 다녀왔어요. 창가 자리가 좋아요", imageURLs: [photo],
+                    placeNames: ["블루보틀 성수점"], createdAt: nil),
+            MapPost(id: 2, authorID: 3, content: "주말엔 줄이 길어서 평일 오전을 추천해요. 디저트는 금방 떨어지니 일찍 가세요.",
+                    imageURLs: [], placeNames: ["연남 책방"], createdAt: nil),
+            MapPost(id: 3, authorID: 2, content: "여기 야경 진짜 좋아요", imageURLs: [photo], placeNames: [], createdAt: nil),
+            MapPost(id: 4, authorID: 4, content: "장소 태그 없이 남긴 글", imageURLs: [], placeNames: [], createdAt: nil)
+        ], isLast: true)
+    }
+    func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] { [] }
+    func createPost(mapID: Int64, post: NewMapPost) async throws {}
+}
+
+@MainActor
+final class PreviewMapPostCommentRepository: MapPostCommentRepository {
+    func fetchComments(mapID: Int64, postID: Int64) async throws -> [MapPostComment] {
+        [
+            MapPostComment(id: 1, authorID: 2, authorName: "이서연", authorImageURL: nil, content: "창가 자리 좋아 보여요!", createdAt: nil),
+            MapPostComment(id: 2, authorID: 1, authorName: nil, authorImageURL: nil, content: "평일 오전이 한가해요", createdAt: nil)
+        ]
+    }
+    func createComment(mapID: Int64, postID: Int64, content: String) async throws -> MapPostComment {
+        MapPostComment(id: 3, authorID: 1, authorName: nil, authorImageURL: nil, content: content, createdAt: nil)
+    }
+}
+
 nonisolated struct PreviewCurrentUserStore: CurrentUserStore {
     func load() throws -> Int64? { 1 }
     func save(userId: Int64) throws {}
@@ -100,6 +134,14 @@ extension MapDetailViewModels {
             member: MemberViewModel(mapID: mapID, repository: PreviewMapMemberRepository(), currentUserStore: PreviewCurrentUserStore()),
             activity: MapActivityViewModel(mapID: mapID, repository: PreviewMapActivityRepository(), now: Date.init),
             pending: PendingRequestViewModel(mapID: mapID, repository: PreviewPendingPlaceRepository()),
+            posts: MapPostListViewModel(mapID: mapID, repository: PreviewMapPostRepository()),
+            postCalendar: MapPostCalendarViewModel(
+                mapID: mapID, repository: PreviewMapPostRepository(), timeZone: .current, now: Date.init
+            ),
+            postCreate: MapPostCreateViewModel(mapID: mapID, repository: PreviewMapPostRepository()),
+            postDetail: MapPostDetailViewModel(
+                mapID: mapID, repository: PreviewMapPostCommentRepository(), currentUserStore: PreviewCurrentUserStore()
+            ),
             makeEditMap: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) }
         )
     }
