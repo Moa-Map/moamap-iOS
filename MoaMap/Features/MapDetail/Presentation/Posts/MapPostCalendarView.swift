@@ -168,32 +168,29 @@ private struct DayCell: View {
 
     var body: some View {
         Button(action: onTap) {
-            ZStack {
-                if let coverURL {
-                    AsyncImage(url: coverURL) { phase in
-                        if let image = phase.image { image.resizable().scaledToFill() } else { Color.clear }
+            // 칸은 열 폭의 정사각형이고, 사진과 숫자는 그 위에 얹기만 한다.
+            PostPhotoFill(url: coverURL)
+                .aspectRatio(1, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .overlay {
+                    Text("\(day.day)")
+                        .moaTextStyle(typography.caption0)
+                        .foregroundStyle(colors.textWhite)
+                }
+                .background(colors.lineAlternative)
+                .clipShape(Circle())
+                .overlay {
+                    if selected { Circle().strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 1) }
+                }
+                .background {
+                    // 칸 바깥으로 번지는 파란 빛.
+                    if selected {
+                        Circle()
+                            .fill(colors.lineAlternative)
+                            .shadow(color: MoaMapPrimitiveColors.blue500.opacity(0.7), radius: 5)
                     }
                 }
-                Text("\(day.day)")
-                    .moaTextStyle(typography.caption0)
-                    .foregroundStyle(colors.textWhite)
-            }
-            .frame(maxWidth: .infinity)
-            .aspectRatio(1, contentMode: .fit)
-            .background(colors.lineAlternative)
-            .clipShape(Circle())
-            .overlay {
-                if selected { Circle().strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 1) }
-            }
-            .background {
-                // 칸 바깥으로 번지는 파란 빛.
-                if selected {
-                    Circle()
-                        .fill(colors.lineAlternative)
-                        .shadow(color: MoaMapPrimitiveColors.blue500.opacity(0.7), radius: 5)
-                }
-            }
-            .contentShape(Circle())
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(day.month)월 \(day.day)일")
@@ -215,17 +212,15 @@ struct ExpandedPostCard: View {
         let placeName = post.placeNames.first
         VStack(alignment: .trailing, spacing: 8) {
             if let photoURL = post.imageURLs.first {
-                AsyncImage(url: photoURL) { phase in
-                    if let image = phase.image { image.resizable().scaledToFill() } else { Color.clear }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: Self.photoHeight)
-                .background(colors.lineAlternative)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.textWhite, lineWidth: 1) }
-                .overlay(alignment: .topTrailing) {
-                    if let placeName { MapPostPlacePill(name: placeName, style: typography.body2).padding(8) }
-                }
+                PostPhotoFill(url: photoURL)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Self.photoHeight)
+                    .background(colors.lineAlternative)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.textWhite, lineWidth: 1) }
+                    .overlay(alignment: .topTrailing) {
+                        if let placeName { MapPostPlacePill(name: placeName, style: typography.body2).padding(8) }
+                    }
             } else if let placeName {
                 MapPostPlacePill(name: placeName, style: typography.body2)
             }

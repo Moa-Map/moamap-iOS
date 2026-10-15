@@ -286,16 +286,29 @@ struct MapPostCard: View {
     }
 
     private func photo(_ url: URL) -> some View {
-        // 받지 못하면 회색 칸으로 둔다.
-        AsyncImage(url: url) { phase in
-            if let image = phase.image { image.resizable().scaledToFill() } else { Color.clear }
+        PostPhotoFill(url: url)
+            .frame(maxWidth: .infinity)
+            .frame(height: Self.photoHeight)
+            .background(colors.lineAlternative)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.textWhite, lineWidth: 1) }
+            .accessibilityHidden(true)
+    }
+}
+
+/// 주어진 자리를 사진으로 채운다. 크기는 부르는 쪽이 정하고 사진은 그 크기를 바꾸지 않는다.
+/// `scaledToFill` 사진을 바로 두면 비율대로 자리를 넘어 옆 칸을 민다. 받지 못하면 비워 둔다.
+struct PostPhotoFill: View {
+    let url: URL?
+
+    var body: some View {
+        Color.clear.overlay {
+            if let url {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image { image.resizable().scaledToFill() } else { Color.clear }
+                }
+            }
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: Self.photoHeight)
-        .background(colors.lineAlternative)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.textWhite, lineWidth: 1) }
-        .accessibilityHidden(true)
     }
 }
 
