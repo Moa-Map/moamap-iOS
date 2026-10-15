@@ -476,8 +476,60 @@ struct AddPlaceFormContent: View {
         }
     }
 
-    @ViewBuilder
     private var photoSection: some View {
+        PhotoAttachmentRow(
+            photos: photos,
+            canAddPhoto: photos.count < AddPlaceUiState.maxPhotos,
+            onAddPhoto: onAddPhoto,
+            onRemovePhoto: onRemovePhoto
+        )
+    }
+
+    private func tagChip(_ tag: String) -> some View {
+        HStack(spacing: 2) {
+            Text(tag)
+                .moaTextStyle(typography.caption0)
+                .lineLimit(1)
+            Button { onRemoveTag(tag) } label: {
+                Image("Icons/close")
+                    .renderingMode(.template)
+                    .resizable()
+                    .frame(width: 14, height: 14)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(tag) 태그 빼기")
+        }
+        .foregroundStyle(MoaMapPrimitiveColors.yellow900)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(MoaMapPrimitiveColors.yellow50, in: Capsule())
+        .overlay { Capsule().strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1) }
+    }
+
+    private func inputField(text: Binding<String>, placeholder: String) -> some View {
+        TextField("", text: text, prompt: Text(placeholder).foregroundStyle(colors.textAssistive))
+            .moaTextStyle(typography.body2)
+            .foregroundStyle(colors.textNormal)
+            .tint(MoaMapPrimitiveColors.blue500)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.04), radius: 4)
+    }
+}
+
+/// 첨부한 사진 줄. 장소 추가와 게시물 작성이 같은 모양을 쓴다.
+struct PhotoAttachmentRow: View {
+    @Environment(\.moaColors) private var colors
+    @Environment(\.moaTypography) private var typography
+
+    let photos: [UploadImage]
+    /// 최대 장수가 차면 더 붙일 수 없다.
+    let canAddPhoto: Bool
+    let onAddPhoto: () -> Void
+    let onRemovePhoto: (Int) -> Void
+
+    var body: some View {
         if photos.isEmpty {
             Button(action: onAddPhoto) {
                 RoundedRectangle(cornerRadius: 12)
@@ -504,8 +556,7 @@ struct AddPlaceFormContent: View {
                     ForEach(Array(photos.enumerated()), id: \.offset) { index, photo in
                         photoTile(photo, index: index)
                     }
-                    // 최대 장수가 차면 더 붙일 수 없다.
-                    if photos.count < AddPlaceUiState.maxPhotos {
+                    if canAddPhoto {
                         Button(action: onAddPhoto) {
                             Image("Icons/add")
                                 .renderingMode(.template)
@@ -550,38 +601,6 @@ struct AddPlaceFormContent: View {
             .padding(4)
             .accessibilityLabel("사진 빼기")
         }
-    }
-
-    private func tagChip(_ tag: String) -> some View {
-        HStack(spacing: 2) {
-            Text(tag)
-                .moaTextStyle(typography.caption0)
-                .lineLimit(1)
-            Button { onRemoveTag(tag) } label: {
-                Image("Icons/close")
-                    .renderingMode(.template)
-                    .resizable()
-                    .frame(width: 14, height: 14)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(tag) 태그 빼기")
-        }
-        .foregroundStyle(MoaMapPrimitiveColors.yellow900)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(MoaMapPrimitiveColors.yellow50, in: Capsule())
-        .overlay { Capsule().strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1) }
-    }
-
-    private func inputField(text: Binding<String>, placeholder: String) -> some View {
-        TextField("", text: text, prompt: Text(placeholder).foregroundStyle(colors.textAssistive))
-            .moaTextStyle(typography.body2)
-            .foregroundStyle(colors.textNormal)
-            .tint(MoaMapPrimitiveColors.blue500)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.04), radius: 4)
     }
 }
 

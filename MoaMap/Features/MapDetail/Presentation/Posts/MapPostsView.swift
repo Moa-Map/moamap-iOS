@@ -227,6 +227,28 @@ private struct MapPostViewModeChip: View {
     }
 }
 
+/// 새 게시물 진입. 로그 탭에만 있다.
+struct WritePostButton: View {
+    @Environment(\.moaColors) private var colors
+
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image("Icons/add")
+                .renderingMode(.template)
+                .resizable()
+                .frame(width: 32, height: 32)
+                .foregroundStyle(colors.textWhite)
+                .padding(8)
+                .background(MoaMapPrimitiveColors.blue500, in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("새 게시물")
+    }
+}
+
 /// 사진이 있으면 첫 사진 위에 장소 이름을 얹고, 없으면 글 위 오른쪽에 둔다. 장소는 첫 번째만 보여준다.
 struct MapPostCard: View {
     @Environment(\.moaColors) private var colors
