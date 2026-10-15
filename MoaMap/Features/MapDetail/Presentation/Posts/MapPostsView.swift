@@ -310,6 +310,8 @@ struct PostPhotoFill: View {
                 AsyncImage(url: url) { phase in
                     if let image = phase.image { image.resizable().scaledToFill() } else { Color.clear }
                 }
+                // 잘라 낸 바깥도 터치는 받는다. 위 정렬·보기 버튼이나 옆 칸을 누른 것이 이 사진으로 간다.
+                .allowsHitTesting(false)
             }
         }
     }
