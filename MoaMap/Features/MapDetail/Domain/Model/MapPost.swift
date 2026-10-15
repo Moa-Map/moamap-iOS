@@ -37,3 +37,13 @@ nonisolated struct NewMapPost: Equatable, Sendable {
     let photoURLs: [String]
     let placeTags: [MapPostPlaceTag]
 }
+
+/// 게시물에 달린 댓글 한 건. 글만 있다. 작성자 이름·사진은 프로필 조회로 채우고 못 얻으면 nil 이다.
+nonisolated struct MapPostComment: Identifiable, Equatable, Sendable {
+    let id: Int64
+    let authorID: Int64
+    let authorName: String?
+    let authorImageURL: URL?
+    let content: String
+    let createdAt: Date?
+}
