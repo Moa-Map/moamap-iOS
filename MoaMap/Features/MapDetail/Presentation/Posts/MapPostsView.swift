@@ -7,6 +7,8 @@ struct MapPostsView: View {
 
     let viewModel: MapPostListViewModel
     let onViewModeSelect: (MapPostViewMode) -> Void
+    /// 카드를 누르면 게시물 상세를 연다.
+    var onPostClick: (MapPost) -> Void = { _ in }
 
     /// 위에 겹친 탭 바(위 16 + 높이 46) 밑으로 18 을 띄운다.
     static let tabBarClearance: CGFloat = 80
@@ -56,7 +58,8 @@ struct MapPostsView: View {
                 ForEach(Array(MapPostColumns.split(posts).enumerated()), id: \.offset) { _, column in
                     LazyVStack(spacing: Self.cardGap) {
                         ForEach(column, id: \.post.id) { item in
-                            MapPostCard(post: item.post)
+                            Button { onPostClick(item.post) } label: { MapPostCard(post: item.post) }
+                                .buttonStyle(.plain)
                                 .onAppear {
                                     if item.index >= posts.count - Self.loadMoreThreshold { viewModel.loadMore() }
                                 }

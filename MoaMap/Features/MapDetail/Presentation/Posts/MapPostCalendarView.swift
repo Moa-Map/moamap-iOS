@@ -8,6 +8,8 @@ struct MapPostCalendarView: View {
 
     let viewModel: MapPostCalendarViewModel
     let onViewModeSelect: (MapPostViewMode) -> Void
+    /// 고른 날의 카드를 누르면 게시물 상세를 연다.
+    var onPostClick: (MapPost) -> Void = { _ in }
 
     var body: some View {
         ScrollView {
@@ -65,7 +67,10 @@ struct MapPostCalendarView: View {
                     .shadow(color: .black.opacity(0.04), radius: 4)
             } else {
                 ForEach(posts) { post in
-                    ExpandedPostCard(post: post, dateLabel: viewModel.dateLabel(of: post.createdAt))
+                    Button { onPostClick(post) } label: {
+                        ExpandedPostCard(post: post, dateLabel: viewModel.dateLabel(of: post.createdAt))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

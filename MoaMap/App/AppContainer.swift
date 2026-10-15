@@ -25,6 +25,7 @@ final class AppContainer {
     let mapActivityRepository: any MapActivityRepository
     let pendingPlaceRepository: any PendingPlaceRepository
     let mapPostRepository: any MapPostRepository
+    let mapPostCommentRepository: any MapPostCommentRepository
     let userRepository: any UserRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
@@ -68,6 +69,7 @@ final class AppContainer {
         mapPostRepository = MapPostRepositoryImpl(
             client: apiClient, uploader: PresignedImageUploader(transport: transport), timeZone: .current
         )
+        mapPostCommentRepository = MapPostCommentRepositoryImpl(client: apiClient, timeZone: .current)
         placeAddRepository = PlaceAddRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
         placeImportRepository = PlaceImportRepositoryImpl(
             client: apiClient,
@@ -191,6 +193,9 @@ final class AppContainer {
             posts: MapPostListViewModel(mapID: mapID, repository: mapPostRepository),
             postCalendar: MapPostCalendarViewModel(mapID: mapID, repository: mapPostRepository, timeZone: .current, now: Date.init),
             postCreate: MapPostCreateViewModel(mapID: mapID, repository: mapPostRepository),
+            postDetail: MapPostDetailViewModel(
+                mapID: mapID, repository: mapPostCommentRepository, currentUserStore: currentUserStore
+            ),
             makeEditMap: makeEditMapViewModel(map:)
         )
     }

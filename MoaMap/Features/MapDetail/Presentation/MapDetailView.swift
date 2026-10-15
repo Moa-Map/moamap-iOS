@@ -16,6 +16,7 @@ struct MapDetailView: View {
     @State private var postListViewModel: MapPostListViewModel
     @State private var postCalendarViewModel: MapPostCalendarViewModel
     @State private var postCreateViewModel: MapPostCreateViewModel
+    @State private var postDetailViewModel: MapPostDetailViewModel
     private let makeEditMap: (MapDetail) -> EditMapViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
@@ -39,6 +40,7 @@ struct MapDetailView: View {
         _postListViewModel = State(initialValue: viewModels.posts)
         _postCalendarViewModel = State(initialValue: viewModels.postCalendar)
         _postCreateViewModel = State(initialValue: viewModels.postCreate)
+        _postDetailViewModel = State(initialValue: viewModels.postDetail)
         makeEditMap = viewModels.makeEditMap
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
@@ -143,9 +145,17 @@ struct MapDetailView: View {
                     Group {
                         switch postViewMode {
                         case .card:
-                            MapPostsView(viewModel: postListViewModel) { postViewMode = $0 }
+                            MapPostsView(
+                                viewModel: postListViewModel,
+                                onViewModeSelect: { postViewMode = $0 },
+                                onPostClick: postDetailViewModel.open
+                            )
                         case .calendar:
-                            MapPostCalendarView(viewModel: postCalendarViewModel) { postViewMode = $0 }
+                            MapPostCalendarView(
+                                viewModel: postCalendarViewModel,
+                                onViewModeSelect: { postViewMode = $0 },
+                                onPostClick: postDetailViewModel.open
+                            )
                         }
                     }
                     .overlay(alignment: .bottomTrailing) {
@@ -202,6 +212,18 @@ struct MapDetailView: View {
                     places: viewModel.uiState.places,
                     onClose: { postCreateVisible = false }
                 )
+            }
+
+            if let post = postDetailViewModel.uiState.post {
+                MapPostDetailView(
+                    viewModel: postDetailViewModel,
+                    post: post,
+                    dateLabel: postCalendarViewModel.dateLabel(of: post.createdAt),
+                    // 게시물을 쓸 수 있는 사람과 같은 기준이다. 서버도 멤버만 받는다.
+                    canComment: viewModel.uiState.canAddPlace
+                )
+                // 게시물마다 입력 중인 댓글을 새로 시작한다.
+                .id(post.id)
             }
 
             // 지도를 아직 못 읽었으면 열지 않는다. 버튼 글씨가 지도 정보에 달려 있다.
