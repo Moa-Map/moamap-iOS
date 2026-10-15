@@ -13,6 +13,7 @@ struct MapDetailView: View {
     @State private var memberViewModel: MemberViewModel
     @State private var activityViewModel: MapActivityViewModel
     @State private var pendingViewModel: PendingRequestViewModel
+    @State private var postListViewModel: MapPostListViewModel
     private let makeEditMap: (MapDetail) -> EditMapViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
@@ -33,6 +34,7 @@ struct MapDetailView: View {
         _memberViewModel = State(initialValue: viewModels.member)
         _activityViewModel = State(initialValue: viewModels.activity)
         _pendingViewModel = State(initialValue: viewModels.pending)
+        _postListViewModel = State(initialValue: viewModels.posts)
         makeEditMap = viewModels.makeEditMap
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
@@ -131,8 +133,7 @@ struct MapDetailView: View {
                     .allowsHitTesting(selectedTab == .places)
                     .accessibilityHidden(selectedTab != .places)
                 if selectedTab == .logs {
-                    // TODO: 로그 탭(게시물 목록·달력)을 옮긴다.
-                    colors.backgroundSecondary
+                    MapPostsView(viewModel: postListViewModel)
                 }
                 // 공식지도는 로그 탭이 없다.
                 if !viewModel.uiState.isOfficial {
