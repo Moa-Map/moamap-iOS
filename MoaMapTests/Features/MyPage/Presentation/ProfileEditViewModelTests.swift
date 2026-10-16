@@ -55,6 +55,15 @@ struct ProfileEditViewModelTests {
         #expect(sut.uiState.canSave)
     }
 
+    @Test func 불러온_이름에_공백이_있어도_그대로면_저장할_수_없다() async {
+        let repository = UserRepositoryStub()
+        repository.fetch = {
+            MyProfile(id: 1, nickname: "모아 ", email: "moa@example.com", profileImageURL: nil, introduction: "안녕")
+        }
+        let sut = await loaded(repository)
+        #expect(!sut.uiState.canSave)
+    }
+
     @Test func 이름_앞뒤_공백만_바꾸면_바뀐_것으로_보지_않는다() async {
         let sut = await loaded()
         sut.updateNickname("  모아 ")

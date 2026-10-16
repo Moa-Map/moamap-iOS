@@ -25,7 +25,7 @@ nonisolated struct ProfileEditUiState: Equatable, Sendable {
     var load: ProfileLoadState = .loading
     var nickname = ""
     var introduction = ""
-    /// 불러온 값. 바뀐 것이 있는지 가리는 데 쓴다.
+    /// 불러온 값. 바뀐 것이 있는지 가리는 데 쓴다. 이름은 다듬어 견주므로 다듬어 둔다.
     var loadedNickname = ""
     var loadedIntroduction = ""
     var pickedImage: PickedProfileImage?
@@ -72,7 +72,7 @@ final class ProfileEditViewModel {
                 self?.uiState.load = .loaded(email: profile.email, imageURL: profile.profileImageURL)
                 self?.uiState.nickname = profile.nickname
                 self?.uiState.introduction = profile.introduction
-                self?.uiState.loadedNickname = profile.nickname
+                self?.uiState.loadedNickname = profile.nickname.trimmingCharacters(in: .whitespacesAndNewlines)
                 self?.uiState.loadedIntroduction = profile.introduction
             } catch {
                 guard !Task.isCancelled, !(error is CancellationError) else { return }

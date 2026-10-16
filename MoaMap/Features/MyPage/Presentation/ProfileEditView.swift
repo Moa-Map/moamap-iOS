@@ -38,6 +38,8 @@ struct ProfileEditView: View {
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
                     scroll(proxy, to: focusedField)
                 }
+                // 자기소개 칸은 입력하며 줄이 늘어나 다시 가린다.
+                .onChange(of: viewModel.uiState.introduction) { scroll(proxy, to: focusedField) }
             }
         }
         .safeAreaInset(edge: .bottom) { saveButton }
@@ -74,7 +76,8 @@ struct ProfileEditView: View {
     }
 
     private func scroll(_ proxy: ScrollViewProxy, to field: Field?) {
-        guard let field else { return }
+        // 이름 칸은 위쪽이라 가리지 않는다.
+        guard field == .introduction else { return }
         withAnimation { proxy.scrollTo(field, anchor: .bottom) }
     }
 
