@@ -21,16 +21,26 @@ struct ProfileEditView: View {
     var body: some View {
         VStack(spacing: 0) {
             topBar
-            ScrollView {
-                VStack(spacing: 40) {
-                    profileImage
-                    content
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 40) {
+                        profileImage
+                        content
+                    }
+                    .padding(.top, 26)
+                    .padding(.bottom, 20)
                 }
-                .padding(.top, 26)
-                .padding(.bottom, 20)
+                .scrollIndicators(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+                // 시스템은 글자 한 줄만 보이게 스크롤해 자기소개 칸이 키보드 위 저장 버튼에 가린다.
+                // 칸 전체가 보이게 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
+                .onChange(of: focusedField) { _, field in scroll(proxy, to: field) }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                    scroll(proxy, to: focusedField)
+                }
+                // 자기소개 칸은 입력하며 줄이 늘어나 다시 가린다.
+                .onChange(of: viewModel.uiState.introduction) { scroll(proxy, to: focusedField) }
             }
-            .scrollIndicators(.hidden)
-            .scrollDismissesKeyboard(.interactively)
         }
         .safeAreaInset(edge: .bottom) { saveButton }
         .fullScreenCover(isPresented: $showsPhotoPicker) {
@@ -63,6 +73,12 @@ struct ProfileEditView: View {
         } message: {
             Text(viewModel.uiState.errorMessage ?? "")
         }
+    }
+
+    private func scroll(_ proxy: ScrollViewProxy, to field: Field?) {
+        // 이름 칸은 위쪽이라 가리지 않는다.
+        guard field == .introduction else { return }
+        withAnimation { proxy.scrollTo(field, anchor: .bottom) }
     }
 
     private var showsError: Binding<Bool> {
@@ -159,7 +175,7 @@ struct ProfileEditView: View {
 
     private var fields: some View {
         VStack(alignment: .leading, spacing: 20) {
-            field("이름", minHeight: 45) {
+            field("이름", focused: focusedField == .nickname, minHeight: 45) {
                 TextField(
                     "",
                     text: Binding(get: { viewModel.uiState.nickname }, set: { viewModel.updateNickname($0) }),
@@ -169,7 +185,8 @@ struct ProfileEditView: View {
                 .submitLabel(.next)
                 .onSubmit { focusedField = .introduction }
             }
-            field("자기소개", optional: true, minHeight: 88) {
+            .id(Field.nickname)
+            field("자기소개", optional: true, focused: focusedField == .introduction, minHeight: 88) {
                 // 두 줄이 넘으면 칸이 자라고, 여섯 줄부터는 칸 안에서 스크롤한다.
                 TextField(
                     "",
@@ -180,6 +197,7 @@ struct ProfileEditView: View {
                 .lineLimit(1...6)
                 .focused($focusedField, equals: .introduction)
             }
+            .id(Field.introduction)
         }
         .padding(.horizontal, 18)
     }
@@ -191,6 +209,7 @@ struct ProfileEditView: View {
     private func field(
         _ label: String,
         optional: Bool = false,
+        focused: Bool,
         minHeight: CGFloat,
         @ViewBuilder input: () -> some View
     ) -> some View {
@@ -215,6 +234,8 @@ struct ProfileEditView: View {
                 .padding(.vertical, 12)
                 .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
                 .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+                // 입력 중인 칸에 선택 테두리를 보여 준다.
+                .overlay { if focused { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) } }
                 .shadow(color: .black.opacity(0.08), radius: 2.5)
         }
     }

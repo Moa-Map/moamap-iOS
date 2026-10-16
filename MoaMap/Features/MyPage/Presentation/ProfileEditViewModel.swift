@@ -25,16 +25,21 @@ nonisolated struct ProfileEditUiState: Equatable, Sendable {
     var load: ProfileLoadState = .loading
     var nickname = ""
     var introduction = ""
+    /// 불러온 값. 바뀐 것이 있는지 가리는 데 쓴다. 이름은 다듬어 견주므로 다듬어 둔다.
+    var loadedNickname = ""
+    var loadedIntroduction = ""
     var pickedImage: PickedProfileImage?
     var saving = false
     var saved = false
     var errorMessage: String?
 
-    /// 서버가 거절할 것이 뻔한 입력은 보내지 않는다. 앞 공백을 거절하는 규칙이라 길이는 다듬은 뒤로 센다.
+    /// 서버가 거절할 것이 뻔한 입력과 바뀐 것이 없는 입력은 보내지 않는다. 앞 공백을 거절하는 규칙이라 길이는 다듬은 뒤로 센다.
     var canSave: Bool {
         guard case .loaded = load, !saving else { return false }
         let trimmed = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !trimmed.isEmpty && trimmed.count <= Self.nicknameMaxLength
+        guard !trimmed.isEmpty, trimmed.count <= Self.nicknameMaxLength else { return false }
+        // 이름은 다듬어 보내므로 다듬은 값으로 견준다.
+        return trimmed != loadedNickname || introduction != loadedIntroduction || pickedImage != nil
     }
 }
 
@@ -67,6 +72,8 @@ final class ProfileEditViewModel {
                 self?.uiState.load = .loaded(email: profile.email, imageURL: profile.profileImageURL)
                 self?.uiState.nickname = profile.nickname
                 self?.uiState.introduction = profile.introduction
+                self?.uiState.loadedNickname = profile.nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+                self?.uiState.loadedIntroduction = profile.introduction
             } catch {
                 guard !Task.isCancelled, !(error is CancellationError) else { return }
                 self?.uiState.load = .failed(Self.loadFailedMessage)
