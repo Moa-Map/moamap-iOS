@@ -18,7 +18,8 @@ struct OfficialMapListView: View {
         VStack(spacing: 12) {
             topBar
             ScrollView {
-                LazyVStack(spacing: 8) {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    guide
                     content
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
@@ -26,7 +27,8 @@ struct OfficialMapListView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .background { colors.backgroundPrimary.ignoresSafeArea() }
+        // 시안 배경은 단색 Background/Primary(#E6F6FF)다. iOS 의 backgroundPrimary 토큰은 그라데이션이라 쓰지 않는다.
+        .background { MoaMapPrimitiveColors.blue50.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { viewModel.refresh() }
     }
@@ -49,16 +51,24 @@ struct OfficialMapListView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("뒤로가기")
                 Spacer()
-                // 시안에만 있고 누르면 무엇을 보여줄지 아직 정해지지 않았다.
-                Image("Icons/info")
-                    .resizable()
-                    .frame(width: 32, height: 32)
-                    .frame(width: 44, height: 44)
-                    .accessibilityHidden(true)
             }
             .padding(.horizontal, MoaMapDimens.screenHorizontalPadding - 6)
         }
         .frame(height: 58)
+    }
+
+    /// 누르면 무엇을 보여줄지 아직 정해지지 않아 안내 줄만 둔다.
+    private var guide: some View {
+        HStack(spacing: 4) {
+            Image("Icons/info")
+                .renderingMode(.template)
+                .resizable()
+                .frame(width: 20, height: 20)
+                .accessibilityHidden(true)
+            Text("공식지도가 궁금하신가요?")
+                .moaTextStyle(typography.body2)
+        }
+        .foregroundStyle(colors.textAssistive)
     }
 
     @ViewBuilder

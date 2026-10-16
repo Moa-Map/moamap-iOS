@@ -8,4 +8,6 @@ nonisolated struct OfficialMap: Identifiable, Hashable, Sendable {
     let imageURL: URL?
     /// 참여한 지도는 소개를 건너뛰고 바로 상세로 간다.
     let joined: Bool
+    /// 담긴 장소 수. 유동인구·공중화장실 지도는 장소를 담지 않아 0이다.
+    var placeCount = 0
 }

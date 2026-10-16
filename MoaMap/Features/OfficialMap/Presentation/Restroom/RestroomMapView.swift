@@ -61,6 +61,8 @@ struct RestroomMapView: View {
                         RestroomInfoCard(restroom: restroom, detail: viewModel.uiState.detail)
                     }
                 }
+                // 카드가 없으면 VStack 이 버튼 폭이 돼 가운데에 놓인다. 지도 상세처럼 왼쪽에 둔다.
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                 .padding(.bottom, 30)
             }
