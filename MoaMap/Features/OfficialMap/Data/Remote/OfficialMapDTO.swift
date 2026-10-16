@@ -7,6 +7,7 @@ nonisolated struct OfficialMapResponse: Decodable, Sendable {
     let description: String?
     let imageUrl: String?
     let joined: Bool?
+    let placeCount: Int?
 }
 
 nonisolated struct OfficialMapPageResponse: Decodable, Sendable {
@@ -26,7 +27,8 @@ nonisolated extension OfficialMapResponse {
             title: title.isEmpty ? Self.untitled : title,
             description: description?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
             imageURL: imageUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) },
-            joined: joined ?? false
+            joined: joined ?? false,
+            placeCount: placeCount ?? 0
         )
     }
 }

@@ -17,7 +17,7 @@ struct OfficialMapRepositoryTests {
     @Test func 공식지도_목록을_첫_20개로_요청하고_변환한다() async throws {
         let sut = try repository(body: #"""
         {"success":true,"data":{"content":[
-          {"id":6,"name":"화장실 위치","description":"공공데이터 기반 공중화장실 위치","imageUrl":"https://example.com/a.png","type":"OFFICIAL","joined":true},
+          {"id":6,"name":"화장실 위치","description":"공공데이터 기반 공중화장실 위치","imageUrl":"https://example.com/a.png","type":"OFFICIAL","joined":true,"placeCount":12},
           {"id":7,"name":"공원","imageUrl":""}
         ],"last":true}}
         """#) { request in
@@ -27,7 +27,7 @@ struct OfficialMapRepositoryTests {
         }
         let maps = try await sut.fetchOfficialMaps()
         #expect(maps == [
-            OfficialMap(id: 6, title: "화장실 위치", description: "공공데이터 기반 공중화장실 위치", imageURL: URL(string: "https://example.com/a.png"), joined: true),
+            OfficialMap(id: 6, title: "화장실 위치", description: "공공데이터 기반 공중화장실 위치", imageURL: URL(string: "https://example.com/a.png"), joined: true, placeCount: 12),
             OfficialMap(id: 7, title: "공원", description: "", imageURL: nil, joined: false)
         ])
     }

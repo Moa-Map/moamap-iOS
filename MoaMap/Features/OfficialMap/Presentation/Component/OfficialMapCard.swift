@@ -8,39 +8,54 @@ struct OfficialMapCard: View {
     let map: OfficialMap
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            MapThumbnail(imageURL: map.imageURL, size: 90)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 2) {
-                    Text(map.title)
-                        .moaTextStyle(typography.subtitle2)
+        HStack(alignment: .top, spacing: 12) {
+            MapThumbnail(imageURL: map.imageURL, size: 80)
+            VStack(alignment: .trailing, spacing: 0) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 2) {
+                        Text(map.title)
+                            .moaTextStyle(typography.subtitle2)
+                            .foregroundStyle(colors.textNormal)
+                            .lineLimit(1)
+                        Image("Icons/verified")
+                            .resizable()
+                            .frame(width: 20, height: 20)
+                            .accessibilityLabel("공식 인증")
+                    }
+                    Text(map.description)
+                        .moaTextStyle(typography.caption0)
                         .foregroundStyle(colors.textNormal)
                         .lineLimit(1)
-                    Image("Icons/verified")
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                        .accessibilityLabel("공식 인증")
                 }
-                .frame(height: 24)
-                Text(map.description)
-                    .moaTextStyle(typography.body2)
-                    .foregroundStyle(colors.textAlternative)
-                    .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Spacer(minLength: 0)
+                // 유동인구·공중화장실 지도는 장소를 담지 않아 0곳으로 보이므로 숨긴다.
+                if map.placeCount > 0 { placeCount }
             }
-            .padding(.vertical, 4)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 2)
+            .frame(height: 80)
         }
         .padding(12)
         .frame(maxWidth: .infinity)
         .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.04), radius: 4)
     }
+
+    private var placeCount: some View {
+        HStack(spacing: 2) {
+            Image("Icons/location").renderingMode(.template).resizable()
+                .frame(width: 14, height: 14)
+                .accessibilityHidden(true)
+            Text("\(map.placeCount)곳").moaTextStyle(typography.caption0)
+        }
+        .foregroundStyle(colors.textAssistive)
+    }
 }
 
 #Preview {
     VStack(spacing: 8) {
         OfficialMapCard(map: OfficialMap(id: 6, title: "화장실 위치", description: "공공데이터 기반 공중화장실 위치", imageURL: nil, joined: false))
-        OfficialMapCard(map: OfficialMap(id: 7, title: "지도 이름", description: "지도 관련 설명 1줄", imageURL: nil, joined: true))
+        OfficialMapCard(map: OfficialMap(id: 7, title: "지도 이름", description: "지도 관련 설명 1줄", imageURL: nil, joined: true, placeCount: 12))
     }
     .padding()
 }
