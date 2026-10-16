@@ -23,14 +23,16 @@ struct MoaMapSnackbar: View {
 
 extension View {
     /// 값이 들어오면 바로 비우고 잠깐 띄운다. 띄우는 동안 다시 들어오면 새 안내로 바꾼다.
-    func moaSnackbar(_ message: Binding<String?>, duration: Duration = .seconds(4)) -> some View {
-        modifier(SnackbarModifier(message: message, duration: duration))
+    /// `bottomInset` 은 아래에 떠 있는 바(하단 탭 등)를 피해 올리는 높이다.
+    func moaSnackbar(_ message: Binding<String?>, duration: Duration = .seconds(4), bottomInset: CGFloat = 0) -> some View {
+        modifier(SnackbarModifier(message: message, duration: duration, bottomInset: bottomInset))
     }
 }
 
 private struct SnackbarModifier: ViewModifier {
     @Binding var message: String?
     let duration: Duration
+    let bottomInset: CGFloat
     @State private var shown: String?
 
     func body(content: Content) -> some View {
@@ -38,6 +40,7 @@ private struct SnackbarModifier: ViewModifier {
             .overlay(alignment: .bottom) {
                 if let shown {
                     MoaMapSnackbar(message: shown)
+                        .padding(.bottom, bottomInset)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .onTapGesture { self.shown = nil }
                 }
