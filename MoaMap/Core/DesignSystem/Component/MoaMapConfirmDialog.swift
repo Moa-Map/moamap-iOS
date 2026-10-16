@@ -32,7 +32,7 @@ struct MoaMapConfirmDialog: View {
                 VStack(spacing: 4) {
                     titleText
                     Text(message)
-                        .moaTextStyle(typography.caption2)
+                        .moaTextStyle(typography.body2)
                         .foregroundStyle(colors.textAlternative)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
