@@ -94,6 +94,7 @@ struct MainTabView: View {
                     onMapClick: { explorePath.append(.map($0)) },
                     onOfficialMapClick: { explorePath.append(.map($0)) }
                 )
+                .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $explorePath) }
             }
             .tag(MainTab.explore)
@@ -109,21 +110,16 @@ struct MainTabView: View {
                     onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) },
                     onEditMap: { collectionPath.append(.editMap($0)) }
                 )
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    // 편집 중에는 편집 바가 대신 뜬다.
+                    if collectionViewModel.uiState.editing == nil { bottomBar }
+                }
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $collectionPath) }
             }
             .tag(MainTab.collection)
             .toolbar(.hidden, for: .tabBar)
         }
         .moaSnackbar($shareNotice)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            // 하위 화면과 모음 편집 중에는 하단 탭을 숨긴다. 편집은 자기 하단 바를 띄운다.
-            if isRoot && !(selection == .collection && collectionViewModel.uiState.editing != nil) {
-                MoaMapBottomBar(selection: $selection)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-                    .frame(maxWidth: .infinity)
-            }
-        }
         // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 한다.
         .ignoresSafeArea(isRoot ? .keyboard : [], edges: .bottom)
         .onChange(of: collectionPath) { _, path in
@@ -138,6 +134,15 @@ struct MainTabView: View {
     }
 
     private var isRoot: Bool { explorePath.isEmpty && collectionPath.isEmpty }
+
+    /// 각 탭의 첫 화면에 붙인다. `TabView` 바깥에 붙이면 탭 안 스크롤 영역이 하단 탭 높이를 몰라
+    /// 마지막 카드가 하단 탭 뒤에 깔린다. 하위 화면으로 가면 첫 화면과 함께 가려진다.
+    private var bottomBar: some View {
+        MoaMapBottomBar(selection: $selection)
+            .padding(.top, 8)
+            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity)
+    }
 
     private func startPlaceImport(_ source: PlaceImportSource, url: String = "") {
         let viewModel = makePlaceImportViewModel(source, url)
