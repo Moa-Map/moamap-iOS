@@ -19,7 +19,8 @@ struct ProfileEditViewModelTests {
         #expect(sut.uiState.load == .loaded(email: "moa@example.com", imageURL: nil))
         #expect(sut.uiState.nickname == "모아")
         #expect(sut.uiState.introduction == "안녕")
-        #expect(sut.uiState.canSave)
+        // 아직 바꾼 것이 없다.
+        #expect(!sut.uiState.canSave)
     }
 
     @Test func 조회에_실패하면_서버_원문_없이_안내하고_다시_읽는다() async {
@@ -32,7 +33,32 @@ struct ProfileEditViewModelTests {
         repository.fetch = { UserRepositoryStub.profile }
         sut.load()
         await sut.loadTask?.value
+        sut.updateNickname("새이름")
         #expect(sut.uiState.canSave)
+    }
+
+    @Test func 바꾼_것이_없으면_저장할_수_없다() async {
+        let sut = await loaded()
+        #expect(!sut.uiState.canSave)
+
+        sut.updateNickname("새이름")
+        #expect(sut.uiState.canSave)
+        sut.updateNickname("모아")
+        #expect(!sut.uiState.canSave)
+
+        sut.updateIntroduction("반가워")
+        #expect(sut.uiState.canSave)
+        sut.updateIntroduction("안녕")
+        #expect(!sut.uiState.canSave)
+
+        sut.selectImage(data: png, type: .png)
+        #expect(sut.uiState.canSave)
+    }
+
+    @Test func 이름_앞뒤_공백만_바꾸면_바뀐_것으로_보지_않는다() async {
+        let sut = await loaded()
+        sut.updateNickname("  모아 ")
+        #expect(!sut.uiState.canSave)
     }
 
     @Test func 이름이_비었거나_다듬어서_30자를_넘으면_저장할_수_없다() async {
