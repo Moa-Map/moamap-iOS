@@ -298,13 +298,7 @@ struct PlaceDetailView: View {
                 }
             }
             if place.photoURL != nil {
-                AsyncImage(url: place.photoURL) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Image("photo-placeholder").resizable().scaledToFill()
-                    }
-                }
+                PlacePhoto(url: place.photoURL)
                 .frame(maxWidth: .infinity)
                 .frame(height: compact ? 167 : 175)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
