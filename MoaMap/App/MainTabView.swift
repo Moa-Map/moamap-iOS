@@ -34,6 +34,8 @@ struct MainTabView: View {
     private let makePlaceImportViewModel: (PlaceImportSource, String) -> PlaceImportViewModel
     private let sharedLinkInbox: SharedLinkInbox
     @State private var shareNotice: String?
+    /// 스낵바가 하단 탭을 피해 뜨도록 잰다.
+    @State private var bottomBarHeight: CGFloat = 0
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let makeOfficialMapListViewModel: () -> OfficialMapListViewModel
     private let makeDensityMapViewModel: () -> DensityMapViewModel
@@ -94,6 +96,7 @@ struct MainTabView: View {
                     onMapClick: { explorePath.append(.map($0)) },
                     onOfficialMapClick: { explorePath.append(.map($0)) }
                 )
+                .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $explorePath) }
             }
             .tag(MainTab.explore)
@@ -109,21 +112,17 @@ struct MainTabView: View {
                     onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) },
                     onEditMap: { collectionPath.append(.editMap($0)) }
                 )
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    // 편집 중에는 편집 바가 대신 뜬다.
+                    if collectionViewModel.uiState.editing == nil { bottomBar }
+                }
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $collectionPath) }
             }
             .tag(MainTab.collection)
             .toolbar(.hidden, for: .tabBar)
         }
-        .moaSnackbar($shareNotice)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            // 하위 화면과 모음 편집 중에는 하단 탭을 숨긴다. 편집은 자기 하단 바를 띄운다.
-            if isRoot && !(selection == .collection && collectionViewModel.uiState.editing != nil) {
-                MoaMapBottomBar(selection: $selection)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-                    .frame(maxWidth: .infinity)
-            }
-        }
+        // 공유 안내는 모음 탭에서 뜬다. 첫 화면이면 하단 탭이 탭 안쪽에 있어 그 높이만큼 올린다.
+        .moaSnackbar($shareNotice, bottomInset: showsCollectionBottomBar ? bottomBarHeight : 0)
         // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 한다.
         .ignoresSafeArea(isRoot ? .keyboard : [], edges: .bottom)
         .onChange(of: collectionPath) { _, path in
@@ -137,7 +136,22 @@ struct MainTabView: View {
         .preferredColorScheme(.light)
     }
 
-    private var isRoot: Bool { explorePath.isEmpty && collectionPath.isEmpty }
+    /// 보고 있는 탭이 첫 화면인지. 하단 탭은 탭마다 첫 화면에 붙는다.
+    private var isRoot: Bool { selection == .explore ? explorePath.isEmpty : collectionPath.isEmpty }
+
+    private var showsCollectionBottomBar: Bool {
+        selection == .collection && collectionPath.isEmpty && collectionViewModel.uiState.editing == nil
+    }
+
+    /// 각 탭의 첫 화면에 붙인다. `TabView` 바깥에 붙이면 탭 안 스크롤 영역이 하단 탭 높이를 몰라
+    /// 마지막 카드가 하단 탭 뒤에 깔린다. 하위 화면으로 가면 첫 화면과 함께 가려진다.
+    private var bottomBar: some View {
+        MoaMapBottomBar(selection: $selection)
+            .padding(.top, 8)
+            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { bottomBarHeight = $0 }
+    }
 
     private func startPlaceImport(_ source: PlaceImportSource, url: String = "") {
         let viewModel = makePlaceImportViewModel(source, url)
