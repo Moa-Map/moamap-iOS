@@ -7,8 +7,6 @@ struct MoaMapTopBar<Trailing: View>: View {
 
     let title: String
     var height: CGFloat = 58
-    /// 시안마다 24 와 32 가 섞여 있다.
-    var backIconSize: CGFloat = 32
     let onBack: () -> Void
     @ViewBuilder var trailing: () -> Trailing
 
@@ -19,11 +17,11 @@ struct MoaMapTopBar<Trailing: View>: View {
                 .foregroundStyle(colors.textNormal)
                 .accessibilityAddTraits(.isHeader)
             HStack {
-                Button(action: onBack) { MoaMapTopBarIcon(name: "arrow-left", size: backIconSize) }
+                Button(action: onBack) { MoaMapTopBarIcon(name: "arrow-left") }
                     .buttonStyle(.plain)
                     .accessibilityLabel("뒤로가기")
-                    // 아이콘은 44 칸 가운데에 놓이므로 남는 만큼 덜 띄워야 아이콘이 화면 여백에 맞는다.
-                    .padding(.leading, MoaMapDimens.screenHorizontalPadding - (44 - backIconSize) / 2)
+                    // 아이콘(32)은 44 칸 가운데에 놓이므로 남는 6 만큼 덜 띄워야 아이콘이 화면 여백에 맞는다.
+                    .padding(.leading, MoaMapDimens.screenHorizontalPadding - 6)
                 Spacer()
                 trailing()
                     .padding(.trailing, MoaMapDimens.screenHorizontalPadding - 6)
@@ -34,8 +32,8 @@ struct MoaMapTopBar<Trailing: View>: View {
 }
 
 extension MoaMapTopBar where Trailing == EmptyView {
-    init(title: String, height: CGFloat = 58, backIconSize: CGFloat = 32, onBack: @escaping () -> Void) {
-        self.init(title: title, height: height, backIconSize: backIconSize, onBack: onBack, trailing: { EmptyView() })
+    init(title: String, height: CGFloat = 58, onBack: @escaping () -> Void) {
+        self.init(title: title, height: height, onBack: onBack, trailing: { EmptyView() })
     }
 }
 
@@ -44,13 +42,12 @@ struct MoaMapTopBarIcon: View {
     @Environment(\.moaColors) private var colors
 
     let name: String
-    var size: CGFloat = 32
 
     var body: some View {
         Image("Icons/\(name)")
             .renderingMode(.template)
             .resizable()
-            .frame(width: size, height: size)
+            .frame(width: 32, height: 32)
             .foregroundStyle(colors.textNormal)
             .frame(width: 44, height: 44)
             .contentShape(Rectangle())

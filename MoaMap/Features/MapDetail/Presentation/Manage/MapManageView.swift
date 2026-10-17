@@ -18,7 +18,7 @@ struct MapManageView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            MoaMapTopBar(title: "지도 관리", backIconSize: 24, onBack: onBack)
+            MoaMapTopBar(title: "지도 관리", onBack: onBack)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     if canReviewRequests {

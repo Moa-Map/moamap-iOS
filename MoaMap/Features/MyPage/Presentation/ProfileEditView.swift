@@ -98,14 +98,14 @@ struct ProfileEditView: View {
                     Image("Icons/arrow-left")
                         .renderingMode(.template)
                         .resizable()
-                        .frame(width: 24, height: 24)
+                        .frame(width: 32, height: 32)
                         .foregroundStyle(colors.textNormal)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("뒤로가기")
-                .padding(.leading, 10)
+                .padding(.leading, MoaMapDimens.screenHorizontalPadding - 6)
                 Spacer()
             }
         }
