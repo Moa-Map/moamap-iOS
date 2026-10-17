@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(\.moaTypography) private var typography
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: SettingsViewModel
+    @State private var logoutDialogVisible = false
 
     let onLoggedOut: () -> Void
 
@@ -35,7 +36,8 @@ struct SettingsView: View {
                         }
                     }
                     section("계정") {
-                        navigationRow("로그아웃") { viewModel.logout(onLoggedOut: onLoggedOut) }
+                        // 바로 로그아웃하지 않고 팝업에서 한 번 더 묻는다.
+                        navigationRow("로그아웃") { logoutDialogVisible = true }
                         // TODO: 회원탈퇴 API 가 생기면 연결한다.
                         navigationRow("회원탈퇴", color: colors.statusAlert, showsDivider: true)
                     }
@@ -45,6 +47,21 @@ struct SettingsView: View {
                 .padding(.bottom, 34)
             }
             .scrollIndicators(.hidden)
+        }
+        .overlay {
+            if logoutDialogVisible {
+                // TODO: 시안이 나오면 문구를 맞춘다.
+                MoaMapConfirmDialog(
+                    title: "로그아웃 하시겠습니까?",
+                    message: "다시 로그인하면 모은 지도를 그대로 볼 수 있어요",
+                    confirmText: "로그아웃",
+                    onConfirm: {
+                        logoutDialogVisible = false
+                        viewModel.logout(onLoggedOut: onLoggedOut)
+                    },
+                    onDismiss: { logoutDialogVisible = false }
+                )
+            }
         }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
