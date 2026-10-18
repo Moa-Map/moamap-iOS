@@ -94,15 +94,7 @@ struct ProfileEditView: View {
                 .moaTextStyle(typography.title3)
                 .foregroundStyle(MoaMapPrimitiveColors.black)
             HStack {
-                Button { dismiss() } label: {
-                    Image("Icons/arrow-left")
-                        .renderingMode(.template)
-                        .resizable()
-                        .frame(width: 32, height: 32)
-                        .foregroundStyle(colors.textNormal)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
+                Button { dismiss() } label: { MoaMapTopBarIcon(name: "arrow-left") }
                 .buttonStyle(.plain)
                 .accessibilityLabel("뒤로가기")
                 .padding(.leading, MoaMapDimens.screenHorizontalPadding - 6)
