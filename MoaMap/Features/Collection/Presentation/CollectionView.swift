@@ -115,14 +115,22 @@ struct CollectionView: View {
                     Text(type == .community ? "커뮤니티" : "프라이빗")
                         .moaTextStyle(selected ? typography.subtitle3 : typography.subtitle2)
                         .foregroundStyle(selected ? MoaMapPrimitiveColors.yellow900 : colors.textAssistive)
-                        .frame(maxWidth: .infinity)
+                        // 글자가 커져도 칸을 똑같이 나눠야 선택 표시가 칸에 맞는다.
+                        .frame(minWidth: 0, maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(selected ? MoaMapPrimitiveColors.yellow100 : MoaMapPrimitiveColors.yellow50, in: Capsule())
                 }
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
         .buttonStyle(.plain)
+        .background {
+            SegmentSelectionCapsule(
+                count: CollectionMapType.allCases.count,
+                index: CollectionMapType.allCases.firstIndex(of: viewModel.uiState.selectedTab) ?? 0,
+                spacing: 2,
+                color: MoaMapPrimitiveColors.yellow100
+            )
+        }
         .padding(4)
         .background(MoaMapPrimitiveColors.yellow50, in: Capsule())
     }

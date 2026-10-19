@@ -135,15 +135,23 @@ struct MapDetailTabBar: View {
                     Text(tab.title)
                         .moaTextStyle(selected ? typography.button0 : typography.button1)
                         .foregroundStyle(selected ? MoaMapPrimitiveColors.yellow900 : colors.textAssistive)
-                        .frame(maxWidth: .infinity)
+                        // 글자가 커져도 칸을 똑같이 나눠야 선택 표시가 칸에 맞는다.
+                        .frame(minWidth: 0, maxWidth: .infinity)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
-                        .background(selected ? MoaMapPrimitiveColors.yellow100 : MoaMapPrimitiveColors.yellow50, in: Capsule())
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
+        }
+        .background {
+            SegmentSelectionCapsule(
+                count: MapDetailTab.allCases.count,
+                index: MapDetailTab.allCases.firstIndex(of: selection) ?? 0,
+                spacing: 2,
+                color: MoaMapPrimitiveColors.yellow100
+            )
         }
         .padding(4)
         .background(MoaMapPrimitiveColors.yellow50, in: Capsule())
