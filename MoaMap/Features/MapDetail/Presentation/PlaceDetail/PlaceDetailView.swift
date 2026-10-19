@@ -298,7 +298,8 @@ struct PlaceDetailView: View {
                 }
             }
             if !place.photoURLs.isEmpty {
-                PlacePhotoPager(urls: place.photoURLs)
+                // 사진 목록이 바뀌면 첫 장부터 다시 센다. 넘긴 위치가 남으면 "5/2" 처럼 보인다.
+                PlacePhotoPager(urls: place.photoURLs).id(place.photoURLs)
                 .frame(maxWidth: .infinity)
                 .frame(height: compact ? 167 : 175)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
