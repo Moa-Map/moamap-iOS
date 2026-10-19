@@ -297,8 +297,9 @@ struct PlaceDetailView: View {
                     InstagramLinkButton(action: onInstagram)
                 }
             }
-            if place.photoURL != nil {
-                PlacePhoto(url: place.photoURL)
+            if !place.photoURLs.isEmpty {
+                // 사진 목록이 바뀌면 첫 장부터 다시 센다. 넘긴 위치가 남으면 "5/2" 처럼 보인다.
+                PlacePhotoPager(urls: place.photoURLs).id(place.photoURLs)
                 .frame(maxWidth: .infinity)
                 .frame(height: compact ? 167 : 175)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -504,12 +505,49 @@ private struct InstagramLinkButton: View {
     }
 }
 
+/// 장소 사진. 여러 장이면 옆으로 넘겨 보고, 몇 번째인지 오른쪽 아래에 적는다.
+private struct PlacePhotoPager: View {
+    @Environment(\.moaTypography) private var typography
+
+    let urls: [URL]
+
+    @State private var current: Int? = 0
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: 0) {
+                ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
+                    PlacePhoto(url: url)
+                        .containerRelativeFrame(.horizontal)
+                        .clipped()
+                        .id(index)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.paging)
+        .scrollIndicators(.hidden)
+        .scrollPosition(id: $current)
+        .overlay(alignment: .bottomTrailing) {
+            if urls.count > 1 {
+                Text("\((current ?? 0) + 1)/\(urls.count)")
+                    .moaTextStyle(typography.caption0)
+                    .foregroundStyle(MoaMapPrimitiveColors.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(.black.opacity(0.5), in: Capsule())
+                    .padding(8)
+            }
+        }
+    }
+}
+
 #Preview {
     ZStack {
         MoaMapPrimitiveColors.blue50.ignoresSafeArea()
         PlaceDetailView(
             place: MapPlace(
-                id: 1, name: "커피나무", address: "서울 성동구 성수이로 12", latitude: 0, longitude: 0, photoURL: nil,
+                id: 1, name: "커피나무", address: "서울 성동구 성수이로 12", latitude: 0, longitude: 0, photoURLs: [],
                 description: "따뜻한 분위기에서 스페셜티 커피를 즐길 수 있는 카페", category: "음식점 > 카페 > 커피전문점",
                 likeCount: 12, liked: true, instagramURL: URL(string: "https://www.instagram.com/p/abc")
             ),

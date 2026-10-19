@@ -282,7 +282,7 @@ struct AddPlaceLocationContent: View {
     private var marker: MapPlace {
         MapPlace(
             id: 0, name: candidate.name, address: candidate.displayAddress,
-            latitude: candidate.latitude, longitude: candidate.longitude, photoURL: nil,
+            latitude: candidate.latitude, longitude: candidate.longitude, photoURLs: [],
             category: candidate.category ?? ""
         )
     }

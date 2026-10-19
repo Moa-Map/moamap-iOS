@@ -60,6 +60,6 @@ extension MapDetail {
 
 extension MapPlace {
     static func fixture(id: Int64) -> MapPlace {
-        MapPlace(id: id, name: "장소 \(id)", address: "", latitude: 37.5, longitude: 127.0, photoURL: nil)
+        MapPlace(id: id, name: "장소 \(id)", address: "", latitude: 37.5, longitude: 127.0, photoURLs: [])
     }
 }

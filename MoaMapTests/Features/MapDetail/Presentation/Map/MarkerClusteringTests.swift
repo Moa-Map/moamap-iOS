@@ -3,7 +3,7 @@ import Testing
 @testable import MoaMap
 
 private func marker(_ id: Int64, latitude: Double, longitude: Double) -> PlaceMarker {
-    PlaceMarker(place: MapPlace(id: id, name: "장소 \(id)", address: "", latitude: latitude, longitude: longitude, photoURL: nil))
+    PlaceMarker(place: MapPlace(id: id, name: "장소 \(id)", address: "", latitude: latitude, longitude: longitude, photoURLs: []))
 }
 
 /// 약 100m 떨어진 두 곳.
@@ -121,7 +121,7 @@ struct ClusterZoomTests {
 
 struct InitialCameraTests {
     private func place(_ id: Int64, _ latitude: Double, _ longitude: Double) -> MapPlace {
-        MapPlace(id: id, name: "", address: "", latitude: latitude, longitude: longitude, photoURL: nil)
+        MapPlace(id: id, name: "", address: "", latitude: latitude, longitude: longitude, photoURLs: [])
     }
 
     private let location = CLLocationCoordinate2D(latitude: 35.1, longitude: 129.0)

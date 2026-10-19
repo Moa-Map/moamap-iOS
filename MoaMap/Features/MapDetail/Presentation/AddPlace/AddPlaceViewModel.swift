@@ -11,8 +11,8 @@ nonisolated enum PlaceSearchState: Equatable, Sendable {
 }
 
 nonisolated struct AddPlaceUiState: Equatable, Sendable {
-    /// 서버는 한 장소에 5장까지 받지만, 지금은 한 장만 붙인다.
-    static let maxPhotos = 1
+    /// 서버가 한 장소에 5장까지 받는다.
+    static let maxPhotos = 5
 
     var query = ""
     var search: PlaceSearchState = .idle

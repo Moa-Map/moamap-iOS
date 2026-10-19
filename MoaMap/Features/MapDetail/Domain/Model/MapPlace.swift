@@ -8,7 +8,8 @@ nonisolated struct MapPlace: Identifiable, Equatable, Sendable {
     let address: String
     let latitude: Double
     let longitude: Double
-    let photoURL: URL?
+    /// 등록할 때 붙인 사진. 순서대로 온다.
+    let photoURLs: [URL]
     /// 등록자가 적은 한 줄 설명.
     var description = ""
     /// 카카오 분류 경로. `"음식점 > 카페 > 커피전문점"` 처럼 온다.
@@ -22,6 +23,9 @@ nonisolated struct MapPlace: Identifiable, Equatable, Sendable {
 }
 
 nonisolated extension MapPlace {
+    /// 목록 썸네일·마커에 쓰는 대표 사진. 첫 장이다.
+    var photoURL: URL? { photoURLs.first }
+
     /// 분류 경로의 마지막 토막. `"커피전문점"`
     var categoryLabel: String {
         category.split(separator: ">").last?.trimmingCharacters(in: .whitespaces) ?? ""

@@ -81,7 +81,7 @@ nonisolated extension PlaceResponse {
             address: roadAddress.nonBlank ?? address.nonBlank ?? "",
             latitude: lat,
             longitude: lng,
-            photoURL: photoUrls?.lazy.compactMap { $0.nonBlank }.first.flatMap(URL.init(string:)),
+            photoURLs: (photoUrls ?? []).compactMap { $0.nonBlank.flatMap(URL.init(string:)) },
             description: description.nonBlank ?? "",
             category: category.nonBlank ?? "",
             reviewCount: commentCount ?? 0,

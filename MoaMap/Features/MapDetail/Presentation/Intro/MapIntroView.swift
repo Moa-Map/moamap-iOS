@@ -248,7 +248,7 @@ final class PreviewMapDetailRepository: MapDetailRepository {
         (1...5).map { index in
             MapPlace(
                 id: Int64(index), name: "커피나무 \(index)호점", address: "서울 성동구 성수이로 \(index)",
-                latitude: 37.5445 + Double(index) * 0.001, longitude: 127.0557 + Double(index) * 0.001, photoURL: nil
+                latitude: 37.5445 + Double(index) * 0.001, longitude: 127.0557 + Double(index) * 0.001, photoURLs: []
             )
         }
     }

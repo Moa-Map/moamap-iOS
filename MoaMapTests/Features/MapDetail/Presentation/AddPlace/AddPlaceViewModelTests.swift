@@ -95,11 +95,12 @@ struct AddPlaceViewModelTests {
         #expect(sut.uiState.isLocationStep)
     }
 
-    @Test func 사진은_한_장만_붙는다() {
+    @Test func 사진은_다섯_장까지_붙는다() {
         let sut = makeSUT()
-        sut.addPhoto(data: png, type: .png)
-        sut.addPhoto(data: png + [1], type: .png)
-        #expect(sut.uiState.photos.count == 1)
+        for index in 0...AddPlaceUiState.maxPhotos {
+            sut.addPhoto(data: png + [UInt8(index)], type: .png)
+        }
+        #expect(sut.uiState.photos.count == 5)
         #expect(!sut.uiState.canAddPhoto)
         sut.removePhoto(at: 0)
         #expect(sut.uiState.canAddPhoto)

@@ -76,13 +76,13 @@ struct PlaceListItem: View {
     VStack(spacing: 8) {
         PlaceListItem(
             place: MapPlace(
-                id: 1, name: "커피나무", address: "서울 성동구 성수이로 12", latitude: 0, longitude: 0, photoURL: nil,
+                id: 1, name: "커피나무", address: "서울 성동구 성수이로 12", latitude: 0, longitude: 0, photoURLs: [],
                 description: "따뜻한 분위기에서 스페셜티 커피를 즐길 수 있는 카페", reviewCount: 124, liked: true
             ),
             onClick: {}
         )
         PlaceListItem(
-            place: MapPlace(id: 2, name: "달빛정원", address: "서울 용산구 한남대로 21", latitude: 0, longitude: 0, photoURL: nil),
+            place: MapPlace(id: 2, name: "달빛정원", address: "서울 용산구 한남대로 21", latitude: 0, longitude: 0, photoURLs: []),
             showsReactions: false,
             onClick: {}
         )
