@@ -333,22 +333,20 @@ private struct SelectedPlaceCard: View {
     let name: String
     let address: String
 
+    // 카카오 검색은 장소 사진을 주지 않아 사진 칸 없이 이름과 주소만 보인다.
     var body: some View {
-        HStack(spacing: 12) {
-            PhotoThumbnail(imageURL: nil, size: 64)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(name)
-                    .moaTextStyle(typography.subtitle2)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(name)
+                .moaTextStyle(typography.subtitle2)
+                .lineLimit(1)
+            if !address.isEmpty {
+                Text(address)
+                    .moaTextStyle(typography.caption0)
                     .lineLimit(1)
-                if !address.isEmpty {
-                    Text(address)
-                        .moaTextStyle(typography.caption0)
-                        .lineLimit(1)
-                }
             }
-            .foregroundStyle(colors.textNormal)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .foregroundStyle(colors.textNormal)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(MoaMapPrimitiveColors.yellow50, in: RoundedRectangle(cornerRadius: 12))
         .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1) }
@@ -405,7 +403,7 @@ struct AddPlaceFormContent: View {
                         }
                         // Binding setter 안에서 값을 비우면 TextField가 화면에 반영하지 않는다.
                         // 그래서 입력은 그대로 받아 두고, 확정과 되돌려 받기는 onChange에서 한다.
-                        inputField(text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터")
+                        inputField(text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터", focused: focus.wrappedValue == .tag)
                         .focused(focus, equals: .tag)
                         .onChange(of: tagDraft) { _, draft in
                             // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 "카페 "를 붙여넣는 경우 등.
@@ -430,12 +428,16 @@ struct AddPlaceFormContent: View {
                             onTagBackspace()
                             return .handled
                         }
-                        .id(AddPlaceField.tag)
+                        .background { scrollTarget(.tag) }
                     }
                     field("메모", optional: true) {
-                        inputField(text: Binding(get: { memo }, set: onMemoChange), placeholder: "메모를 남겨보세요")
-                            .focused(focus, equals: .memo)
-                            .id(AddPlaceField.memo)
+                        inputField(
+                            text: Binding(get: { memo }, set: onMemoChange),
+                            placeholder: "메모를 남겨보세요",
+                            focused: focus.wrappedValue == .memo
+                        )
+                        .focused(focus, equals: .memo)
+                        .background { scrollTarget(.memo) }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -455,6 +457,15 @@ struct AddPlaceFormContent: View {
         guard let field, field != .search else { return }
         withAnimation { proxy.scrollTo(field, anchor: .bottom) }
     }
+
+    /// 키보드 위로 입력칸을 맞출 때 쓰는 자리. 입력칸보다 아래로 길게 잡아 아래 버튼과 붙지 않게 띄운다.
+    private func scrollTarget(_ field: AddPlaceField) -> some View {
+        Color.clear
+            .id(field)
+            .padding(.bottom, -Self.keyboardButtonGap)
+    }
+
+    private static let keyboardButtonGap: CGFloat = 20
 
     private var optionalLabel: some View {
         Text("(선택)")
@@ -506,14 +517,17 @@ struct AddPlaceFormContent: View {
         .overlay { Capsule().strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1) }
     }
 
-    private func inputField(text: Binding<String>, placeholder: String) -> some View {
+    private func inputField(text: Binding<String>, placeholder: String, focused: Bool) -> some View {
         TextField("", text: text, prompt: Text(placeholder).foregroundStyle(colors.textAssistive))
             .moaTextStyle(typography.body2)
             .foregroundStyle(colors.textNormal)
             .tint(MoaMapPrimitiveColors.blue500)
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            // 비어 있을 때 안내 문구가 입력한 글자보다 키가 커서 높이가 달라진다. 위아래 12 + 줄 높이로 고정한다.
+            .frame(height: 12 * 2 + typography.body2.lineHeight)
             .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+            // 입력 중인 칸에 선택 테두리를 보여 준다. 프로필 편집과 같다.
+            .overlay { if focused { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) } }
             .shadow(color: .black.opacity(0.04), radius: 4)
     }
 }
