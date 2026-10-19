@@ -69,6 +69,15 @@ struct ActionMenu: View {
     }
 }
 
+extension AnyTransition {
+    /// 오른쪽 위 버튼에서 펼쳐지는 메뉴. 닫을 때는 애니메이션 없이 바로 사라진다.
+    static let dropdownMenu = AnyTransition.opacity.combined(with: .scale(scale: 0.95, anchor: .topTrailing))
+}
+
+extension Animation {
+    static let dropdownMenu = Animation.easeOut(duration: 0.15)
+}
+
 #Preview {
     ActionMenu(items: [
         ActionMenuItem(icon: "person", label: "프로필") {},

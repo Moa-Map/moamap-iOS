@@ -43,7 +43,7 @@ struct ExploreView: View {
         }
         .background { MoaMapPrimitiveColors.tabBackground.ignoresSafeArea() }
         .overlay(alignment: .topTrailing) {
-            if showsProfileMenu { profileMenu }
+            if showsProfileMenu { profileMenu.transition(.dropdownMenu) }
         }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { viewModel.refresh() }
@@ -84,7 +84,7 @@ struct ExploreView: View {
             // 알림 기능이 생길 때까지 보이기만 한다.
             headerIcon("Icons/bell-outline")
                 .accessibilityLabel("알림")
-            Button { showsProfileMenu = true } label: { headerIcon("Icons/person-outline") }
+            Button { withAnimation(.dropdownMenu) { showsProfileMenu = true } } label: { headerIcon("Icons/person-outline") }
                 .buttonStyle(.plain)
                 .accessibilityLabel("프로필 메뉴")
         }

@@ -131,7 +131,7 @@ struct MapDetailView: View {
                     // 메뉴가 없는 공식지도의 나가기도 같은 확인을 거친다.
                     if viewModel.uiState.canJoin { viewModel.join() } else { leaveDialogVisible = true }
                 },
-                onMenu: { menuVisible = true }
+                onMenu: { withAnimation(.dropdownMenu) { menuVisible = true } }
             )
             ZStack(alignment: .top) {
                 // 로그 탭에 가도 지도를 내리지 않는다. 다시 만들면 보던 카메라 자리를 잃는다.
@@ -269,7 +269,7 @@ struct MapDetailView: View {
             }
 
             // 나가서 참여가 풀리면 메뉴도 함께 닫힌다.
-            if menuVisible && viewModel.uiState.showsMenu { menu }
+            if menuVisible && viewModel.uiState.showsMenu { menu.transition(.dropdownMenu) }
 
             // 나가기로 자격을 잃으면 같이 닫힌다.
             if inviteCodeVisible, let code = viewModel.uiState.inviteCode {

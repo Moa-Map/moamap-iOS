@@ -208,14 +208,14 @@ struct MapIntroView: View {
             Image("Icons/arrow-left")
                 .renderingMode(.template)
                 .resizable()
-                .frame(width: 24, height: 24)
+                .frame(width: 32, height: 32)
                 .foregroundStyle(viewModel.uiState.map.map == nil ? colors.textNormal : colors.textWhite)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("뒤로가기")
-        .padding(.leading, 14)
+        .padding(.leading, MoaMapDimens.screenHorizontalPadding - 6)
     }
 
     private func failure(_ message: String) -> some View {
