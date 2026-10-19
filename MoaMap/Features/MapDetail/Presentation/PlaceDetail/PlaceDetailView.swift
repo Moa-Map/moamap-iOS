@@ -297,8 +297,8 @@ struct PlaceDetailView: View {
                     InstagramLinkButton(action: onInstagram)
                 }
             }
-            if place.photoURL != nil {
-                PlacePhoto(url: place.photoURL)
+            if !place.photoURLs.isEmpty {
+                PlacePhotoPager(urls: place.photoURLs)
                 .frame(maxWidth: .infinity)
                 .frame(height: compact ? 167 : 175)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -501,6 +501,43 @@ private struct InstagramLinkButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("인스타그램 게시물 열기")
+    }
+}
+
+/// 장소 사진. 여러 장이면 옆으로 넘겨 보고, 몇 번째인지 오른쪽 아래에 적는다.
+private struct PlacePhotoPager: View {
+    @Environment(\.moaTypography) private var typography
+
+    let urls: [URL]
+
+    @State private var current: Int? = 0
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: 0) {
+                ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
+                    PlacePhoto(url: url)
+                        .containerRelativeFrame(.horizontal)
+                        .clipped()
+                        .id(index)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.paging)
+        .scrollIndicators(.hidden)
+        .scrollPosition(id: $current)
+        .overlay(alignment: .bottomTrailing) {
+            if urls.count > 1 {
+                Text("\((current ?? 0) + 1)/\(urls.count)")
+                    .moaTextStyle(typography.caption0)
+                    .foregroundStyle(MoaMapPrimitiveColors.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(.black.opacity(0.5), in: Capsule())
+                    .padding(8)
+            }
+        }
     }
 }
 
