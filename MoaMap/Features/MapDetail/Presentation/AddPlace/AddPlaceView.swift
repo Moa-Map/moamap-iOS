@@ -67,6 +67,8 @@ struct AddPlaceView: View {
                     onRemoveTag: viewModel.removeTag,
                     onMemoChange: viewModel.updateMemo
                 )
+                // 누른 순간의 값으로 등록한다. 기다리는 동안 바꾸면 반영되지 않으니 사진·태그·메모를 막는다.
+                .disabled(state.submitting)
                 .padding(.top, 16)
                 // 입력값은 모두 선택이라 처음부터 누를 수 있다. 보내는 중에는 스피너를 보이고 막는다.
                 PlaceImportButton(text: map.addPlaceButtonLabel, height: 54, loading: state.submitting) {
