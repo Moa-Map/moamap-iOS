@@ -127,6 +127,9 @@ struct MapDetailTabBar: View {
     let selection: MapDetailTab
     let onSelect: (MapDetailTab) -> Void
 
+    /// 선택 표시가 고른 탭으로 미끄러져 가게 한다.
+    @Namespace private var selectionSpace
+
     var body: some View {
         HStack(spacing: 2) {
             ForEach(MapDetailTab.allCases, id: \.self) { tab in
@@ -138,7 +141,13 @@ struct MapDetailTabBar: View {
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
-                        .background(selected ? MoaMapPrimitiveColors.yellow100 : MoaMapPrimitiveColors.yellow50, in: Capsule())
+                        .background {
+                            if selected {
+                                Capsule()
+                                    .fill(MoaMapPrimitiveColors.yellow100)
+                                    .matchedGeometryEffect(id: "selection", in: selectionSpace)
+                            }
+                        }
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -147,6 +156,8 @@ struct MapDetailTabBar: View {
         }
         .padding(4)
         .background(MoaMapPrimitiveColors.yellow50, in: Capsule())
+        // 탭 바 안에서만 움직인다. 아래 화면 전환까지 애니메이션되면 안 된다.
+        .animation(.easeOut(duration: 0.25), value: selection)
     }
 }
 
