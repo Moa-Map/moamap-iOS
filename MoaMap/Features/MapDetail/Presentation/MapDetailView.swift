@@ -182,6 +182,57 @@ struct MapDetailView: View {
         .moaSnackbar($notice)
         .background(colors.backgroundSecondary)
         .toolbar(.hidden, for: .navigationBar)
+        // 지도 위에 겹치지 않고 내비게이션에 쌓는다. 가장자리를 쓸어 넘기면 지도 상세로 돌아와야 한다.
+        .navigationDestination(isPresented: $membersVisible) {
+            if let map = viewModel.uiState.map.map {
+                MemberView(
+                    viewModel: memberViewModel,
+                    roleDisplay: map.memberRoleDisplay,
+                    canGrantRole: map.canGrantRole,
+                    onBack: { membersVisible = false }
+                )
+            }
+        }
+        .navigationDestination(isPresented: $manageVisible) {
+            if let map = viewModel.uiState.map.map {
+                MapManageView(
+                    activityViewModel: activityViewModel,
+                    pendingViewModel: pendingViewModel,
+                    canReviewRequests: map.canReviewRequests,
+                    onBack: { manageVisible = false }
+                )
+            }
+        }
+        .navigationDestination(isPresented: $infoVisible) {
+            if let map = viewModel.uiState.map.map {
+                MapInfoView(
+                    map: map,
+                    onBack: { infoVisible = false },
+                    onEdit: { editMapViewModel = makeEditMap(map) }
+                )
+                // 수정에서 쓸어 넘기면 지도 정보로 돌아온다.
+                .navigationDestination(isPresented: editMapVisible) {
+                    if let editMapViewModel {
+                        EditMapView(
+                            viewModel: editMapViewModel,
+                            onBack: { self.editMapViewModel = nil },
+                            onSaved: {
+                                self.editMapViewModel = nil
+                                // 지도 정보와 상단 제목이 고친 값을 보여야 한다.
+                                viewModel.refresh()
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var editMapVisible: Binding<Bool> {
+        Binding(
+            get: { editMapViewModel != nil },
+            set: { if !$0 { editMapViewModel = nil } }
+        )
     }
 
     /// 지도 상세 위에 겹치는 시트·화면·팝업.
@@ -228,44 +279,6 @@ struct MapDetailView: View {
             // 지도를 아직 못 읽었으면 열지 않는다. 버튼 글씨가 지도 정보에 달려 있다.
             if addPlaceVisible, let map = viewModel.uiState.map.map {
                 AddPlaceView(viewModel: addPlaceViewModel, map: map, onClose: { addPlaceVisible = false })
-            }
-
-            if membersVisible, let map = viewModel.uiState.map.map {
-                MemberView(
-                    viewModel: memberViewModel,
-                    roleDisplay: map.memberRoleDisplay,
-                    canGrantRole: map.canGrantRole,
-                    onBack: { membersVisible = false }
-                )
-            }
-
-            if manageVisible, let map = viewModel.uiState.map.map {
-                MapManageView(
-                    activityViewModel: activityViewModel,
-                    pendingViewModel: pendingViewModel,
-                    canReviewRequests: map.canReviewRequests,
-                    onBack: { manageVisible = false }
-                )
-            }
-
-            if infoVisible, let map = viewModel.uiState.map.map {
-                MapInfoView(
-                    map: map,
-                    onBack: { infoVisible = false },
-                    onEdit: { editMapViewModel = makeEditMap(map) }
-                )
-            }
-
-            if let editMapViewModel {
-                EditMapView(
-                    viewModel: editMapViewModel,
-                    onBack: { self.editMapViewModel = nil },
-                    onSaved: {
-                        self.editMapViewModel = nil
-                        // 지도 정보와 상단 제목이 고친 값을 보여야 한다.
-                        viewModel.refresh()
-                    }
-                )
             }
 
             // 나가서 참여가 풀리면 메뉴도 함께 닫힌다.
