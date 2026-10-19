@@ -512,7 +512,8 @@ struct AddPlaceFormContent: View {
             .foregroundStyle(colors.textNormal)
             .tint(MoaMapPrimitiveColors.blue500)
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            // 비어 있을 때 안내 문구가 입력한 글자보다 키가 커서 높이가 달라진다. 위아래 12 + 줄 높이로 고정한다.
+            .frame(height: 12 * 2 + typography.body2.lineHeight)
             .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.04), radius: 4)
     }
