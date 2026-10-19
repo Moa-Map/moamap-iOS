@@ -127,6 +127,10 @@ struct MainTabView: View {
         .moaSnackbar($shareNotice, bottomInset: showsCollectionBottomBar ? bottomBarHeight : 0)
         // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 한다.
         .ignoresSafeArea(isRoot ? .keyboard : [], edges: .bottom)
+        // 간 탭에 하단 탭이 안 보이면 직전 탭을 비운다. 남겨 두면 나중에 첫 화면으로 돌아왔을 때 엉뚱하게 미끄러진다.
+        .onChange(of: selection) {
+            if !showsBottomBar { bottomBarSlideFrom = nil }
+        }
         .onChange(of: collectionPath) { _, path in
             if !path.contains(where: \.isPlaceImport) { placeImportViewModel = nil }
         }
@@ -140,6 +144,11 @@ struct MainTabView: View {
 
     /// 보고 있는 탭이 첫 화면인지. 하단 탭은 탭마다 첫 화면에 붙는다.
     private var isRoot: Bool { selection == .explore ? explorePath.isEmpty : collectionPath.isEmpty }
+
+    /// 보고 있는 탭에 하단 탭이 보이는지. 모음 탭은 편집 중이면 편집 바가 대신 뜬다.
+    private var showsBottomBar: Bool {
+        isRoot && !(selection == .collection && collectionViewModel.uiState.editing != nil)
+    }
 
     private var showsCollectionBottomBar: Bool {
         selection == .collection && collectionPath.isEmpty && collectionViewModel.uiState.editing == nil

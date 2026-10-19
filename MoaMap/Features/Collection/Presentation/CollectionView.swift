@@ -115,7 +115,8 @@ struct CollectionView: View {
                     Text(type == .community ? "커뮤니티" : "프라이빗")
                         .moaTextStyle(selected ? typography.subtitle3 : typography.subtitle2)
                         .foregroundStyle(selected ? MoaMapPrimitiveColors.yellow900 : colors.textAssistive)
-                        .frame(maxWidth: .infinity)
+                        // 글자가 커져도 칸을 똑같이 나눠야 선택 표시가 칸에 맞는다.
+                        .frame(minWidth: 0, maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
                 .accessibilityAddTraits(selected ? .isSelected : [])

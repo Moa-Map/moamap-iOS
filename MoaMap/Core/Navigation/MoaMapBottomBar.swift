@@ -7,6 +7,7 @@ import SwiftUI
 struct MoaMapBottomBar: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var selection: MainTab
     /// 하단 탭을 눌러 넘어왔으면 직전 탭. 나타날 때 한 번 쓰고 비운다.
     @Binding var slideFrom: MainTab?
@@ -19,7 +20,8 @@ struct MoaMapBottomBar: View {
     var body: some View {
         HStack(spacing: 8) {
             ForEach(MainTab.allCases) { tab in
-                let selected = highlighted == tab
+                // 글자는 고른 칸을 바로 따른다. 미끄러지는 건 선택 표시뿐이다.
+                let selected = selection == tab
                 Button {
                     guard tab != selection else { return }
                     slideFrom = selection
@@ -32,7 +34,7 @@ struct MoaMapBottomBar: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .accessibilityAddTraits(selection == tab ? .isSelected : [])
+                .accessibilityAddTraits(selected ? .isSelected : [])
                 .accessibilityIdentifier("main-tab-\(tab.rawValue)")
             }
         }
@@ -52,9 +54,11 @@ struct MoaMapBottomBar: View {
         .onAppear {
             guard let from = slideFrom else { return }
             slideFrom = nil
-            guard from != selection else { return }
-            // 직전 탭 자리로 한 번 그린 뒤에 움직여야 미끄러져 보인다.
-            sliding = from
+            guard from != selection, !reduceMotion else { return }
+            // 직전 탭 자리로 애니메이션 없이 한 번 그린 뒤에 움직여야 미끄러져 보인다.
+            var jump = Transaction()
+            jump.disablesAnimations = true
+            withTransaction(jump) { sliding = from }
             DispatchQueue.main.async { sliding = nil }
         }
     }

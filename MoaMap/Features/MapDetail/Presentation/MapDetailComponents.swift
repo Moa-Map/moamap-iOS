@@ -135,7 +135,8 @@ struct MapDetailTabBar: View {
                     Text(tab.title)
                         .moaTextStyle(selected ? typography.button0 : typography.button1)
                         .foregroundStyle(selected ? MoaMapPrimitiveColors.yellow900 : colors.textAssistive)
-                        .frame(maxWidth: .infinity)
+                        // 글자가 커져도 칸을 똑같이 나눠야 선택 표시가 칸에 맞는다.
+                        .frame(minWidth: 0, maxWidth: .infinity)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
                         .contentShape(Capsule())
