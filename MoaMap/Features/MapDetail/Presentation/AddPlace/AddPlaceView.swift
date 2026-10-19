@@ -430,7 +430,7 @@ struct AddPlaceFormContent: View {
                             onTagBackspace()
                             return .handled
                         }
-                        .id(AddPlaceField.tag)
+                        .background { scrollTarget(.tag) }
                     }
                     field("메모", optional: true) {
                         inputField(
@@ -439,7 +439,7 @@ struct AddPlaceFormContent: View {
                             focused: focus.wrappedValue == .memo
                         )
                         .focused(focus, equals: .memo)
-                        .id(AddPlaceField.memo)
+                        .background { scrollTarget(.memo) }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -459,6 +459,15 @@ struct AddPlaceFormContent: View {
         guard let field, field != .search else { return }
         withAnimation { proxy.scrollTo(field, anchor: .bottom) }
     }
+
+    /// 키보드 위로 입력칸을 맞출 때 쓰는 자리. 입력칸보다 아래로 길게 잡아 아래 버튼과 붙지 않게 띄운다.
+    private func scrollTarget(_ field: AddPlaceField) -> some View {
+        Color.clear
+            .id(field)
+            .padding(.bottom, -Self.keyboardButtonGap)
+    }
+
+    private static let keyboardButtonGap: CGFloat = 20
 
     private var optionalLabel: some View {
         Text("(선택)")
