@@ -3,7 +3,7 @@ import Testing
 
 struct PlaceCategoryFilterTests {
     private func place(_ id: Int64, _ name: String, category: String) -> MapPlace {
-        MapPlace(id: id, name: name, address: "서울", latitude: 0, longitude: 0, photoURL: nil, category: category)
+        MapPlace(id: id, name: name, address: "서울", latitude: 0, longitude: 0, photoURLs: [], category: category)
     }
 
     @Test func 칩은_전체_뒤에_있는_카테고리만_고정_순서로_붙이고_분류_밖은_기타로_묶는다() {

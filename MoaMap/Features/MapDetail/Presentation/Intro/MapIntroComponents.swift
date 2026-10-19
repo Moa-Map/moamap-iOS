@@ -142,7 +142,7 @@ struct MapIntroPlaceItem: View {
     VStack(spacing: 20) {
         MapIntroHero(title: "성수 카페 투어", ownerName: "모아", imageURL: nil)
         MapIntroTagRow(tags: ["카페", "데이트", "성수"])
-        MapIntroPlaceItem(place: MapPlace(id: 1, name: "커피나무", address: "서울 성동구 성수이로 1", latitude: 0, longitude: 0, photoURL: nil))
+        MapIntroPlaceItem(place: MapPlace(id: 1, name: "커피나무", address: "서울 성동구 성수이로 1", latitude: 0, longitude: 0, photoURLs: []))
             .padding(.horizontal, 20)
     }
 }

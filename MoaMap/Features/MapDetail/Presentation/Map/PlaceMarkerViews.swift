@@ -138,10 +138,10 @@ private extension PlaceCategoryGroup {
 
 #Preview {
     let markers = [
-        PlaceMarker(place: MapPlace(id: 1, name: "커피나무", address: "", latitude: 37.4960, longitude: 126.9570, photoURL: nil, category: "음식점 > 카페")),
-        PlaceMarker(place: MapPlace(id: 2, name: "달빛정원", address: "", latitude: 37.4966, longitude: 126.9578, photoURL: nil)),
-        PlaceMarker(place: MapPlace(id: 3, name: "약국", address: "", latitude: 37.4966, longitude: 126.9578, photoURL: nil, category: "의료,건강 > 약국")),
-        PlaceMarker(place: MapPlace(id: 4, name: "학교", address: "", latitude: 37.4966, longitude: 126.9578, photoURL: nil, category: "교육,학문 > 학교"))
+        PlaceMarker(place: MapPlace(id: 1, name: "커피나무", address: "", latitude: 37.4960, longitude: 126.9570, photoURLs: [], category: "음식점 > 카페")),
+        PlaceMarker(place: MapPlace(id: 2, name: "달빛정원", address: "", latitude: 37.4966, longitude: 126.9578, photoURLs: [])),
+        PlaceMarker(place: MapPlace(id: 3, name: "약국", address: "", latitude: 37.4966, longitude: 126.9578, photoURLs: [], category: "의료,건강 > 약국")),
+        PlaceMarker(place: MapPlace(id: 4, name: "학교", address: "", latitude: 37.4966, longitude: 126.9578, photoURLs: [], category: "교육,학문 > 학교"))
     ]
     VStack(spacing: 24) {
         PlacePhotoMarker(marker: markers[0])

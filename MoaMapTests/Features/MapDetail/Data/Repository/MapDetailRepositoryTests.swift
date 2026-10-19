@@ -73,8 +73,8 @@ struct MapDetailRepositoryTests {
         }
         let places = try await sut.fetchPlaces(mapID: 7)
         #expect(places == [
-            MapPlace(id: 1, name: "카페", address: "성수이로 1", latitude: 37.5, longitude: 127.0, photoURL: nil),
-            MapPlace(id: 2, name: "이름 없는 장소", address: "성수동 2", latitude: 37.6, longitude: 127.1, photoURL: URL(string: "https://example.com/p.png"))
+            MapPlace(id: 1, name: "카페", address: "성수이로 1", latitude: 37.5, longitude: 127.0, photoURLs: []),
+            MapPlace(id: 2, name: "이름 없는 장소", address: "성수동 2", latitude: 37.6, longitude: 127.1, photoURLs: [URL(string: "https://example.com/p.png")!])
         ])
     }
 

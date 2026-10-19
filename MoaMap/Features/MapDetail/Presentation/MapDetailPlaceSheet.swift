@@ -284,7 +284,7 @@ struct ClusterPlacesSheet: View {
     @Previewable @State var query = ""
     @Previewable @State var collapsed = MapDetailPlaceSheet.defaultCollapsedHeight
     let places = (1...4).map {
-        MapPlace(id: Int64($0), name: "커피나무 \($0)호점", address: "서울 성동구", latitude: 0, longitude: 0, photoURL: nil,
+        MapPlace(id: Int64($0), name: "커피나무 \($0)호점", address: "서울 성동구", latitude: 0, longitude: 0, photoURLs: [],
                  description: "스페셜티 커피", category: "음식점 > 카페", reviewCount: 3)
     }
     ZStack(alignment: .bottom) {
