@@ -36,6 +36,8 @@ struct MainTabView: View {
     @State private var shareNotice: String?
     /// 스낵바가 하단 탭을 피해 뜨도록 잰다.
     @State private var bottomBarHeight: CGFloat = 0
+    /// 하단 탭을 눌러 탭을 바꿨을 때 직전 탭. 새 탭의 하단 탭이 여기서 미끄러져 온다.
+    @State private var bottomBarSlideFrom: MainTab?
     private let makeCommunityMapListViewModel: () -> CommunityMapListViewModel
     private let makeOfficialMapListViewModel: () -> OfficialMapListViewModel
     private let makeDensityMapViewModel: () -> DensityMapViewModel
@@ -146,7 +148,7 @@ struct MainTabView: View {
     /// 각 탭의 첫 화면에 붙인다. `TabView` 바깥에 붙이면 탭 안 스크롤 영역이 하단 탭 높이를 몰라
     /// 마지막 카드가 하단 탭 뒤에 깔린다. 하위 화면으로 가면 첫 화면과 함께 가려진다.
     private var bottomBar: some View {
-        MoaMapBottomBar(selection: $selection)
+        MoaMapBottomBar(selection: $selection, slideFrom: $bottomBarSlideFrom)
             .padding(.top, 8)
             .padding(.bottom, 8)
             .frame(maxWidth: .infinity)
