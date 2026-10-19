@@ -333,22 +333,20 @@ private struct SelectedPlaceCard: View {
     let name: String
     let address: String
 
+    // 카카오 검색은 장소 사진을 주지 않아 사진 칸 없이 이름과 주소만 보인다.
     var body: some View {
-        HStack(spacing: 12) {
-            PhotoThumbnail(imageURL: nil, size: 64)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(name)
-                    .moaTextStyle(typography.subtitle2)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(name)
+                .moaTextStyle(typography.subtitle2)
+                .lineLimit(1)
+            if !address.isEmpty {
+                Text(address)
+                    .moaTextStyle(typography.caption0)
                     .lineLimit(1)
-                if !address.isEmpty {
-                    Text(address)
-                        .moaTextStyle(typography.caption0)
-                        .lineLimit(1)
-                }
             }
-            .foregroundStyle(colors.textNormal)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .foregroundStyle(colors.textNormal)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(MoaMapPrimitiveColors.yellow50, in: RoundedRectangle(cornerRadius: 12))
         .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1) }
