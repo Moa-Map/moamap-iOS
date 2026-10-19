@@ -11,8 +11,6 @@ struct CollectionView: View {
     var onMapClick: (MyMap) -> Void = { _ in }
     var onEditMap: (MapDetail) -> Void = { _ in }
     @State private var showsInviteDialog = false
-    /// 커뮤니티/프라이빗 선택 표시가 고른 탭으로 미끄러져 가게 한다.
-    @Namespace private var tabSelectionSpace
     /// 끌고 있는 지도. 놓거나 다른 곳에 떨어뜨리면 비운다.
     @State private var draggingMapID: Int64?
     /// 핸들로 끄는 카드가 제자리에서 벗어난 거리. 한 칸을 넘으면 옮기고 그만큼 덜어 낸다.
@@ -119,22 +117,21 @@ struct CollectionView: View {
                         .foregroundStyle(selected ? MoaMapPrimitiveColors.yellow900 : colors.textAssistive)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background {
-                            if selected {
-                                Capsule()
-                                    .fill(MoaMapPrimitiveColors.yellow100)
-                                    .matchedGeometryEffect(id: "selection", in: tabSelectionSpace)
-                            }
-                        }
                 }
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
         .buttonStyle(.plain)
+        .background {
+            SegmentSelectionCapsule(
+                count: CollectionMapType.allCases.count,
+                index: CollectionMapType.allCases.firstIndex(of: viewModel.uiState.selectedTab) ?? 0,
+                spacing: 2,
+                color: MoaMapPrimitiveColors.yellow100
+            )
+        }
         .padding(4)
         .background(MoaMapPrimitiveColors.yellow50, in: Capsule())
-        // 탭 바 안에서만 움직인다. 아래 지도 목록이 바뀌는 것까지 애니메이션되면 안 된다.
-        .animation(.easeOut(duration: 0.25), value: viewModel.uiState.selectedTab)
     }
 
     @ViewBuilder private var mapsContent: some View {

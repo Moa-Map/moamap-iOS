@@ -11,7 +11,6 @@ struct MoaMapBottomBar: View {
     /// 하단 탭을 눌러 넘어왔으면 직전 탭. 나타날 때 한 번 쓰고 비운다.
     @Binding var slideFrom: MainTab?
 
-    @Namespace private var selectionSpace
     /// 미끄러지는 동안 선택 표시가 있는 칸. 비어 있으면 고른 칸이다.
     @State private var sliding: MainTab?
 
@@ -30,19 +29,20 @@ struct MoaMapBottomBar: View {
                         .moaTextStyle(selected ? typography.button0 : typography.button1)
                         .foregroundStyle(selected ? MoaMapPrimitiveColors.yellow800 : colors.textAssistive)
                         .frame(width: 100, height: 50)
-                        .background {
-                            if selected {
-                                Capsule()
-                                    .fill(MoaMapPrimitiveColors.yellow200)
-                                    .matchedGeometryEffect(id: "selection", in: selectionSpace)
-                            }
-                        }
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selection == tab ? .isSelected : [])
                 .accessibilityIdentifier("main-tab-\(tab.rawValue)")
             }
+        }
+        .background {
+            SegmentSelectionCapsule(
+                count: MainTab.allCases.count,
+                index: MainTab.allCases.firstIndex(of: highlighted) ?? 0,
+                spacing: 8,
+                color: MoaMapPrimitiveColors.yellow200
+            )
         }
         .padding(4)
         .background(colors.textWhite, in: Capsule())
@@ -55,9 +55,7 @@ struct MoaMapBottomBar: View {
             guard from != selection else { return }
             // 직전 탭 자리로 한 번 그린 뒤에 움직여야 미끄러져 보인다.
             sliding = from
-            DispatchQueue.main.async {
-                withAnimation(.easeOut(duration: 0.25)) { sliding = nil }
-            }
+            DispatchQueue.main.async { sliding = nil }
         }
     }
 }
