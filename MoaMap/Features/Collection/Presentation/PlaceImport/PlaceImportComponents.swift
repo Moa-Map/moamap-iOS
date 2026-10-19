@@ -78,6 +78,8 @@ struct PlaceImportButton: View {
     /// 정하지 않으면 글자 위아래 여백으로 높이가 정해진다.
     var height: CGFloat?
     var enabled = true
+    /// 요청을 기다리는 중. 글자 대신 스피너를 보이고 누를 수 없게 한다. 색은 그대로 둔다.
+    var loading = false
     let action: () -> Void
 
     var body: some View {
@@ -86,6 +88,9 @@ struct PlaceImportButton: View {
                 .moaTextStyle(typography.button0)
                 .foregroundStyle(colors.textWhite)
                 .lineLimit(1)
+                // 글자 자리를 그대로 두어 스피너로 바뀌어도 버튼 크기가 변하지 않는다.
+                .opacity(loading ? 0 : 1)
+                .overlay { if loading { ProgressView().tint(colors.textWhite) } }
                 .padding(.horizontal, style == .primary ? 10 : 24)
                 .padding(.vertical, height == nil ? 14 : 0)
                 .frame(maxWidth: style == .primary ? .infinity : nil)
@@ -97,7 +102,7 @@ struct PlaceImportButton: View {
                 .shadow(color: .black.opacity(0.1), radius: 5)
         }
         .buttonStyle(PlaceImportButtonStyle())
-        .disabled(!enabled)
+        .disabled(!enabled || loading)
     }
 }
 

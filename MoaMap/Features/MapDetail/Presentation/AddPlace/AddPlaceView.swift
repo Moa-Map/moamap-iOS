@@ -68,8 +68,8 @@ struct AddPlaceView: View {
                     onMemoChange: viewModel.updateMemo
                 )
                 .padding(.top, 16)
-                // 입력값은 모두 선택이라 처음부터 누를 수 있다. 비활성은 보내는 중일 때뿐이다.
-                PlaceImportButton(text: map.addPlaceButtonLabel, height: 54, enabled: !state.submitting) {
+                // 입력값은 모두 선택이라 처음부터 누를 수 있다. 보내는 중에는 스피너를 보이고 막는다.
+                PlaceImportButton(text: map.addPlaceButtonLabel, height: 54, loading: state.submitting) {
                     viewModel.submit(map: map)
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
