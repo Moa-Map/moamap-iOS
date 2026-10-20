@@ -106,7 +106,7 @@ struct DensityMapView: View {
         .mapStyle(.standard(lightPreset: .day))
         .cameraBounds(.korea)
         // 한 번 탭은 두 번 탭 확대가 아닌 게 확정될 때까지 늦게 온다. 구역을 누르면 바로 칠하도록 끈다.
-        .gestureOptions(GestureOptions(doubleTapToZoomInEnabled: false))
+        .gestureOptions(GestureOptions(doubleTapToZoomInEnabled: false, panDecelerationFactor: MapCameraDefaults.panDeceleration))
         .ornamentOptions(OrnamentOptions(
             scaleBar: ScaleBarViewOptions(visibility: .hidden),
             compass: CompassViewOptions(visibility: .hidden)
