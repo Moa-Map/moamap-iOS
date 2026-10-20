@@ -6,7 +6,6 @@ struct MoaMapTopBar<Trailing: View>: View {
     @Environment(\.moaTypography) private var typography
 
     let title: String
-    var height: CGFloat = 58
     let onBack: () -> Void
     @ViewBuilder var trailing: () -> Trailing
 
@@ -27,13 +26,13 @@ struct MoaMapTopBar<Trailing: View>: View {
                     .padding(.trailing, MoaMapDimens.screenHorizontalPadding - 6)
             }
         }
-        .frame(height: height)
+        .frame(height: 58)
     }
 }
 
 extension MoaMapTopBar where Trailing == EmptyView {
-    init(title: String, height: CGFloat = 58, onBack: @escaping () -> Void) {
-        self.init(title: title, height: height, onBack: onBack, trailing: { EmptyView() })
+    init(title: String, onBack: @escaping () -> Void) {
+        self.init(title: title, onBack: onBack, trailing: { EmptyView() })
     }
 }
 

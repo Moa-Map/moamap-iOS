@@ -435,7 +435,7 @@ struct BackCloseControls: View {
     var body: some View {
         HStack {
             Button(action: onBack) {
-                icon("arrow-left", size: 24, alignment: .leading)
+                icon("arrow-left", size: 32, alignment: .leading)
             }
             .accessibilityLabel("뒤로가기")
             Spacer()
@@ -448,7 +448,7 @@ struct BackCloseControls: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(colors.textNormal)
-        .frame(height: 56)
+        .frame(height: 58)
         .padding(.horizontal, 20)
     }
 
