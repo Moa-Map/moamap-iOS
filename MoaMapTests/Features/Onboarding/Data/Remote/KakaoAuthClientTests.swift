@@ -33,4 +33,16 @@ struct KakaoAuthClientTests {
         callback?(.success("late"))
         callback?(.success("duplicate"))
     }
+
+    @Test func 이미_끊긴_연결은_끊기에_성공한_것으로_본다() async throws {
+        let sut = KakaoAuthClient(isTalkAvailable: { false }, talkLogin: { _ in }, accountLogin: { _ in },
+                                  unlink: { $0(.failure(KakaoUnlinkError.alreadyUnlinked)) })
+        try await sut.unlink()
+    }
+
+    @Test func 연결_끊기의_일시_오류는_던진다() async {
+        let sut = KakaoAuthClient(isTalkAvailable: { false }, talkLogin: { _ in }, accountLogin: { _ in },
+                                  unlink: { $0(.failure(URLError(.notConnectedToInternet))) })
+        await #expect(throws: URLError.self) { try await sut.unlink() }
+    }
 }

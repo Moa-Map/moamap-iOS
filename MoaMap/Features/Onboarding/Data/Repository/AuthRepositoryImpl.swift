@@ -6,17 +6,20 @@ final class AuthRepositoryImpl: AuthRepository {
     private let kakaoLogin: () async throws -> String
     private let appleLogin: (String) async throws -> AppleLoginCredential
     private let kakaoLogout: () async throws -> Void
+    private let kakaoUnlink: () async throws -> Void
     private let tokenStore: any AuthTokenStore
     private let currentUserStore: any CurrentUserStore
 
     init(client: APIClient, kakaoLogin: @escaping () async throws -> String,
          appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
          kakaoLogout: @escaping () async throws -> Void = {},
+         kakaoUnlink: @escaping () async throws -> Void = {},
          tokenStore: any AuthTokenStore, currentUserStore: any CurrentUserStore) {
         self.client = client
         self.kakaoLogin = kakaoLogin
         self.appleLogin = appleLogin
         self.kakaoLogout = kakaoLogout
+        self.kakaoUnlink = kakaoUnlink
         self.tokenStore = tokenStore
         self.currentUserStore = currentUserStore
     }
@@ -96,6 +99,22 @@ final class AuthRepositoryImpl: AuthRepository {
         try tokenStore.clear()
         try currentUserStore.clear()
     }
+
+    /// 카카오 연결 끊기 → 서버 탈퇴 → 로컬 정리. 다시 시도하면 카카오는 「이미 끊김」으로 지나간다.
+    func withdraw() async throws {
+        try Task.checkCancellation()
+        try await kakaoUnlink()
+        try Task.checkCancellation()
+        do {
+            try await client.sendWithoutResponse(APIRequest(path: ["api", "v1", "users", "me"], method: .delete))
+        } catch NetworkError.server(code: Self.userNotFoundCode, statusCode: _, message: _) {
+            // 앞선 시도에서 탈퇴는 됐는데 응답만 못 받았다. 실패로 보면 탈퇴한 세션에 갇힌다.
+        }
+        try tokenStore.clear()
+        try currentUserStore.clear()
+    }
+
+    private static let userNotFoundCode = "USER_003"
 
     func hasSession() throws -> Bool {
         guard let token = try tokenStore.load(), token.isValid,

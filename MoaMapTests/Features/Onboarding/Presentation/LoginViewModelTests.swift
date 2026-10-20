@@ -222,5 +222,8 @@ final class LoginRepositoryStub: AuthRepository {
     var logoutHandler: () async throws -> Void = {}
     private(set) var logoutCalls = 0
     func logout() async throws { logoutCalls += 1; try await logoutHandler() }
+    var withdrawHandler: () async throws -> Void = {}
+    private(set) var withdrawCalls = 0
+    func withdraw() async throws { withdrawCalls += 1; try await withdrawHandler() }
     func hasSession() throws -> Bool { session }
 }
