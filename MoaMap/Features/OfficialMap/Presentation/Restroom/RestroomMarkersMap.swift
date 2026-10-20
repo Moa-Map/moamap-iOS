@@ -75,7 +75,7 @@ struct RestroomMarkersMap: View {
                 scaleBar: ScaleBarViewOptions(visibility: .hidden),
                 compass: CompassViewOptions(visibility: .hidden)
             ))
-            .gestureOptions(GestureOptions(rotateEnabled: false, pitchEnabled: false))
+            .gestureOptions(GestureOptions(rotateEnabled: false, pitchEnabled: false, panDecelerationFactor: MapCameraDefaults.panDeceleration))
             .onCameraChanged { onCameraChanged?($0.cameraState) }
             .onMapIdle { _ in
                 guard let map = proxy.map else { return }

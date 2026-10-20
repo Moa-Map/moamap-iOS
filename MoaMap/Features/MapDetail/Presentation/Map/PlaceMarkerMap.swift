@@ -40,7 +40,11 @@ struct PlaceMarkerMap: View {
                 scaleBar: ScaleBarViewOptions(visibility: .hidden),
                 compass: CompassViewOptions(visibility: .hidden)
             ))
-            .gestureOptions(GestureOptions(rotateEnabled: allowsRotation, pitchEnabled: allowsRotation))
+            .gestureOptions(GestureOptions(
+                rotateEnabled: allowsRotation,
+                pitchEnabled: allowsRotation,
+                panDecelerationFactor: MapCameraDefaults.panDeceleration
+            ))
             .onCameraChanged { event in
                 let key = ClusterCameraKey(zoom: event.cameraState.zoom, center: event.cameraState.center)
                 if key != cameraKey { cameraKey = key }
