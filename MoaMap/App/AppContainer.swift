@@ -36,9 +36,11 @@ final class AppContainer {
         configuration: APIConfiguration,
         tokenStore: any AuthTokenStore,
         currentUserStore: any CurrentUserStore,
+        loginProviderStore: any LoginProviderStore,
         kakaoLogin: @escaping () async throws -> String = { throw LoginError.notConfigured },
         appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
         kakaoLogout: @escaping () async throws -> Void = {},
+        kakaoUnlink: @escaping () async throws -> Void = {},
         kakaoRestAPIKey: String = "",
         transport: @escaping APIClient.Transport
     ) {
@@ -54,7 +56,8 @@ final class AppContainer {
         // 로그인 경로는 APIClient 가 인증 헤더를 붙이지 않는다. 로그아웃은 인증이 필요하다.
         authRepository = AuthRepositoryImpl(
             client: apiClient, kakaoLogin: kakaoLogin, appleLogin: appleLogin, kakaoLogout: kakaoLogout,
-            tokenStore: tokenStore, currentUserStore: currentUserStore
+            kakaoUnlink: kakaoUnlink, tokenStore: tokenStore, currentUserStore: currentUserStore,
+            loginProviderStore: loginProviderStore
         )
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
         officialMapRepository = OfficialMapRepositoryImpl(client: apiClient)
@@ -112,6 +115,9 @@ final class AppContainer {
                 UserApi.shared.loginWithKakaoAccount { token, error in
                     completion(Self.kakaoResult(accessToken: token?.accessToken, error: error))
                 }
+            },
+            unlink: { completion in
+                UserApi.shared.unlink { error in completion(Self.kakaoUnlinkResult(error: error)) }
             }
         )
         let appleClient = AppleAuthClient {
@@ -126,6 +132,7 @@ final class AppContainer {
             configuration: configuration,
             tokenStore: KeychainAuthTokenStore(service: service),
             currentUserStore: KeychainCurrentUserStore(service: service),
+            loginProviderStore: KeychainLoginProviderStore(service: service),
             kakaoLogin: {
                 guard isConfigured else { throw LoginError.notConfigured }
                 return try await kakaoClient.login()
@@ -138,6 +145,10 @@ final class AppContainer {
                         if let error { continuation.resume(throwing: error) } else { continuation.resume() }
                     }
                 }
+            },
+            kakaoUnlink: {
+                guard isConfigured else { return }
+                try await kakaoClient.unlink()
             },
             kakaoRestAPIKey: restAPIKey
         ) { request in
@@ -244,5 +255,19 @@ final class AppContainer {
         }
         guard let accessToken, !accessToken.isEmpty else { return .failure(LoginError.invalidResponse) }
         return .success(accessToken)
+    }
+
+    /// 토큰 없음·토큰 무효·이 앱에 연결되지 않은 사용자는 끊을 연결이 없는 것으로 본다.
+    private nonisolated static func kakaoUnlinkResult(error: (any Error)?) -> Result<Void, any Error> {
+        guard let error else { return .success(()) }
+        if let sdkError = error as? SdkError {
+            if sdkError.isClientFailed, sdkError.getClientError().reason == .TokenNotFound {
+                return .failure(KakaoUnlinkError.alreadyUnlinked)
+            }
+            if sdkError.isApiFailed, [.InvalidAccessToken, .NotSignedUpUser].contains(sdkError.getApiError().reason) {
+                return .failure(KakaoUnlinkError.alreadyUnlinked)
+            }
+        }
+        return .failure(error)
     }
 }

@@ -39,4 +39,17 @@ struct KeychainAuthStoreTests {
         try users.save(userId: -1)
         #expect(try users.load() == 42)
     }
+
+    @Test
+    func 로그인_수단을_덮어쓰고_재생성해도_읽는다() throws {
+        let service = "MoaMapTests.auth.\(UUID().uuidString)"
+        let providers = KeychainLoginProviderStore(service: service)
+        defer { try? providers.clear() }
+        #expect(try providers.load() == nil)
+        try providers.save(.kakao)
+        try providers.save(.apple)
+        #expect(try KeychainLoginProviderStore(service: service).load() == .apple)
+        try providers.clear()
+        #expect(try providers.load() == nil)
+    }
 }
