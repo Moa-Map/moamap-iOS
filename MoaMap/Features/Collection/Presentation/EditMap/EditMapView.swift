@@ -32,40 +32,52 @@ struct EditMapView: View {
                 guard !state.saving else { return }
                 onBack()
             }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("지도 이름과 소개, 태그를 수정할 수 있어요")
-                        .moaTextStyle(typography.body2)
-                        .foregroundStyle(colors.textNormal)
-                        .padding(.leading, 4)
-                    MapPhotoField(image: previewImage, imageURL: state.original.imageURL, showsEditOverlay: true) {
-                        // 올리는 중에는 열지 않는다. 고른 사진이 반영되지 않는다.
-                        guard !state.saving else { return }
-                        focusedField = nil
-                        showsPhotoPicker = true
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("지도 이름과 소개, 태그를 수정할 수 있어요")
+                            .moaTextStyle(typography.body2)
+                            .foregroundStyle(colors.textNormal)
+                            .padding(.leading, 4)
+                        MapPhotoField(image: previewImage, imageURL: state.original.imageURL, showsEditOverlay: true) {
+                            // 올리는 중에는 열지 않는다. 고른 사진이 반영되지 않는다.
+                            guard !state.saving else { return }
+                            focusedField = nil
+                            showsPhotoPicker = true
+                        }
+                        CreateMapInputField(
+                            label: "지도 이름",
+                            text: binding(state.name, viewModel.updateName), placeholder: "지도 이름을 입력해주세요",
+                            focused: focusedField == .name
+                        )
+                        .focused($focusedField, equals: .name)
+                        .background { scrollTarget(.name) }
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .description }
+                        CreateMapInputField(
+                            label: "지도 설명",
+                            text: binding(state.description, viewModel.updateDescription), placeholder: "지도 설명을 입력해주세요",
+                            focused: focusedField == .description
+                        )
+                        .focused($focusedField, equals: .description)
+                        .background { scrollTarget(.description) }
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .tag }
+                        tagField(state)
                     }
-                    CreateMapInputField(
-                        label: "지도 이름",
-                        text: binding(state.name, viewModel.updateName), placeholder: "지도 이름을 입력해주세요"
-                    )
-                    .focused($focusedField, equals: .name)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .description }
-                    CreateMapInputField(
-                        label: "지도 설명",
-                        text: binding(state.description, viewModel.updateDescription), placeholder: "지도 설명을 입력해주세요"
-                    )
-                    .focused($focusedField, equals: .description)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .tag }
-                    tagField(state)
+                    .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+                    .padding(.top, 20)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-                .padding(.top, 20)
-                .padding(.bottom, 20)
+                .scrollIndicators(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+                // 키보드가 올라오면 시스템은 글자 한 줄만 보이게 스크롤해서, 입력칸이 키보드에 너무 붙는다.
+                // 입력칸 아래로 여유를 두고 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
+                .onChange(of: focusedField) { _, field in scroll(proxy, to: field) }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                    scroll(proxy, to: focusedField)
+                }
             }
-            .scrollIndicators(.hidden)
-            .scrollDismissesKeyboard(.interactively)
             .moaSnackbar(errorMessage)
         }
         .safeAreaInset(edge: .bottom) {
@@ -110,7 +122,8 @@ struct EditMapView: View {
     private func tagField(_ state: EditMapUiState) -> some View {
         CreateMapInputField(
             label: "태그",
-            text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터"
+            text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터",
+            focused: focusedField == .tag
         ) {
             if !state.tags.isEmpty {
                 FlowLayout(spacing: 4, lineSpacing: 4) {
@@ -121,6 +134,7 @@ struct EditMapView: View {
             }
         }
         .focused($focusedField, equals: .tag)
+        .background { scrollTarget(.tag) }
         .onChange(of: tagDraft) { _, draft in
             viewModel.updateTagInput(draft)
             let remaining = viewModel.uiState.tagInput
@@ -140,6 +154,21 @@ struct EditMapView: View {
             focusedField = .tag
         }
     }
+
+    private func scroll(_ proxy: ScrollViewProxy, to field: Field?) {
+        guard let field else { return }
+        withAnimation { proxy.scrollTo(field, anchor: .bottom) }
+    }
+
+    /// 키보드 위로 입력칸을 맞출 때 쓰는 자리. 입력칸보다 아래로 길게 잡아 아래 버튼과 붙지 않게 띄운다. 장소 추가와 같다.
+    private func scrollTarget(_ field: Field) -> some View {
+        Color.clear
+            .id(field)
+            .padding(.bottom, -Self.keyboardButtonGap)
+    }
+
+    /// 아래 버튼 위에 이미 13 여백이 있어, 더해서 장소 추가와 같은 20이 되게 한다.
+    private static let keyboardButtonGap: CGFloat = 7
 
     private var errorMessage: Binding<String?> {
         Binding(
