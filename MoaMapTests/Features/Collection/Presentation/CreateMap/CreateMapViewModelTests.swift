@@ -42,7 +42,7 @@ struct CreateMapViewModelTests {
         sut.updateTagInput("성수\n카페  데이트 맛")
         #expect(sut.uiState.tags == ["카페", "성수", "데이트"])
         #expect(sut.uiState.tagInput == "맛")
-        sut.commitTag()
+        sut.updateTagInput("맛\n")
         #expect(sut.uiState.tags == ["카페", "성수", "데이트", "맛"])
         sut.removeTag("성수")
         #expect(sut.uiState.tags == ["카페", "데이트", "맛"])
@@ -53,7 +53,6 @@ struct CreateMapViewModelTests {
         sut.updateTagInput(String(repeating: "a", count: 31))
         #expect(sut.uiState.tagInput.count == 30)
         sut.updateTagInput("   ")
-        sut.commitTag()
         #expect(sut.uiState.tags.isEmpty)
     }
 
@@ -67,7 +66,7 @@ struct CreateMapViewModelTests {
         #expect(sut.uiState.errorMessage == "사진을 불러오지 못했어요")
     }
 
-    @Test func 커버를_올리고_입력중인_태그까지_담아_공개_지도를_만든다() async throws {
+    @Test func 커버를_올리고_칩이_된_태그만_담아_공개_지도를_만든다() async throws {
         let repository = CollectionRepositoryStub()
         repository.create = { _ in CreatedMap(id: 7, inviteCode: nil) }
         let sut = filled(repository)
@@ -80,9 +79,9 @@ struct CreateMapViewModelTests {
         #expect(repository.uploadedCovers == [png])
         #expect(repository.createdMaps == [NewMap(
             name: "성수 카페", description: "설명", visibility: .public,
-            tags: ["카페", "성수"], imageURL: "https://cdn.example.com/cover.jpg"
+            tags: ["카페"], imageURL: "https://cdn.example.com/cover.jpg"
         )])
-        #expect(sut.uiState.tags == ["카페", "성수"])
+        #expect(sut.uiState.tags == ["카페"])
         #expect(sut.uiState.submit == .done(mapID: 7))
     }
 

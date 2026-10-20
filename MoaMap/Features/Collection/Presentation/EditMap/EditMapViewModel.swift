@@ -50,11 +50,6 @@ final class EditMapViewModel {
         (uiState.tags, uiState.tagInput) = MapTagInput.apply(input, to: uiState.tags)
     }
 
-    func commitTag() {
-        uiState.tags = MapTagInput.adding([uiState.tagInput], to: uiState.tags)
-        uiState.tagInput = ""
-    }
-
     func removeTag(_ tag: String) {
         uiState.tags.removeAll { $0 == tag }
     }
@@ -62,8 +57,6 @@ final class EditMapViewModel {
     /// 사진은 여기서 올린다. 업로드가 실패하면 정보도 저장하지 않는다.
     func save() {
         guard uiState.canSave else { return }
-        // 입력만 해두고 바로 누른 태그도 요청에 담는다.
-        commitTag()
         let original = uiState.original
         let picked = uiState.pickedImage
         // 서버가 통째로 덮어쓴다. 사진을 바꾸지 않았으면 원래 주소를 그대로 보내야 지워지지 않는다.

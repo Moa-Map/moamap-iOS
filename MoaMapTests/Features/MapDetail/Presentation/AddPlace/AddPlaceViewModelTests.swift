@@ -120,15 +120,14 @@ struct AddPlaceViewModelTests {
         #expect(sut.uiState.addedMessage == "추가 요청을 보냈어요")
     }
 
-    @Test func 엔터_없이_등록해도_입력_중인_태그를_넣는다() async {
+    @Test func 엔터_없이_등록하면_입력_중인_태그는_넣지_않는다() async {
         let add = PlaceAddRepositoryStub()
         let sut = makeSUT(add: add)
         sut.select(.fixture())
         sut.updateTagInput("성수 카페")
         sut.submit(map: map())
         await sut.submitTask?.value
-        #expect(add.added.first?.tags == ["성수", "카페"])
-        #expect(sut.uiState.tagInput.isEmpty)
+        #expect(add.added.first?.tags == ["성수"])
     }
 
     @Test(arguments: [(MapType.private, MapRole.member), (.community, .owner), (.community, .admin)])

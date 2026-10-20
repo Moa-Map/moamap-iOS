@@ -20,14 +20,12 @@ nonisolated struct EditMapUiState: Equatable, Sendable {
         tags = map.tags
     }
 
-    /// 입력 중인 태그도 저장할 때 확정되므로 바뀐 것으로 본다.
     /// 서버 값은 앞뒤 공백을 남긴 채 오므로 양쪽 다 다듬어 견준다.
     var hasChanges: Bool {
         pickedImage != nil
             || name.trimmed != original.title.trimmed
             || description.trimmed != (original.description ?? "").trimmed
             || tags != original.tags
-            || !tagInput.trimmed.isEmpty
     }
 
     /// 이름은 서버 필수값이다.

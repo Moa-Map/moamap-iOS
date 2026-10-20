@@ -24,6 +24,8 @@ struct EditMapViewModelTests {
         sut.updateName("성수 카페 ")
         #expect(!sut.uiState.canSave)
         sut.updateTagInput("데이트")
+        #expect(!sut.uiState.canSave)
+        sut.updateTagInput("데이트 ")
         #expect(sut.uiState.canSave)
     }
 
@@ -35,11 +37,11 @@ struct EditMapViewModelTests {
         #expect(!sut.uiState.canSave)
     }
 
-    @Test func 사진을_바꾸지_않으면_원래_주소와_입력_중인_태그를_함께_보낸다() async throws {
+    @Test func 사진을_바꾸지_않으면_원래_주소와_칩이_된_태그만_보낸다() async throws {
         let repository = CollectionRepositoryStub()
         let sut = EditMapViewModel(map: map(), repository: repository)
         sut.updateDescription("")
-        sut.updateTagInput("데이트")
+        sut.updateTagInput("데이트 성수")
         sut.save()
         #expect(sut.uiState.saving)
         try await sut.saveTask?.value
