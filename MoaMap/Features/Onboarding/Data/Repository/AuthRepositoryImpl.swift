@@ -5,6 +5,7 @@ final class AuthRepositoryImpl: AuthRepository {
     private let client: APIClient
     private let kakaoLogin: () async throws -> String
     private let appleLogin: (String) async throws -> AppleLoginCredential
+    private let googleLogin: () async throws -> String
     private let kakaoLogout: () async throws -> Void
     private let kakaoUnlink: () async throws -> Void
     private let tokenStore: any AuthTokenStore
@@ -13,6 +14,7 @@ final class AuthRepositoryImpl: AuthRepository {
 
     init(client: APIClient, kakaoLogin: @escaping () async throws -> String,
          appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
+         googleLogin: @escaping () async throws -> String = { throw LoginError.notConfigured },
          kakaoLogout: @escaping () async throws -> Void = {},
          kakaoUnlink: @escaping () async throws -> Void = {},
          tokenStore: any AuthTokenStore, currentUserStore: any CurrentUserStore,
@@ -20,6 +22,7 @@ final class AuthRepositoryImpl: AuthRepository {
         self.client = client
         self.kakaoLogin = kakaoLogin
         self.appleLogin = appleLogin
+        self.googleLogin = googleLogin
         self.kakaoLogout = kakaoLogout
         self.kakaoUnlink = kakaoUnlink
         self.tokenStore = tokenStore
@@ -70,6 +73,19 @@ final class AuthRepositoryImpl: AuthRepository {
         try saveSession(loginResponse, provider: .apple)
     }
 
+    func loginWithGoogle() async throws {
+        try Task.checkCancellation()
+        let idToken = try await googleLogin()
+        try Task.checkCancellation()
+        guard !idToken.isEmpty else { throw LoginError.invalidResponse }
+        let request = APIRequest(
+            path: ["api", "v1", "auth", "google", "login"], method: .post,
+            jsonBody: try JSONEncoder().encode(GoogleLoginRequest(idToken: idToken))
+        )
+        let response = try await client.send(request, as: LoginResponse.self)
+        try saveSession(response, provider: .google)
+    }
+
     private func saveSession(_ response: LoginResponse, provider: LoginProvider) throws {
         try Task.checkCancellation()
         guard let userId = response.userId, userId > 0,
@@ -114,7 +130,7 @@ final class AuthRepositoryImpl: AuthRepository {
         case .kakao, nil:
             try await kakaoUnlink()
             try Task.checkCancellation()
-        case .apple:
+        case .apple, .google:
             break
         }
         do {

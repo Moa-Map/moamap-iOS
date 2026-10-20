@@ -66,7 +66,7 @@ struct LoginViewModelTests {
         guard case .failed = latest else { Issue.record("새 요청의 실패 상태가 필요하다"); return }
     }
 
-    @Test(arguments: [LoginProvider.kakao, .apple])
+    @Test(arguments: [LoginProvider.kakao, .apple, .google])
     func 로그인_수단을_구분하고_인증_중_다른_로그인도_막는다(provider: LoginProvider) async {
         let repository = LoginRepositoryStub()
         let release = AsyncGate()
@@ -78,10 +78,12 @@ struct LoginViewModelTests {
         #expect(sut.uiState.loadingProvider == provider)
         sut.loginWithKakao()
         sut.loginWithApple()
+        sut.loginWithGoogle()
         await release.open()
         await pending?.value
         #expect(repository.kakaoCalls == (provider == .kakao ? 1 : 0))
         #expect(repository.appleCalls == (provider == .apple ? 1 : 0))
+        #expect(repository.googleCalls == (provider == .google ? 1 : 0))
         #expect(sut.uiState == .authenticated)
         #expect(sut.uiState.loadingProvider == nil)
         #expect(sut.loadTask == nil)
@@ -196,6 +198,7 @@ struct LoginViewModelTests {
         switch provider {
         case .kakao: model.loginWithKakao()
         case .apple: model.loginWithApple()
+        case .google: model.loginWithGoogle()
         }
     }
 
@@ -216,9 +219,11 @@ final class LoginRepositoryStub: AuthRepository {
     var session = false
     private(set) var kakaoCalls = 0
     private(set) var appleCalls = 0
-    var calls: Int { kakaoCalls + appleCalls }
+    private(set) var googleCalls = 0
+    var calls: Int { kakaoCalls + appleCalls + googleCalls }
     func loginWithKakao() async throws { kakaoCalls += 1; try await login() }
     func loginWithApple() async throws { appleCalls += 1; try await login() }
+    func loginWithGoogle() async throws { googleCalls += 1; try await login() }
     var logoutHandler: () async throws -> Void = {}
     private(set) var logoutCalls = 0
     func logout() async throws { logoutCalls += 1; try await logoutHandler() }

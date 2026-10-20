@@ -2,6 +2,10 @@ nonisolated struct KakaoLoginRequest: Encodable, Sendable {
     let kakaoAccessToken: String
 }
 
+nonisolated struct GoogleLoginRequest: Encodable, Sendable {
+    let idToken: String
+}
+
 nonisolated struct LoginResponse: Decodable, Sendable {
     let userId: Int64?
     let accessToken: String?

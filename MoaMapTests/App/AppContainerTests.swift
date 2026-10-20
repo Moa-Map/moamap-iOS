@@ -59,6 +59,26 @@ struct AppContainerTests {
     }
 
     @Test
+    func 남은_토큰이_있어도_구글_로그인에는_인증_헤더를_붙이지_않는다() async throws {
+        let tokens = MemoryAuthTokenStore(AuthToken(accessToken: "stale", refreshToken: "stale-refresh"))
+        let users = MemoryCurrentUserStore()
+        let container = AppContainer(
+            configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"]),
+            tokenStore: tokens, currentUserStore: users, loginProviderStore: MemoryLoginProviderStore(),
+            googleLogin: { "id-token" }
+        ) { request in
+            #expect(request.url?.path == "/api/v1/auth/google/login")
+            #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
+            let body = #"{"success":true,"data":{"userId":42,"accessToken":"access","refreshToken":"refresh","tokenType":"Bearer","expiresIn":1800,"refreshTokenExpiresIn":1209600,"isNewUser":false}}"#
+            let url = try #require(request.url)
+            let response = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil))
+            return (Data(body.utf8), response)
+        }
+        try await container.authRepository.loginWithGoogle()
+        #expect(try tokens.load() == AuthToken(accessToken: "access", refreshToken: "refresh"))
+    }
+
+    @Test
     func 설정이_없는_번들은_조립에_실패한다() throws {
         let testBundle = Bundle(for: BundleMarker.self)
         #expect(throws: APIConfiguration.ConfigurationError.missingBaseURL) {

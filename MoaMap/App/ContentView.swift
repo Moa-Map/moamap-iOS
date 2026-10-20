@@ -48,7 +48,8 @@ struct ContentView: View {
                 LoginView(
                     loadingProvider: loginViewModel.uiState.loadingProvider,
                     onKakaoLogin: { loginViewModel.loginWithKakao() },
-                    onAppleLogin: { loginViewModel.loginWithApple() }
+                    onAppleLogin: { loginViewModel.loginWithApple() },
+                    onGoogleLogin: { loginViewModel.loginWithGoogle() }
                 )
             }
         }

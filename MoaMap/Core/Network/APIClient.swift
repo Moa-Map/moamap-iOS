@@ -47,6 +47,7 @@ nonisolated struct APIClient: Sendable {
             "/api/v1/auth/kakao/login",
             "/api/v1/auth/apple/nonce",
             "/api/v1/auth/apple/login",
+            "/api/v1/auth/google/login",
             "/api/v1/auth/token/refresh"
         ].contains(urlRequest.url?.path)
         let session = excludesAuth ? nil : authSession

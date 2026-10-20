@@ -1,4 +1,5 @@
 import Foundation
+import GoogleSignIn
 import KakaoSDKAuth
 import KakaoSDKCommon
 import KakaoSDKUser
@@ -39,6 +40,7 @@ final class AppContainer {
         loginProviderStore: any LoginProviderStore,
         kakaoLogin: @escaping () async throws -> String = { throw LoginError.notConfigured },
         appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
+        googleLogin: @escaping () async throws -> String = { throw LoginError.notConfigured },
         kakaoLogout: @escaping () async throws -> Void = {},
         kakaoUnlink: @escaping () async throws -> Void = {},
         kakaoRestAPIKey: String = "",
@@ -55,8 +57,9 @@ final class AppContainer {
         apiClient = APIClient(configuration: configuration, authSession: authSession, transport: transport)
         // 로그인 경로는 APIClient 가 인증 헤더를 붙이지 않는다. 로그아웃은 인증이 필요하다.
         authRepository = AuthRepositoryImpl(
-            client: apiClient, kakaoLogin: kakaoLogin, appleLogin: appleLogin, kakaoLogout: kakaoLogout,
-            kakaoUnlink: kakaoUnlink, tokenStore: tokenStore, currentUserStore: currentUserStore,
+            client: apiClient, kakaoLogin: kakaoLogin, appleLogin: appleLogin, googleLogin: googleLogin,
+            kakaoLogout: kakaoLogout, kakaoUnlink: kakaoUnlink,
+            tokenStore: tokenStore, currentUserStore: currentUserStore,
             loginProviderStore: loginProviderStore
         )
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
@@ -121,12 +124,16 @@ final class AppContainer {
             }
         )
         let appleClient = AppleAuthClient {
-            guard let window = UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene })
-                .filter({ $0.activationState == .foregroundActive })
-                .flatMap(\.windows)
-                .first(where: \.isKeyWindow) else { throw LoginError.notConfigured }
+            guard let window = Self.keyWindow() else { throw LoginError.notConfigured }
             return SystemAppleAuthorizationSession(anchor: window)
+        }
+        let googleClientID = (bundle.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        // URL Scheme 이 빠진 채 로그인을 시작하면 SDK 가 앱을 멈춘다. 둘 다 있어야 켠다.
+        let isGoogleConfigured = !googleClientID.isEmpty && !googleClientID.contains("$(")
+            && Self.urlSchemes(in: bundle).contains(Self.googleURLScheme(clientID: googleClientID))
+        if isGoogleConfigured {
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: googleClientID)
         }
         self.init(
             configuration: configuration,
@@ -138,6 +145,11 @@ final class AppContainer {
                 return try await kakaoClient.login()
             },
             appleLogin: { nonce in try await appleClient.login(nonce: nonce) },
+            googleLogin: {
+                guard isGoogleConfigured,
+                      let presenter = Self.keyWindow()?.rootViewController else { throw LoginError.notConfigured }
+                return try await Self.googleIDToken(presenting: presenter)
+            },
             kakaoLogout: {
                 guard isConfigured else { return }
                 try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
@@ -239,11 +251,48 @@ final class AppContainer {
         if sharedLinkInbox.receive(url) { return }
         if AuthApi.isKakaoTalkLoginUrl(url) {
             _ = AuthController.handleOpenUrl(url: url)
+            return
         }
+        _ = GIDSignIn.sharedInstance.handle(url)
     }
 
     // 고정 주소라 실패할 수 없다.
     private static let kakaoLocalConfiguration = try! APIConfiguration(infoDictionary: ["BASE_URL": "https://dapi.kakao.com/"])
+
+    private static func keyWindow() -> UIWindow? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .filter { $0.activationState == .foregroundActive }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+    }
+
+    private static func urlSchemes(in bundle: Bundle) -> [String] {
+        let types = bundle.object(forInfoDictionaryKey: "CFBundleURLTypes") as? [[String: Any]] ?? []
+        return types.flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] }
+    }
+
+    /// 구글 콜백 주소는 클라이언트 ID 를 점 단위로 뒤집은 것이다.
+    private static func googleURLScheme(clientID: String) -> String {
+        clientID.split(separator: ".").reversed().joined(separator: ".")
+    }
+
+    /// ID 토큰만 서버에 넘기고 구글 로그인 상태는 남기지 않는다. 다음 로그인 때 계정을 다시 고른다.
+    private static func googleIDToken(presenting presenter: UIViewController) async throws -> String {
+        // 시트가 떠 있으면 맨 위 화면에서 띄워야 한다.
+        var top = presenter
+        while let presented = top.presentedViewController { top = presented }
+        let result: GIDSignInResult
+        do {
+            result = try await GIDSignIn.sharedInstance.signIn(withPresenting: top)
+        } catch let error as NSError
+            where error.domain == kGIDSignInErrorDomain && error.code == GIDSignInError.canceled.rawValue {
+            throw LoginError.cancelled
+        }
+        GIDSignIn.sharedInstance.signOut()
+        guard let idToken = result.user.idToken?.tokenString, !idToken.isEmpty else { throw LoginError.invalidResponse }
+        return idToken
+    }
 
     private nonisolated static func kakaoResult(accessToken: String?, error: (any Error)?) -> Result<String, any Error> {
         if let error {

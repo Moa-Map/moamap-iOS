@@ -6,6 +6,7 @@ nonisolated extension LoginProvider {
         switch self {
         case .kakao: "카카오"
         case .apple: "Apple"
+        case .google: "Google"
         }
     }
 }
@@ -38,6 +39,10 @@ final class LoginViewModel {
         login(with: .kakao)
     }
 
+    func loginWithGoogle() {
+        login(with: .google)
+    }
+
     private func login(with provider: LoginProvider) {
         guard uiState.loadingProvider == nil, uiState != .authenticated else { return }
         loadTask?.cancel()
@@ -48,6 +53,7 @@ final class LoginViewModel {
                 switch provider {
                 case .kakao: try await repository.loginWithKakao()
                 case .apple: try await repository.loginWithApple()
+                case .google: try await repository.loginWithGoogle()
                 }
                 try Task.checkCancellation()
                 self?.uiState = .authenticated

@@ -69,6 +69,21 @@ struct WithdrawRepositoryTests {
         #expect(try tokens.load() == nil)
     }
 
+    @Test func 구글_세션이면_카카오_연결을_끊지_않고_탈퇴한다() async throws {
+        let log = RequestLog()
+        let tokens = MemoryAuthTokenStore(AuthToken(accessToken: "access", refreshToken: "refresh"))
+        var unlinkCalls = 0
+        let sut = try repository(log: log, tokens: tokens, users: MemoryCurrentUserStore(42), providers: MemoryLoginProviderStore(.google)) {
+            unlinkCalls += 1
+        }
+
+        try await sut.withdraw()
+
+        #expect(unlinkCalls == 0)
+        #expect(await log.requests == ["DELETE /api/v1/users/me"])
+        #expect(try tokens.load() == nil)
+    }
+
     @Test func 로그인_수단을_모르는_세션은_카카오_연결을_끊어_본다() async throws {
         let tokens = MemoryAuthTokenStore(AuthToken(accessToken: "access", refreshToken: "refresh"))
         var unlinkCalls = 0

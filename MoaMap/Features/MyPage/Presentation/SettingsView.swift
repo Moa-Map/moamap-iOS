@@ -186,6 +186,7 @@ struct SettingsView: View {
 final class PreviewAuthRepository: AuthRepository {
     func loginWithKakao() async throws {}
     func loginWithApple() async throws {}
+    func loginWithGoogle() async throws {}
     func logout() async throws {}
     func withdraw() async throws {}
     func hasSession() throws -> Bool { true }
