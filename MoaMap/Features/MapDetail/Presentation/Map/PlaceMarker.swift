@@ -37,7 +37,7 @@ nonisolated enum MapCameraDefaults {
     /// 가장 작은 지도(지도 소개 미리보기)에서도 국토 전체가 들어오는 배율.
     static let minZoom = 4.4
     /// 손을 뗀 뒤 지도가 미끄러지는 정도. 1ms 마다 속도에 곱한다. 기본값(0.998)은 너무 멀리 미끄러진다.
-    static let panDeceleration: CGFloat = 0.995
+    static let panDeceleration: CGFloat = 0.99
 }
 
 /// 처음 지도를 열 때 카메라를 어디에 둘지.
