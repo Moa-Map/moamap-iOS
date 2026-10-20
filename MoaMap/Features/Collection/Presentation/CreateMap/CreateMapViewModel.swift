@@ -51,11 +51,6 @@ final class CreateMapViewModel {
         (uiState.tags, uiState.tagInput) = MapTagInput.apply(input, to: uiState.tags)
     }
 
-    func commitTag() {
-        uiState.tags = MapTagInput.adding([uiState.tagInput], to: uiState.tags)
-        uiState.tagInput = ""
-    }
-
     func removeTag(_ tag: String) {
         uiState.tags.removeAll { $0 == tag }
     }
@@ -63,8 +58,6 @@ final class CreateMapViewModel {
     /// 사진은 여기서 올린다. 업로드가 실패하면 지도도 만들지 않는다.
     func submit() {
         guard uiState.canSubmit, let visibility = uiState.visibility else { return }
-        // 입력만 해두고 바로 누른 태그도 요청에 담는다.
-        commitTag()
         let newMap = NewMap(
             name: uiState.name,
             description: uiState.description,

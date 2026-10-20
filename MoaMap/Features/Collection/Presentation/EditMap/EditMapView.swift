@@ -147,13 +147,10 @@ struct EditMapView: View {
         .onChange(of: state.tagInput, initial: true) { _, input in
             if tagDraft != input { tagDraft = input }
         }
-        .onChange(of: focusedField) { old, new in
-            // 엔터 없이 입력창을 벗어나도 입력 중이던 태그를 확정한다.
-            if old == .tag, new != .tag { viewModel.commitTag() }
-        }
         .submitLabel(.done)
         .onSubmit {
-            viewModel.commitTag()
+            // 엔터 순간에는 마지막 글자가 아직 tagInput에 오지 않았을 수 있다. 입력창 값으로 다음 차례에 확정한다.
+            Task { @MainActor in commitTagDraft() }
             // 이어서 태그를 더 넣을 수 있게 키보드를 유지한다.
             focusedField = .tag
         }
@@ -173,6 +170,12 @@ struct EditMapView: View {
 
     /// 아래 버튼 위에 이미 13 여백이 있어, 더해서 장소 추가와 같은 20이 되게 한다.
     private static let keyboardButtonGap: CGFloat = 7
+
+    /// 입력창에 보이는 글자 그대로 태그로 확정하고 입력창을 남은 값으로 맞춘다.
+    private func commitTagDraft() {
+        viewModel.updateTagInput(tagDraft + "\n")
+        tagDraft = viewModel.uiState.tagInput
+    }
 
     private var errorMessage: Binding<String?> {
         Binding(
