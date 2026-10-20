@@ -29,9 +29,10 @@ struct MemberView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(colors.backgroundSecondary)
-        // 뒤에 깔린 지도로 터치가 새지 않게 하고, 말풍선 밖을 누르면 닫는다.
+        // 말풍선 밖을 누르면 닫는다.
         .contentShape(Rectangle())
         .onTapGesture { guideVisible = false }
+        .toolbar(.hidden, for: .navigationBar)
         .task { viewModel.loadOnce() }
         .moaSnackbar($grantError)
         .onChange(of: state.grantErrorMessage, initial: true) { _, message in

@@ -73,8 +73,11 @@ struct MapDetailView: View {
     @State private var membersVisible = false
     @State private var manageVisible = false
     @State private var infoVisible = false
-    /// 열려 있는 지도 정보 수정. 닫으면 비워 다음에 열 때 새로 시작한다.
+    @State private var editMapVisible = false
+    /// 지도 정보 수정. 열 때마다 새로 만들어 새로 시작한다. 닫는 동안 화면이 비지 않게 닫아도 남긴다.
     @State private var editMapViewModel: EditMapViewModel?
+    /// 마지막으로 읽은 지도. 쌓아 둔 화면은 다시 읽다 실패해도 이것으로 그려 비지 않게 한다.
+    @State private var lastLoadedMap: MapDetail?
     /// 장소 등록 완료처럼 지도 위에 잠깐 띄우는 안내.
     @State private var notice: String?
 
@@ -182,7 +185,56 @@ struct MapDetailView: View {
         .moaSnackbar($notice)
         .background(colors.backgroundSecondary)
         .toolbar(.hidden, for: .navigationBar)
+        // 지도 위에 겹치지 않고 내비게이션에 쌓는다. 가장자리를 쓸어 넘기면 지도 상세로 돌아와야 한다.
+        .navigationDestination(isPresented: $membersVisible) {
+            if let map = subScreenMap {
+                MemberView(
+                    viewModel: memberViewModel,
+                    roleDisplay: map.memberRoleDisplay,
+                    canGrantRole: map.canGrantRole,
+                    onBack: { membersVisible = false }
+                )
+            }
+        }
+        .navigationDestination(isPresented: $manageVisible) {
+            if let map = subScreenMap {
+                MapManageView(
+                    activityViewModel: activityViewModel,
+                    pendingViewModel: pendingViewModel,
+                    canReviewRequests: map.canReviewRequests,
+                    onBack: { manageVisible = false }
+                )
+            }
+        }
+        .navigationDestination(isPresented: $infoVisible) {
+            if let map = subScreenMap {
+                MapInfoView(
+                    map: map,
+                    onBack: { infoVisible = false },
+                    onEdit: {
+                        editMapViewModel = makeEditMap(map)
+                        editMapVisible = true
+                    }
+                )
+                // 수정에서 쓸어 넘기면 지도 정보로 돌아온다.
+                .navigationDestination(isPresented: $editMapVisible) {
+                    if let editMapViewModel {
+                        EditMapView(
+                            viewModel: editMapViewModel,
+                            onBack: { editMapVisible = false },
+                            onSaved: {
+                                editMapVisible = false
+                                // 지도 정보와 상단 제목이 고친 값을 보여야 한다.
+                                viewModel.refresh()
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
+
+    private var subScreenMap: MapDetail? { viewModel.uiState.map.map ?? lastLoadedMap }
 
     /// 지도 상세 위에 겹치는 시트·화면·팝업.
     @ViewBuilder
@@ -230,44 +282,6 @@ struct MapDetailView: View {
                 AddPlaceView(viewModel: addPlaceViewModel, map: map, onClose: { addPlaceVisible = false })
             }
 
-            if membersVisible, let map = viewModel.uiState.map.map {
-                MemberView(
-                    viewModel: memberViewModel,
-                    roleDisplay: map.memberRoleDisplay,
-                    canGrantRole: map.canGrantRole,
-                    onBack: { membersVisible = false }
-                )
-            }
-
-            if manageVisible, let map = viewModel.uiState.map.map {
-                MapManageView(
-                    activityViewModel: activityViewModel,
-                    pendingViewModel: pendingViewModel,
-                    canReviewRequests: map.canReviewRequests,
-                    onBack: { manageVisible = false }
-                )
-            }
-
-            if infoVisible, let map = viewModel.uiState.map.map {
-                MapInfoView(
-                    map: map,
-                    onBack: { infoVisible = false },
-                    onEdit: { editMapViewModel = makeEditMap(map) }
-                )
-            }
-
-            if let editMapViewModel {
-                EditMapView(
-                    viewModel: editMapViewModel,
-                    onBack: { self.editMapViewModel = nil },
-                    onSaved: {
-                        self.editMapViewModel = nil
-                        // 지도 정보와 상단 제목이 고친 값을 보여야 한다.
-                        viewModel.refresh()
-                    }
-                )
-            }
-
             // 나가서 참여가 풀리면 메뉴도 함께 닫힌다.
             if menuVisible && viewModel.uiState.showsMenu { menu.transition(.dropdownMenu) }
 
@@ -295,7 +309,10 @@ struct MapDetailView: View {
     /// 다른 ViewModel 의 신호를 받아 지도 상세를 맞춘다.
     private func observingChildren(_ content: some View) -> some View {
         content
-            .onChange(of: viewModel.uiState.map) { settleCamera() }
+            .onChange(of: viewModel.uiState.map) {
+                if let map = viewModel.uiState.map.map { lastLoadedMap = map }
+                settleCamera()
+            }
             .onChange(of: viewModel.uiState.errorMessage) { _, message in
                 if let message { alert = .error(message) }
             }
@@ -629,10 +646,13 @@ private final class PreviewLocationProvider: LocationProvider {
 }
 
 #Preview {
-    MapDetailView(
-        viewModels: .preview(mapID: 1),
-        locationProvider: PreviewLocationProvider(),
-        onBack: { _ in }
-    )
+    // 메뉴로 여는 화면은 내비게이션에 쌓는다.
+    NavigationStack {
+        MapDetailView(
+            viewModels: .preview(mapID: 1),
+            locationProvider: PreviewLocationProvider(),
+            onBack: { _ in }
+        )
+    }
 }
 #endif

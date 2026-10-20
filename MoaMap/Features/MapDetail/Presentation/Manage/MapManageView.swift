@@ -45,8 +45,7 @@ struct MapManageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(colors.backgroundSecondary)
-        // 뒤에 깔린 지도로 터치가 새지 않게 한다.
-        .contentShape(Rectangle())
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             activityViewModel.loadOnce()
             // 볼 수 없는 목록을 받아 오는 통신을 남기지 않는다.
