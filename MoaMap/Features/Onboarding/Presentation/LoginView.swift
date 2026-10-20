@@ -7,6 +7,7 @@ struct LoginView: View {
     var loadingProvider: LoginProvider?
     var onKakaoLogin: (() -> Void)?
     var onAppleLogin: (() -> Void)?
+    var onGoogleLogin: (() -> Void)?
 
     var body: some View {
         GeometryReader { geometry in
@@ -29,7 +30,11 @@ struct LoginView: View {
                     }
 
                     VStack(spacing: 12) {
-                        SocialLoginButton(provider: .google)
+                        SocialLoginButton(
+                            provider: .google,
+                            isLoading: loadingProvider == .google,
+                            action: onGoogleLogin
+                        )
                         SocialLoginButton(
                             provider: .kakao,
                             isLoading: loadingProvider == .kakao,

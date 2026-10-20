@@ -45,12 +45,16 @@ jobs:
           KAKAO_NATIVE_APP_KEY: ${{ secrets.KAKAO_NATIVE_APP_KEY }}
           KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_URL_SCHEME: ${{ secrets.GOOGLE_URL_SCHEME }}
         run: |
           # 서버 주소는 Base.xcconfig와 Debug/Release 빌드 설정으로 선택한다.
           cat > Configs/Secrets.xcconfig <<EOF
           KAKAO_NATIVE_APP_KEY = $KAKAO_NATIVE_APP_KEY
           KAKAO_REST_API_KEY = $KAKAO_REST_API_KEY
           MAPBOX_PUBLIC_TOKEN = $MAPBOX_PUBLIC_TOKEN
+          GOOGLE_CLIENT_ID = $GOOGLE_CLIENT_ID
+          GOOGLE_URL_SCHEME = $GOOGLE_URL_SCHEME
           EOF
 
       # Mapbox 가 커서 매번 받으면 빌드 시간이 크게 늘어난다.
