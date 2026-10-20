@@ -8,6 +8,7 @@ struct AuthRepositoryTests {
         body: String,
         tokens: any AuthTokenStore,
         users: any CurrentUserStore,
+        providers: any LoginProviderStore = MemoryLoginProviderStore(),
         login: @escaping () async throws -> String = { "kakao-token" }
     ) throws -> AuthRepositoryImpl {
         let client = APIClient(configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"])) { request in
@@ -20,15 +21,18 @@ struct AuthRepositoryTests {
             let response = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil))
             return (Data(body.utf8), response)
         }
-        return AuthRepositoryImpl(client: client, kakaoLogin: login, tokenStore: tokens, currentUserStore: users)
+        return AuthRepositoryImpl(client: client, kakaoLogin: login, tokenStore: tokens, currentUserStore: users,
+                                  loginProviderStore: providers)
     }
 
     @Test func 로그인_응답의_신원과_토큰을_저장한다() async throws {
         let tokens = MemoryAuthTokenStore()
         let users = MemoryCurrentUserStore()
-        let sut = try repository(body: #"{"success":true,"data":{"userId":42,"accessToken":"access","refreshToken":"refresh","isNewUser":true}}"#, tokens: tokens, users: users)
+        let providers = MemoryLoginProviderStore()
+        let sut = try repository(body: #"{"success":true,"data":{"userId":42,"accessToken":"access","refreshToken":"refresh","isNewUser":true}}"#, tokens: tokens, users: users, providers: providers)
         try await sut.loginWithKakao()
         #expect(try users.load() == 42)
+        #expect(try providers.load() == .kakao)
         #expect(try tokens.load() == AuthToken(accessToken: "access", refreshToken: "refresh"))
         #expect(try sut.hasSession())
     }

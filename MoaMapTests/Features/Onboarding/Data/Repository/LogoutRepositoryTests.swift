@@ -20,6 +20,7 @@ struct LogoutRepositoryTests {
         log: RequestLog = RequestLog(),
         tokens: any AuthTokenStore,
         users: any CurrentUserStore,
+        providers: any LoginProviderStore = MemoryLoginProviderStore(),
         kakaoLogout: @escaping () async throws -> Void = {}
     ) throws -> AuthRepositoryImpl {
         let client = APIClient(configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"])) { request in
@@ -30,7 +31,7 @@ struct LogoutRepositoryTests {
         }
         return AuthRepositoryImpl(
             client: client, kakaoLogin: { "" }, kakaoLogout: kakaoLogout,
-            tokenStore: tokens, currentUserStore: users
+            tokenStore: tokens, currentUserStore: users, loginProviderStore: providers
         )
     }
 
@@ -38,8 +39,9 @@ struct LogoutRepositoryTests {
         let log = RequestLog()
         let tokens = MemoryAuthTokenStore(AuthToken(accessToken: "access", refreshToken: "refresh"))
         let users = MemoryCurrentUserStore(42)
+        let providers = MemoryLoginProviderStore(.kakao)
         var kakaoCalls = 0
-        let sut = try repository(log: log, tokens: tokens, users: users) { kakaoCalls += 1 }
+        let sut = try repository(log: log, tokens: tokens, users: users, providers: providers) { kakaoCalls += 1 }
 
         try await sut.logout()
 
@@ -48,6 +50,7 @@ struct LogoutRepositoryTests {
         #expect(kakaoCalls == 1)
         #expect(try tokens.load() == nil)
         #expect(try users.load() == nil)
+        #expect(try providers.load() == nil)
     }
 
     @Test func 서버와_카카오_로그아웃이_실패해도_세션을_지운다() async throws {

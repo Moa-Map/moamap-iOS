@@ -9,7 +9,7 @@ struct AppContainerTests {
     @Test
     func 주입한_서버와_전송으로_응답을_처리한다() async throws {
         let configuration = try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/api/"])
-        let container = AppContainer(configuration: configuration, tokenStore: MemoryAuthTokenStore(), currentUserStore: MemoryCurrentUserStore()) { request in
+        let container = AppContainer(configuration: configuration, tokenStore: MemoryAuthTokenStore(), currentUserStore: MemoryCurrentUserStore(), loginProviderStore: MemoryLoginProviderStore()) { request in
             #expect(request.url?.absoluteString == "https://example.com/api/maps")
             let url = try #require(request.url)
             let response = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil))
@@ -32,7 +32,7 @@ struct AppContainerTests {
         let nonce = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"
         let container = AppContainer(
             configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"]),
-            tokenStore: tokens, currentUserStore: users,
+            tokenStore: tokens, currentUserStore: users, loginProviderStore: MemoryLoginProviderStore(),
             appleLogin: { received in
                 #expect(received == nonce)
                 return AppleLoginCredential(identityToken: "identity", authorizationCode: "code", fullName: nil)
@@ -64,7 +64,7 @@ struct AppContainerTests {
         let users = MemoryCurrentUserStore()
         let container = AppContainer(
             configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"]),
-            tokenStore: tokens, currentUserStore: users,
+            tokenStore: tokens, currentUserStore: users, loginProviderStore: MemoryLoginProviderStore(),
             googleLogin: { "id-token" }
         ) { request in
             #expect(request.url?.path == "/api/v1/auth/google/login")
@@ -93,7 +93,7 @@ struct AppContainerTests {
         let recorder = AuthRequestRecorder()
         let container = AppContainer(
             configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"]),
-            tokenStore: tokens, currentUserStore: users
+            tokenStore: tokens, currentUserStore: users, loginProviderStore: MemoryLoginProviderStore()
         ) { request in
             await recorder.record(request)
             let body: String

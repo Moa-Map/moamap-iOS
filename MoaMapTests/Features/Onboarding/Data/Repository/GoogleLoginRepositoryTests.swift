@@ -7,6 +7,7 @@ struct GoogleLoginRepositoryTests {
     private func repository(
         tokens: any AuthTokenStore = MemoryAuthTokenStore(),
         users: any CurrentUserStore = MemoryCurrentUserStore(),
+        providers: any LoginProviderStore = MemoryLoginProviderStore(),
         login: @escaping () async throws -> String = { "google-id-token" }
     ) throws -> AuthRepositoryImpl {
         let client = APIClient(configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"])) { request in
@@ -20,14 +21,17 @@ struct GoogleLoginRepositoryTests {
             return (Data(#"{"success":true,"data":{"userId":42,"accessToken":"access","refreshToken":"refresh","isNewUser":true}}"#.utf8), response)
         }
         return AuthRepositoryImpl(client: client, kakaoLogin: { throw LoginError.notConfigured },
-                                  googleLogin: login, tokenStore: tokens, currentUserStore: users)
+                                  googleLogin: login, tokenStore: tokens, currentUserStore: users,
+                                  loginProviderStore: providers)
     }
 
     @Test func ID_토큰을_서버에_보내고_세션을_저장한다() async throws {
         let tokens = MemoryAuthTokenStore()
         let users = MemoryCurrentUserStore()
-        let sut = try repository(tokens: tokens, users: users)
+        let providers = MemoryLoginProviderStore()
+        let sut = try repository(tokens: tokens, users: users, providers: providers)
         try await sut.loginWithGoogle()
+        #expect(try providers.load() == .google)
         #expect(try users.load() == 42)
         #expect(try tokens.load() == AuthToken(accessToken: "access", refreshToken: "refresh"))
         #expect(try sut.hasSession())

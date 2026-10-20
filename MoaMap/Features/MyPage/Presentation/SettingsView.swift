@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: SettingsViewModel
     @State private var logoutDialogVisible = false
+    @State private var withdrawDialogVisible = false
 
     let onLoggedOut: () -> Void
 
@@ -38,10 +39,11 @@ struct SettingsView: View {
                     section("계정") {
                         // 바로 로그아웃하지 않고 팝업에서 한 번 더 묻는다. 진행 중이면 다시 묻지 않는다.
                         navigationRow("로그아웃") {
-                            if viewModel.uiState != .loggingOut { logoutDialogVisible = true }
+                            if !viewModel.uiState.isBusy { logoutDialogVisible = true }
                         }
-                        // TODO: 회원탈퇴 API 가 생기면 연결한다.
-                        navigationRow("회원탈퇴", color: colors.statusAlert, showsDivider: true)
+                        navigationRow("회원탈퇴", color: colors.statusAlert, showsDivider: true) {
+                            if !viewModel.uiState.isBusy { withdrawDialogVisible = true }
+                        }
                     }
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
@@ -64,13 +66,25 @@ struct SettingsView: View {
                     onDismiss: { logoutDialogVisible = false }
                 )
             }
+            if withdrawDialogVisible {
+                MoaMapConfirmDialog(
+                    title: "정말 탈퇴하시겠어요?",
+                    message: "만든 지도와 저장한 장소가 모두 삭제되며,\n삭제된 정보는 복구할 수 없어요.",
+                    dismissText: "닫기",
+                    onConfirm: {
+                        withdrawDialogVisible = false
+                        viewModel.withdraw(onWithdrawn: onLoggedOut)
+                    },
+                    onDismiss: { withdrawDialogVisible = false }
+                )
+            }
         }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
-        .alert("로그아웃할 수 없습니다", isPresented: showsError) {
+        .alert(errorTitle, isPresented: showsError) {
             Button("확인", role: .cancel) { viewModel.dismissError() }
         } message: {
-            if case .failed(let message) = viewModel.uiState { Text(message) }
+            if case .failed(_, let message) = viewModel.uiState { Text(message) }
         }
     }
 
@@ -151,6 +165,11 @@ struct SettingsView: View {
             .accessibilityHidden(true)
     }
 
+    private var errorTitle: String {
+        if case .failed(let title, _) = viewModel.uiState { return title }
+        return ""
+    }
+
     private var showsError: Binding<Bool> {
         Binding(
             get: {
@@ -169,6 +188,7 @@ final class PreviewAuthRepository: AuthRepository {
     func loginWithApple() async throws {}
     func loginWithGoogle() async throws {}
     func logout() async throws {}
+    func withdraw() async throws {}
     func hasSession() throws -> Bool { true }
 }
 

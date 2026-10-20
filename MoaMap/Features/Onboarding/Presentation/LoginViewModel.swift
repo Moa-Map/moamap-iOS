@@ -1,9 +1,7 @@
 import Foundation
 import Observation
 
-nonisolated enum LoginProvider: Equatable, Sendable {
-    case kakao, apple, google
-
+nonisolated extension LoginProvider {
     var displayName: String {
         switch self {
         case .kakao: "카카오"
