@@ -415,14 +415,11 @@ struct AddPlaceFormContent: View {
                         .onChange(of: tagInput, initial: true) { _, input in
                             if tagDraft != input { tagDraft = input }
                         }
-                        .onChange(of: focus.wrappedValue) { old, new in
-                            // 엔터 없이 입력창을 벗어나도 입력 중이던 태그를 확정한다.
-                            if old == .tag, new != .tag { _ = onTagInputChange(tagInput + "\n") }
-                        }
                         .submitLabel(.next)
                         .onSubmit {
                             // 엔터는 줄바꿈과 같이 태그를 확정한다. 키보드는 내리지 않는다.
-                            _ = onTagInputChange(tagInput + "\n")
+                            // 엔터 순간에는 마지막 글자가 아직 tagInput에 오지 않았을 수 있다. 입력창 값으로 다음 차례에 확정한다.
+                            Task { @MainActor in tagDraft = onTagInputChange(tagDraft + "\n") }
                             focus.wrappedValue = .tag
                         }
                         .onKeyPress(.delete) {

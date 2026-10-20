@@ -174,7 +174,7 @@ struct PlaceImportEditDetailView: View {
     var body: some View {
         let edit = viewModel.uiState.edit(of: place)
         VStack(spacing: 0) {
-            MoaMapTopBar(title: "장소 가져오기", onBack: finish)
+            MoaMapTopBar(title: "장소 가져오기", onBack: onDone)
             AddPlaceFormContent(
                 name: place.name,
                 address: place.displayAddress,
@@ -198,7 +198,7 @@ struct PlaceImportEditDetailView: View {
             .modifier(OptionalSnackbar(viewModel: viewModel))
         }
         .safeAreaInset(edge: .bottom) {
-            PlaceImportBottomBar { PlaceImportButton(text: "완료", action: finish) }
+            PlaceImportBottomBar { PlaceImportButton(text: "완료", action: onDone) }
         }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .contentShape(Rectangle())
@@ -216,7 +216,6 @@ struct PlaceImportEditDetailView: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    @discardableResult
     private func applyTagInput(_ input: String) -> String {
         let tags = viewModel.uiState.edit(of: place).tags
         let result = TagInput.apply(tags: tags, rawInput: input)
@@ -224,12 +223,6 @@ struct PlaceImportEditDetailView: View {
         tagInput = remaining
         if result.tags != tags { viewModel.updateEditTags(place.id, tags: result.tags) }
         return remaining
-    }
-
-    /// 완료나 뒤로가기로 나갈 때도 입력 중이던 태그를 버리지 않는다.
-    private func finish() {
-        applyTagInput(tagInput + "\n")
-        onDone()
     }
 }
 
