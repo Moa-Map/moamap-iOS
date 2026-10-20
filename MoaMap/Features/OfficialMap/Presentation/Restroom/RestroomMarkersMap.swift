@@ -11,7 +11,6 @@ nonisolated enum RestroomMapCamera {
 /// 화장실 마커 지도. 카메라가 멈출 때마다 보이는 범위를 `onCameraIdle` 로 알린다.
 ///
 /// 마커는 많게는 500개라 지도 상세처럼 마커마다 뷰를 띄우지 않고 원 레이어 하나로 그린다.
-/// 회전·기울기는 닫는다. 화장실을 찾는 데 쓸 일이 없고, 기울이면 먼 곳까지 범위에 들어간다.
 struct RestroomMarkersMap: View {
     let restrooms: [RestroomMarker]
     let selected: RestroomMarker?
@@ -23,6 +22,8 @@ struct RestroomMarkersMap: View {
     var onMapTap: (() -> Void)?
     /// 위치 권한이 있을 때만 켠다. 지도 라이브러리는 내 위치를 그리려 할 때 권한을 스스로 묻는다.
     var showsMyLocation = false
+    /// 미리보기처럼 되돌릴 버튼이 없는 화면에서는 회전과 기울기를 닫는다.
+    var allowsRotation = true
 
     /// 다른 화면이 위에 쌓이면 지도는 살아 있어도 가려진다. 그동안은 내 위치를 받지 않는다.
     @State private var onScreen = false
@@ -75,11 +76,18 @@ struct RestroomMarkersMap: View {
                 scaleBar: ScaleBarViewOptions(visibility: .hidden),
                 compass: CompassViewOptions(visibility: .hidden)
             ))
-            .gestureOptions(GestureOptions(rotateEnabled: false, pitchEnabled: false, panDecelerationFactor: MapCameraDefaults.panDeceleration))
+            .gestureOptions(GestureOptions(
+                rotateEnabled: allowsRotation,
+                pitchEnabled: allowsRotation,
+                panDecelerationFactor: MapCameraDefaults.panDeceleration
+            ))
             .onCameraChanged { onCameraChanged?($0.cameraState) }
             .onMapIdle { _ in
                 guard let map = proxy.map else { return }
-                let bounds = map.coordinateBounds(for: CameraOptions(cameraState: map.cameraState))
+                // 기울이면 지평선 쪽 먼 곳까지 보인다. 펴서 본 범위만 읽어 서버 한도(500곳)를 넘기지 않는다.
+                var camera = CameraOptions(cameraState: map.cameraState)
+                camera.pitch = 0
+                let bounds = map.coordinateBounds(for: camera)
                 onCameraIdle(ViewportBounds(
                     south: bounds.south, west: bounds.west, north: bounds.north, east: bounds.east
                 ))
@@ -118,7 +126,8 @@ struct RestroomPreviewMap: View {
             selected: nil,
             viewport: $viewport,
             onCameraIdle: { viewModel.onCameraIdle($0) },
-            showsMyLocation: locationProvider.authorization == .granted
+            showsMyLocation: locationProvider.authorization == .granted,
+            allowsRotation: false
         )
     }
 }
