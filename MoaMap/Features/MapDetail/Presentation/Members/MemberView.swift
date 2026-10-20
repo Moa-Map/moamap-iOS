@@ -17,7 +17,7 @@ struct MemberView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            MoaMapTopBar(title: "멤버 관리", height: 52, onBack: onBack)
+            MoaMapTopBar(title: "멤버 관리", onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     header

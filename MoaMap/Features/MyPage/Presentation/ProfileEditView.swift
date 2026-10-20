@@ -101,7 +101,7 @@ struct ProfileEditView: View {
                 Spacer()
             }
         }
-        .frame(height: 52)
+        .frame(height: 58)
     }
 
     private var profileImage: some View {

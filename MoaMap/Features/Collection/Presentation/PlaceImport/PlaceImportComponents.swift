@@ -14,7 +14,7 @@ struct PlaceImportScaffold<Content: View, Buttons: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            MoaMapTopBar(title: "장소 가져오기", height: 52, onBack: onBack)
+            MoaMapTopBar(title: "장소 가져오기", onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     PlaceImportHeader(title: title, description: description)
