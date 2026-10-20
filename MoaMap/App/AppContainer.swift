@@ -36,6 +36,7 @@ final class AppContainer {
         configuration: APIConfiguration,
         tokenStore: any AuthTokenStore,
         currentUserStore: any CurrentUserStore,
+        loginProviderStore: any LoginProviderStore,
         kakaoLogin: @escaping () async throws -> String = { throw LoginError.notConfigured },
         appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
         kakaoLogout: @escaping () async throws -> Void = {},
@@ -55,7 +56,8 @@ final class AppContainer {
         // 로그인 경로는 APIClient 가 인증 헤더를 붙이지 않는다. 로그아웃은 인증이 필요하다.
         authRepository = AuthRepositoryImpl(
             client: apiClient, kakaoLogin: kakaoLogin, appleLogin: appleLogin, kakaoLogout: kakaoLogout,
-            kakaoUnlink: kakaoUnlink, tokenStore: tokenStore, currentUserStore: currentUserStore
+            kakaoUnlink: kakaoUnlink, tokenStore: tokenStore, currentUserStore: currentUserStore,
+            loginProviderStore: loginProviderStore
         )
         exploreRepository = ExploreRepositoryImpl(client: apiClient)
         officialMapRepository = OfficialMapRepositoryImpl(client: apiClient)
@@ -130,6 +132,7 @@ final class AppContainer {
             configuration: configuration,
             tokenStore: KeychainAuthTokenStore(service: service),
             currentUserStore: KeychainCurrentUserStore(service: service),
+            loginProviderStore: KeychainLoginProviderStore(service: service),
             kakaoLogin: {
                 guard isConfigured else { throw LoginError.notConfigured }
                 return try await kakaoClient.login()

@@ -9,12 +9,14 @@ final class AuthRepositoryImpl: AuthRepository {
     private let kakaoUnlink: () async throws -> Void
     private let tokenStore: any AuthTokenStore
     private let currentUserStore: any CurrentUserStore
+    private let loginProviderStore: any LoginProviderStore
 
     init(client: APIClient, kakaoLogin: @escaping () async throws -> String,
          appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
          kakaoLogout: @escaping () async throws -> Void = {},
          kakaoUnlink: @escaping () async throws -> Void = {},
-         tokenStore: any AuthTokenStore, currentUserStore: any CurrentUserStore) {
+         tokenStore: any AuthTokenStore, currentUserStore: any CurrentUserStore,
+         loginProviderStore: any LoginProviderStore) {
         self.client = client
         self.kakaoLogin = kakaoLogin
         self.appleLogin = appleLogin
@@ -22,6 +24,7 @@ final class AuthRepositoryImpl: AuthRepository {
         self.kakaoUnlink = kakaoUnlink
         self.tokenStore = tokenStore
         self.currentUserStore = currentUserStore
+        self.loginProviderStore = loginProviderStore
     }
 
     func loginWithKakao() async throws {
@@ -34,7 +37,7 @@ final class AuthRepositoryImpl: AuthRepository {
             jsonBody: try JSONEncoder().encode(KakaoLoginRequest(kakaoAccessToken: kakaoAccessToken))
         )
         let response = try await client.send(request, as: LoginResponse.self)
-        try saveSession(response)
+        try saveSession(response, provider: .kakao)
     }
 
     func loginWithApple() async throws {
@@ -64,10 +67,10 @@ final class AuthRepositoryImpl: AuthRepository {
             ))
         )
         let loginResponse = try await client.send(request, as: LoginResponse.self)
-        try saveSession(loginResponse)
+        try saveSession(loginResponse, provider: .apple)
     }
 
-    private func saveSession(_ response: LoginResponse) throws {
+    private func saveSession(_ response: LoginResponse, provider: LoginProvider) throws {
         try Task.checkCancellation()
         guard let userId = response.userId, userId > 0,
               let accessToken = response.accessToken, !accessToken.isEmpty,
@@ -77,12 +80,14 @@ final class AuthRepositoryImpl: AuthRepository {
 
         // await 없이 신원을 먼저 저장하고 토큰 저장으로 세션을 완성한다.
         do {
+            try loginProviderStore.save(provider)
             try currentUserStore.save(userId: userId)
             try tokenStore.save(AuthToken(accessToken: accessToken, refreshToken: refreshToken))
         } catch {
             // 한 저장소가 실패해도 나머지 정리를 시도한다. 원래 저장 오류는 호출자에게 전파한다.
             try? tokenStore.clear()
             try? currentUserStore.clear()
+            try? loginProviderStore.clear()
             throw error
         }
     }
@@ -98,13 +103,20 @@ final class AuthRepositoryImpl: AuthRepository {
         // 토큰을 먼저 지운다. 신원만 남으면 세션으로 읽히지 않는다.
         try tokenStore.clear()
         try currentUserStore.clear()
+        try? loginProviderStore.clear()
     }
 
     /// 카카오 연결 끊기 → 서버 탈퇴 → 로컬 정리. 다시 시도하면 카카오는 「이미 끊김」으로 지나간다.
     func withdraw() async throws {
         try Task.checkCancellation()
-        try await kakaoUnlink()
-        try Task.checkCancellation()
+        // 다른 수단의 세션에 남은 카카오 토큰은 다른 계정 것일 수 있다. 수단을 모르는 이전 세션은 끊어 본다.
+        switch try? loginProviderStore.load() {
+        case .kakao, nil:
+            try await kakaoUnlink()
+            try Task.checkCancellation()
+        case .apple:
+            break
+        }
         do {
             try await client.sendWithoutResponse(APIRequest(path: ["api", "v1", "users", "me"], method: .delete))
         } catch NetworkError.server(code: Self.userNotFoundCode, statusCode: _, message: _) {
@@ -112,6 +124,7 @@ final class AuthRepositoryImpl: AuthRepository {
         }
         try tokenStore.clear()
         try currentUserStore.clear()
+        try? loginProviderStore.clear()
     }
 
     private static let userNotFoundCode = "USER_003"

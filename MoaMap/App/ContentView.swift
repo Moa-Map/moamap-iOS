@@ -89,7 +89,8 @@ struct ContentView: View {
         ContentView(container: AppContainer(
             configuration: configuration,
             tokenStore: KeychainAuthTokenStore(service: "com.moamap.preview"),
-            currentUserStore: KeychainCurrentUserStore(service: "com.moamap.preview")
+            currentUserStore: KeychainCurrentUserStore(service: "com.moamap.preview"),
+            loginProviderStore: KeychainLoginProviderStore(service: "com.moamap.preview")
         ) { _ in
             throw URLError(.notConnectedToInternet)
         })

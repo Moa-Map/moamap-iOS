@@ -12,11 +12,13 @@ struct AppleLoginRepositoryTests {
         transport: @escaping APIClient.Transport,
         tokens: any AuthTokenStore = MemoryAuthTokenStore(),
         users: any CurrentUserStore = MemoryCurrentUserStore(),
+        providers: any LoginProviderStore = MemoryLoginProviderStore(),
         authorize: @escaping (String) async throws -> AppleLoginCredential
     ) throws -> AuthRepositoryImpl {
         let client = APIClient(configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"]), transport: transport)
         return AuthRepositoryImpl(client: client, kakaoLogin: { throw LoginError.notConfigured },
-                                  appleLogin: authorize, tokenStore: tokens, currentUserStore: users)
+                                  appleLogin: authorize, tokenStore: tokens, currentUserStore: users,
+                                  loginProviderStore: providers)
     }
 
     @Test(arguments: ["홍길동", nil])
@@ -24,6 +26,7 @@ struct AppleLoginRepositoryTests {
         let requests = AppleRequestLog()
         let tokens = MemoryAuthTokenStore()
         let users = MemoryCurrentUserStore()
+        let providers = MemoryLoginProviderStore()
         let nonce = nonce
         let body = success
         let sut = try repository(transport: { request in
@@ -40,12 +43,13 @@ struct AppleLoginRepositoryTests {
             expected["fullName"] = name
             #expect(payload == expected)
             return try appleResponse(request, body: body)
-        }, tokens: tokens, users: users) { received in
+        }, tokens: tokens, users: users, providers: providers) { received in
             #expect(received == nonce)
             return AppleLoginCredential(identityToken: "identity", authorizationCode: "code", fullName: name)
         }
         try await sut.loginWithApple()
         #expect(await requests.paths == ["/api/v1/auth/apple/nonce", "/api/v1/auth/apple/login"])
+        #expect(try providers.load() == .apple)
         #expect(try tokens.load() == AuthToken(accessToken: "access", refreshToken: "refresh"))
         #expect(try users.load() == 42)
         #expect(try sut.hasSession())

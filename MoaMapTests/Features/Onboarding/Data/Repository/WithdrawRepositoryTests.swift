@@ -17,6 +17,7 @@ struct WithdrawRepositoryTests {
         log: RequestLog = RequestLog(),
         tokens: any AuthTokenStore,
         users: any CurrentUserStore,
+        providers: any LoginProviderStore = MemoryLoginProviderStore(.kakao),
         kakaoUnlink: @escaping () async throws -> Void = {}
     ) throws -> AuthRepositoryImpl {
         let client = APIClient(configuration: try APIConfiguration(infoDictionary: ["BASE_URL": "https://example.com/"])) { request in
@@ -27,7 +28,7 @@ struct WithdrawRepositoryTests {
         }
         return AuthRepositoryImpl(
             client: client, kakaoLogin: { "" }, kakaoUnlink: kakaoUnlink,
-            tokenStore: tokens, currentUserStore: users
+            tokenStore: tokens, currentUserStore: users, loginProviderStore: providers
         )
     }
 
@@ -35,8 +36,9 @@ struct WithdrawRepositoryTests {
         let log = RequestLog()
         let tokens = MemoryAuthTokenStore(AuthToken(accessToken: "access", refreshToken: "refresh"))
         let users = MemoryCurrentUserStore(42)
+        let providers = MemoryLoginProviderStore(.kakao)
         var events: [String] = []
-        let sut = try repository(log: log, tokens: tokens, users: users) {
+        let sut = try repository(log: log, tokens: tokens, users: users, providers: providers) {
             events.append("unlink")
             #expect(await log.requests.isEmpty)
         }
@@ -47,6 +49,37 @@ struct WithdrawRepositoryTests {
         #expect(await log.requests == ["DELETE /api/v1/users/me"])
         #expect(try tokens.load() == nil)
         #expect(try users.load() == nil)
+        #expect(try providers.load() == nil)
+    }
+
+    @Test func Apple_세션이면_카카오_연결을_끊지_않고_탈퇴한다() async throws {
+        let log = RequestLog()
+        let tokens = MemoryAuthTokenStore(AuthToken(accessToken: "access", refreshToken: "refresh"))
+        let users = MemoryCurrentUserStore(42)
+        var unlinkCalls = 0
+        let sut = try repository(log: log, tokens: tokens, users: users, providers: MemoryLoginProviderStore(.apple)) {
+            unlinkCalls += 1
+            throw URLError(.notConnectedToInternet)
+        }
+
+        try await sut.withdraw()
+
+        #expect(unlinkCalls == 0)
+        #expect(await log.requests == ["DELETE /api/v1/users/me"])
+        #expect(try tokens.load() == nil)
+    }
+
+    @Test func 로그인_수단을_모르는_세션은_카카오_연결을_끊어_본다() async throws {
+        let tokens = MemoryAuthTokenStore(AuthToken(accessToken: "access", refreshToken: "refresh"))
+        var unlinkCalls = 0
+        let sut = try repository(tokens: tokens, users: MemoryCurrentUserStore(42), providers: MemoryLoginProviderStore()) {
+            unlinkCalls += 1
+        }
+
+        try await sut.withdraw()
+
+        #expect(unlinkCalls == 1)
+        #expect(try tokens.load() == nil)
     }
 
     @Test func 없는_회원이면_이미_탈퇴된_것으로_보고_세션을_지운다() async throws {

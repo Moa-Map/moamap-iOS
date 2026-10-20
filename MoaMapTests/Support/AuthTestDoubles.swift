@@ -19,6 +19,15 @@ nonisolated final class MemoryCurrentUserStore: CurrentUserStore, @unchecked Sen
     func clear() throws { lock.withLock { userId = nil } }
 }
 
+nonisolated final class MemoryLoginProviderStore: LoginProviderStore, @unchecked Sendable {
+    private let lock = NSLock()
+    private var provider: LoginProvider?
+    init(_ provider: LoginProvider? = nil) { self.provider = provider }
+    func load() throws -> LoginProvider? { lock.withLock { provider } }
+    func save(_ provider: LoginProvider) throws { lock.withLock { self.provider = provider } }
+    func clear() throws { lock.withLock { provider = nil } }
+}
+
 actor AsyncGate {
     private var isOpen = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
