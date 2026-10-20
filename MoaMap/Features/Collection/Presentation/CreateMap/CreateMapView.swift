@@ -28,73 +28,91 @@ struct CreateMapView: View {
         let state = viewModel.uiState
         VStack(spacing: 0) {
             topBar
-            ScrollView {
-                VStack(spacing: 20) {
-                    MapPhotoField(image: previewImage) {
-                        // 올리는 중에는 열지 않는다. 고른 사진이 반영되지 않는다.
-                        guard !state.isSubmitting else { return }
-                        focusedField = nil
-                        showsPhotoPicker = true
-                    }
-                    CreateMapInputField(
-                        label: "지도 이름", required: true,
-                        text: binding(state.name, viewModel.updateName), placeholder: "지도 이름을 입력해주세요"
-                    )
-                    .focused($focusedField, equals: .name)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .description }
-                    CreateMapInputField(
-                        label: "지도 설명",
-                        text: binding(state.description, viewModel.updateDescription), placeholder: "지도 설명을 입력해주세요"
-                    )
-                    .focused($focusedField, equals: .description)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .tag }
-                    visibilitySection(state.visibility)
-                    // Binding setter 안에서 값을 비우면 TextField가 화면에 반영하지 않는다.
-                    // 그래서 입력은 그대로 받아 두고, 확정과 되돌려 받기는 onChange에서 한다.
-                    CreateMapInputField(
-                        label: "태그",
-                        text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터"
-                    ) {
-                        if !state.tags.isEmpty {
-                            FlowLayout(spacing: 4, lineSpacing: 4) {
-                                ForEach(state.tags, id: \.self) { tag in
-                                    TagChip(tag: tag) { viewModel.removeTag(tag) }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 20) {
+                        MapPhotoField(image: previewImage) {
+                            // 올리는 중에는 열지 않는다. 고른 사진이 반영되지 않는다.
+                            guard !state.isSubmitting else { return }
+                            focusedField = nil
+                            showsPhotoPicker = true
+                        }
+                        CreateMapInputField(
+                            label: "지도 이름", required: true,
+                            text: binding(state.name, viewModel.updateName), placeholder: "지도 이름을 입력해주세요",
+                            focused: focusedField == .name
+                        )
+                        .focused($focusedField, equals: .name)
+                        .background { scrollTarget(.name) }
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .description }
+                        CreateMapInputField(
+                            label: "지도 설명",
+                            text: binding(state.description, viewModel.updateDescription), placeholder: "지도 설명을 입력해주세요",
+                            focused: focusedField == .description
+                        )
+                        .focused($focusedField, equals: .description)
+                        .background { scrollTarget(.description) }
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .tag }
+                        visibilitySection(state.visibility)
+                        // Binding setter 안에서 값을 비우면 TextField가 화면에 반영하지 않는다.
+                        // 그래서 입력은 그대로 받아 두고, 확정과 되돌려 받기는 onChange에서 한다.
+                        CreateMapInputField(
+                            label: "태그",
+                            text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터",
+                            focused: focusedField == .tag
+                        ) {
+                            if !state.tags.isEmpty {
+                                FlowLayout(spacing: 4, lineSpacing: 4) {
+                                    ForEach(state.tags, id: \.self) { tag in
+                                        TagChip(tag: tag) { viewModel.removeTag(tag) }
+                                    }
                                 }
                             }
                         }
+                        .focused($focusedField, equals: .tag)
+                        .background { scrollTarget(.tag) }
+                        .onChange(of: tagDraft) { _, draft in
+                            // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 "카페 "를 붙여넣는 경우 등.
+                            viewModel.updateTagInput(draft)
+                            let remaining = viewModel.uiState.tagInput
+                            if remaining != draft { tagDraft = remaining }
+                        }
+                        .onChange(of: state.tagInput, initial: true) { _, input in
+                            if tagDraft != input { tagDraft = input }
+                        }
+                        .submitLabel(.done)
+                        .onSubmit {
+                            // 엔터 순간에는 마지막 글자가 아직 tagInput에 오지 않았을 수 있다. 입력창 값으로 다음 차례에 확정한다.
+                            Task { @MainActor in commitTagDraft() }
+                            // 이어서 태그를 더 넣을 수 있게 키보드를 유지한다.
+                            focusedField = .tag
+                        }
+                        URLImportToggleRow(isOn: $allowsURLImport)
+                        // 가져오기 흐름은 장소 가져오기 작업에서 연결한다.
+                        ImportActionCard(
+                            iconName: "map", iconTint: colors.secondary, title: "외부 지도", subtitle: "불러오기",
+                            background: MoaMapPrimitiveColors.yellow50, titleColor: MoaMapPrimitiveColors.yellow800
+                        )
                     }
-                    .focused($focusedField, equals: .tag)
-                    .onChange(of: tagDraft) { _, draft in
-                        // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 "카페 "를 붙여넣는 경우 등.
-                        viewModel.updateTagInput(draft)
-                        let remaining = viewModel.uiState.tagInput
-                        if remaining != draft { tagDraft = remaining }
-                    }
-                    .onChange(of: state.tagInput, initial: true) { _, input in
-                        if tagDraft != input { tagDraft = input }
-                    }
-                    .submitLabel(.done)
-                    .onSubmit {
-                        // 엔터 순간에는 마지막 글자가 아직 tagInput에 오지 않았을 수 있다. 입력창 값으로 다음 차례에 확정한다.
-                        Task { @MainActor in commitTagDraft() }
-                        // 이어서 태그를 더 넣을 수 있게 키보드를 유지한다.
-                        focusedField = .tag
-                    }
-                    URLImportToggleRow(isOn: $allowsURLImport)
-                    // 가져오기 흐름은 장소 가져오기 작업에서 연결한다.
-                    ImportActionCard(
-                        iconName: "map", iconTint: colors.secondary, title: "외부 지도", subtitle: "불러오기",
-                        background: MoaMapPrimitiveColors.yellow50, titleColor: MoaMapPrimitiveColors.yellow800
-                    )
+                    .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+                    .padding(.top, 14)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-                .padding(.top, 14)
-                .padding(.bottom, 20)
+                .scrollIndicators(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+                // 키보드가 올라오면 시스템은 글자 한 줄만 보이게 스크롤해서, 입력칸이 키보드에 너무 붙는다.
+                // 입력칸 아래로 여유를 두고 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
+                .onChange(of: focusedField) { _, field in scroll(proxy, to: field) }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                    scroll(proxy, to: focusedField)
+                }
+                // 태그 칩이 새 줄로 넘어가면 입력칸이 아래로 밀린다. 다시 맞춘다.
+                .onChange(of: state.tags) {
+                    if focusedField == .tag { scroll(proxy, to: .tag) }
+                }
             }
-            .scrollIndicators(.hidden)
-            .scrollDismissesKeyboard(.interactively)
             .moaSnackbar(errorMessage)
         }
         .safeAreaInset(edge: .bottom) {
@@ -141,6 +159,21 @@ struct CreateMapView: View {
             if case .done = submit { onCreated() }
         }
     }
+
+    private func scroll(_ proxy: ScrollViewProxy, to field: Field?) {
+        guard let field else { return }
+        withAnimation { proxy.scrollTo(field, anchor: .bottom) }
+    }
+
+    /// 키보드 위로 입력칸을 맞출 때 쓰는 자리. 입력칸보다 아래로 길게 잡아 아래 버튼과 붙지 않게 띄운다. 장소 추가와 같다.
+    private func scrollTarget(_ field: Field) -> some View {
+        Color.clear
+            .id(field)
+            .padding(.bottom, -Self.keyboardButtonGap)
+    }
+
+    /// 아래 버튼 위에 이미 13 여백이 있어, 더해서 장소 추가와 같은 20이 되게 한다.
+    private static let keyboardButtonGap: CGFloat = 7
 
     /// 입력창에 보이는 글자 그대로 태그로 확정하고 입력창을 남은 값으로 맞춘다.
     private func commitTagDraft() {

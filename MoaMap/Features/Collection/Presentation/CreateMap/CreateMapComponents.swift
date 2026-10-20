@@ -91,6 +91,7 @@ struct CreateMapInputField<Accessory: View>: View {
     var required = false
     @Binding var text: String
     let placeholder: String
+    var focused = false
     @ViewBuilder var accessory: () -> Accessory
 
     var body: some View {
@@ -108,14 +109,16 @@ struct CreateMapInputField<Accessory: View>: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+                // 입력 중인 칸에 선택 테두리를 보여 준다. 장소 추가와 같다.
+                .overlay { if focused { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) } }
                 .shadow(color: .black.opacity(0.04), radius: 4)
         }
     }
 }
 
 extension CreateMapInputField where Accessory == EmptyView {
-    init(label: String, required: Bool = false, text: Binding<String>, placeholder: String) {
-        self.init(label: label, required: required, text: text, placeholder: placeholder) { EmptyView() }
+    init(label: String, required: Bool = false, text: Binding<String>, placeholder: String, focused: Bool = false) {
+        self.init(label: label, required: required, text: text, placeholder: placeholder, focused: focused) { EmptyView() }
     }
 }
 
