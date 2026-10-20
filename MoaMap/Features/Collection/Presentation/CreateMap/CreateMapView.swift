@@ -111,6 +111,10 @@ struct CreateMapView: View {
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
                     scroll(proxy, to: focusedField)
                 }
+                // 태그 칩이 새 줄로 넘어가면 입력칸이 아래로 밀린다. 다시 맞춘다.
+                .onChange(of: state.tags) {
+                    if focusedField == .tag { scroll(proxy, to: .tag) }
+                }
             }
             .moaSnackbar(errorMessage)
         }
