@@ -5,17 +5,20 @@ final class AuthRepositoryImpl: AuthRepository {
     private let client: APIClient
     private let kakaoLogin: () async throws -> String
     private let appleLogin: (String) async throws -> AppleLoginCredential
+    private let googleLogin: () async throws -> String
     private let kakaoLogout: () async throws -> Void
     private let tokenStore: any AuthTokenStore
     private let currentUserStore: any CurrentUserStore
 
     init(client: APIClient, kakaoLogin: @escaping () async throws -> String,
          appleLogin: @escaping (String) async throws -> AppleLoginCredential = { _ in throw LoginError.notConfigured },
+         googleLogin: @escaping () async throws -> String = { throw LoginError.notConfigured },
          kakaoLogout: @escaping () async throws -> Void = {},
          tokenStore: any AuthTokenStore, currentUserStore: any CurrentUserStore) {
         self.client = client
         self.kakaoLogin = kakaoLogin
         self.appleLogin = appleLogin
+        self.googleLogin = googleLogin
         self.kakaoLogout = kakaoLogout
         self.tokenStore = tokenStore
         self.currentUserStore = currentUserStore
@@ -62,6 +65,19 @@ final class AuthRepositoryImpl: AuthRepository {
         )
         let loginResponse = try await client.send(request, as: LoginResponse.self)
         try saveSession(loginResponse)
+    }
+
+    func loginWithGoogle() async throws {
+        try Task.checkCancellation()
+        let idToken = try await googleLogin()
+        try Task.checkCancellation()
+        guard !idToken.isEmpty else { throw LoginError.invalidResponse }
+        let request = APIRequest(
+            path: ["api", "v1", "auth", "google", "login"], method: .post,
+            jsonBody: try JSONEncoder().encode(GoogleLoginRequest(idToken: idToken))
+        )
+        let response = try await client.send(request, as: LoginResponse.self)
+        try saveSession(response)
     }
 
     private func saveSession(_ response: LoginResponse) throws {
