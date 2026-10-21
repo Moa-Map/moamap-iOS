@@ -7,7 +7,7 @@ nonisolated struct MapActivityUiState: Equatable, Sendable {
     var errorMessage: String?
 }
 
-/// 지도 관리의 활동 내역. 화면을 처음 열 때만 읽는다.
+/// 장소 관리의 활동 내역. 화면을 처음 열 때만 읽는다.
 @MainActor @Observable
 final class MapActivityViewModel {
     let mapID: Int64

@@ -100,7 +100,7 @@ struct MapDetailMenu: View {
     var body: some View {
         var items = [
             ActionMenuItem(icon: "person", label: "멤버 관리", action: onMembers),
-            ActionMenuItem(icon: "map", label: "지도 관리", action: onManage)
+            ActionMenuItem(icon: "map", label: "장소 관리", action: onManage)
         ]
         if showsInfo { items.append(ActionMenuItem(icon: "info", label: "지도 정보", action: onInfo)) }
         if showsInviteCode { items.append(ActionMenuItem(icon: "key", label: "초대코드", action: onInviteCode)) }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 지도 관리. 장소 등록 요청과 멤버의 장소 추가·삭제·댓글 기록을 모아 본다.
+/// 장소 관리. 장소 등록 요청과 멤버의 장소 추가·삭제·댓글 기록을 모아 본다.
 struct MapManageView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
@@ -18,7 +18,7 @@ struct MapManageView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            MoaMapTopBar(title: "지도 관리", onBack: onBack)
+            MoaMapTopBar(title: "장소 관리", onBack: onBack)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     if canReviewRequests {
