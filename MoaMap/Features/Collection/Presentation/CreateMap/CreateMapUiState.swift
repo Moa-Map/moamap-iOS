@@ -27,8 +27,12 @@ nonisolated struct CreateMapUiState: Equatable, Sendable {
     var tags: [String] = []
     /// 아직 확정되지 않은 태그 입력값.
     var tagInput = ""
+    /// 외부 지도에서 불러와 지도를 만들 때 함께 넣을 장소. 다시 불러오면 바뀐다.
+    var importedPlaces: [EditedPlace] = []
     var submit: CreateMapSubmitState = .idle
     var errorMessage: String?
+    /// 지도는 만들었지만 장소를 다 넣지 못했다. 만들기 화면을 닫은 뒤 보여준다.
+    var placeSaveNotice: String?
 
     var isSubmitting: Bool { submit == .submitting }
 

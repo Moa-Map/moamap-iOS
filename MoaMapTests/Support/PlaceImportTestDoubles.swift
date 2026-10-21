@@ -29,6 +29,7 @@ final class PlaceImportRepositoryStub: PlaceImportRepository {
     }
     private(set) var extractedURLs: [String] = []
     private(set) var uploadCalls = 0
+    private(set) var uploadMapIDs: [Int64] = []
     private(set) var saveCalls: [(mapIDs: [Int64], places: [EditedPlace], photoURLs: [String: [String]])] = []
 
     func extractInstagramPlaces(url: String) async throws -> [ImportedPlace] {
@@ -43,6 +44,7 @@ final class PlaceImportRepositoryStub: PlaceImportRepository {
 
     func uploadPhotos(mapID: Int64, places: [EditedPlace]) async throws -> [String: [String]] {
         uploadCalls += 1
+        uploadMapIDs.append(mapID)
         return try await upload(places)
     }
 

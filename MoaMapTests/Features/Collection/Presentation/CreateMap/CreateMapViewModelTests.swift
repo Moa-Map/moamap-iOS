@@ -6,16 +6,21 @@ import UniformTypeIdentifiers
 @MainActor
 struct CreateMapViewModelTests {
     private let png = UploadImage(data: Data([1, 2, 3]), contentType: "image/png")
+    private let importRepository = PlaceImportRepositoryStub()
+
+    private func makeSUT(_ repository: CollectionRepositoryStub = CollectionRepositoryStub()) -> CreateMapViewModel {
+        CreateMapViewModel(repository: repository, importRepository: importRepository)
+    }
 
     private func filled(_ repository: CollectionRepositoryStub, visibility: MapVisibility = .public) -> CreateMapViewModel {
-        let sut = CreateMapViewModel(repository: repository)
+        let sut = makeSUT(repository)
         sut.updateName("성수 카페")
         sut.selectVisibility(visibility)
         return sut
     }
 
     @Test func 이름과_공개_범위가_있어야_만들_수_있다() {
-        let sut = CreateMapViewModel(repository: CollectionRepositoryStub())
+        let sut = makeSUT()
         #expect(!sut.uiState.canSubmit)
         sut.updateName("   ")
         sut.selectVisibility(.private)
@@ -25,7 +30,7 @@ struct CreateMapViewModelTests {
     }
 
     @Test func 이름과_설명은_서버_제한_길이에서_자른다() {
-        let sut = CreateMapViewModel(repository: CollectionRepositoryStub())
+        let sut = makeSUT()
         sut.updateName(String(repeating: "가", count: 101))
         sut.updateDescription(String(repeating: "나", count: 501))
         #expect(sut.uiState.name.count == 100)
@@ -33,7 +38,7 @@ struct CreateMapViewModelTests {
     }
 
     @Test func 공백이나_줄바꿈이_들어오면_태그로_확정한다() {
-        let sut = CreateMapViewModel(repository: CollectionRepositoryStub())
+        let sut = makeSUT()
         sut.updateTagInput("카페")
         #expect(sut.uiState.tags.isEmpty)
         sut.updateTagInput("카페 ")
@@ -49,7 +54,7 @@ struct CreateMapViewModelTests {
     }
 
     @Test func 태그는_30자에서_자르고_빈_값은_담지_않는다() {
-        let sut = CreateMapViewModel(repository: CollectionRepositoryStub())
+        let sut = makeSUT()
         sut.updateTagInput(String(repeating: "a", count: 31))
         #expect(sut.uiState.tagInput.count == 30)
         sut.updateTagInput("   ")
@@ -57,7 +62,7 @@ struct CreateMapViewModelTests {
     }
 
     @Test func 허용되지_않는_사진은_고르지_않고_안내한다() {
-        let sut = CreateMapViewModel(repository: CollectionRepositoryStub())
+        let sut = makeSUT()
         sut.selectImage(data: Data(count: ImageUploadRules.maxImageFileSize + 1), type: .png)
         #expect(sut.uiState.pickedImage == nil)
         #expect(sut.uiState.errorMessage == "사진 크기는 10MB 이하여야 해요")
@@ -171,5 +176,111 @@ struct CreateMapViewModelTests {
         await release.open()
         try await task?.value
         #expect(repository.createdMaps.count == 1)
+    }
+
+    // MARK: 외부 지도에서 불러온 장소
+
+    private func imported(_ id: String, photo: Bool = false) -> EditedPlace {
+        EditedPlace(place: .fixture(id: id), edit: PlaceEdit(memo: "메모 \(id)", photos: photo ? [png] : []))
+    }
+
+    @Test func 불러온_장소는_지도를_만든_뒤_사진을_올리고_그_지도에_등록한다() async throws {
+        let repository = CollectionRepositoryStub()
+        var calls: [String] = []
+        repository.create = { _ in calls.append("create"); return CreatedMap(id: 9, inviteCode: nil) }
+        importRepository.upload = { _ in calls.append("upload"); return ["2": ["https://file/2"]] }
+        importRepository.save = { _, places, _ in
+            calls.append("save")
+            return PlaceSaveResult(created: places.count, duplicate: 0, failed: 0)
+        }
+        let sut = filled(repository)
+        let places = [imported("1"), imported("2", photo: true)]
+        sut.setImportedPlaces(places)
+        sut.submit()
+        try await sut.submitTask?.value
+        #expect(calls == ["create", "upload", "save"])
+        #expect(importRepository.uploadMapIDs == [9])
+        #expect(importRepository.saveCalls.map(\.mapIDs) == [[9]])
+        #expect(importRepository.saveCalls.first?.places == places)
+        #expect(importRepository.saveCalls.first?.photoURLs == ["2": ["https://file/2"]])
+        #expect(sut.uiState.placeSaveNotice == nil)
+        #expect(sut.uiState.submit == .done(mapID: 9))
+    }
+
+    @Test func 불러온_장소에_사진이_없으면_올리지_않고_등록한다() async throws {
+        let sut = filled(CollectionRepositoryStub())
+        sut.setImportedPlaces([imported("1")])
+        sut.submit()
+        try await sut.submitTask?.value
+        #expect(importRepository.uploadCalls == 0)
+        #expect(importRepository.saveCalls.count == 1)
+    }
+
+    @Test func 불러온_장소가_없으면_지도만_만든다() async throws {
+        let repository = CollectionRepositoryStub()
+        let sut = filled(repository)
+        sut.submit()
+        try await sut.submitTask?.value
+        #expect(repository.createdMaps.count == 1)
+        #expect(importRepository.uploadCalls == 0)
+        #expect(importRepository.saveCalls.isEmpty)
+        #expect(sut.uiState.submit == .done(mapID: 1))
+    }
+
+    @Test func 지도_생성이_실패하면_장소를_등록하지_않는다() async throws {
+        let repository = CollectionRepositoryStub()
+        repository.create = { _ in throw NetworkError.http(statusCode: 500) }
+        let sut = filled(repository)
+        sut.setImportedPlaces([imported("1", photo: true)])
+        sut.submit()
+        try await sut.submitTask?.value
+        #expect(importRepository.uploadCalls == 0)
+        #expect(importRepository.saveCalls.isEmpty)
+        #expect(sut.uiState.submit == .idle)
+        #expect(sut.uiState.errorMessage == "지도를 만들지 못했어요")
+        #expect(sut.uiState.importedPlaces.count == 1)
+    }
+
+    enum PlaceSaveFailure: CaseIterable { case upload, save, noneCreated, partial }
+
+    @Test(arguments: PlaceSaveFailure.allCases)
+    func 장소를_다_넣지_못해도_지도는_두고_안내한_뒤_초대_코드로_이어간다(failure: PlaceSaveFailure) async throws {
+        let repository = CollectionRepositoryStub()
+        repository.create = { _ in CreatedMap(id: 4, inviteCode: "VH4YXZ") }
+        switch failure {
+        case .upload: importRepository.upload = { _ in throw NetworkError.http(statusCode: 500) }
+        case .save: importRepository.save = { _, _, _ in throw NetworkError.connection(.timedOut) }
+        case .noneCreated: importRepository.save = { _, _, _ in PlaceSaveResult(created: 0, duplicate: 0, failed: 2) }
+        case .partial: importRepository.save = { _, _, _ in PlaceSaveResult(created: 0, duplicate: 1, failed: 1) }
+        }
+        let sut = filled(repository, visibility: .private)
+        sut.setImportedPlaces([imported("1", photo: true), imported("2")])
+        sut.submit()
+        try await sut.submitTask?.value
+        #expect(repository.createdMaps.count == 1)
+        #expect(sut.uiState.placeSaveNotice == (failure == .partial ? "일부 장소를 못 넣었어요" : "불러온 장소를 넣지 못했어요"))
+        #expect(sut.uiState.errorMessage == nil)
+        #expect(sut.uiState.submit == .showingInviteCode(mapID: 4, inviteCode: "VH4YXZ"))
+        sut.dismissInviteCode()
+        #expect(sut.uiState.submit == .done(mapID: 4))
+    }
+
+    @Test func 이미_들어_있던_장소는_넣은_것으로_보고_안내하지_않는다() async throws {
+        importRepository.save = { _, _, _ in PlaceSaveResult(created: 1, duplicate: 1, failed: 0) }
+        let sut = filled(CollectionRepositoryStub())
+        sut.setImportedPlaces([imported("1"), imported("1")])
+        sut.submit()
+        try await sut.submitTask?.value
+        #expect(sut.uiState.placeSaveNotice == nil)
+    }
+
+    @Test func 다시_불러오면_앞의_결과를_바꾼다() async throws {
+        let sut = filled(CollectionRepositoryStub())
+        sut.setImportedPlaces([imported("1"), imported("2")])
+        sut.setImportedPlaces([imported("3")])
+        #expect(sut.uiState.importedPlaces == [imported("3")])
+        sut.submit()
+        try await sut.submitTask?.value
+        #expect(importRepository.saveCalls.first?.places == [imported("3")])
     }
 }
