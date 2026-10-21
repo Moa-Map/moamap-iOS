@@ -228,7 +228,7 @@ final class AppContainer {
     }
 
     func makeCreateMapViewModel() -> CreateMapViewModel {
-        CreateMapViewModel(repository: collectionRepository)
+        CreateMapViewModel(repository: collectionRepository, importRepository: placeImportRepository)
     }
 
     func makeEditMapViewModel(map: MapDetail) -> EditMapViewModel {

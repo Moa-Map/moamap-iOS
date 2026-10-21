@@ -26,6 +26,8 @@ struct MainTabView: View {
     @State private var collectionPath: [MainRoute] = []
     /// 장소 가져오기 단계들이 함께 쓴다. 흐름을 벗어나면 비워 다음에 들어올 때 이전 입력이 남지 않는다.
     @State private var placeImportViewModel: PlaceImportViewModel?
+    /// 새 지도 만들기에서 들어온 가져오기면 편집 결과를 받을 곳.
+    @State private var placeImportHandOff: (([EditedPlace]) -> Void)?
 
     private let makeSettingsViewModel: () -> SettingsViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
@@ -33,7 +35,7 @@ struct MainTabView: View {
     private let makeEditMapViewModel: (MapDetail) -> EditMapViewModel
     private let makePlaceImportViewModel: (PlaceImportSource, String) -> PlaceImportViewModel
     private let sharedLinkInbox: SharedLinkInbox
-    @State private var shareNotice: String?
+    @State private var collectionNotice: String?
     /// 스낵바가 하단 탭을 피해 뜨도록 잰다.
     @State private var bottomBarHeight: CGFloat = 0
     /// 하단 탭을 눌러 탭을 바꿨을 때 직전 탭. 새 탭의 하단 탭이 여기서 미끄러져 온다.
@@ -123,8 +125,8 @@ struct MainTabView: View {
             .tag(MainTab.collection)
             .toolbar(.hidden, for: .tabBar)
         }
-        // 공유 안내는 모음 탭에서 뜬다. 첫 화면이면 하단 탭이 탭 안쪽에 있어 그 높이만큼 올린다.
-        .moaSnackbar($shareNotice, bottomInset: showsCollectionBottomBar ? bottomBarHeight : 0)
+        // 공유·지도 생성 안내는 모음 탭에서 뜬다. 첫 화면이면 하단 탭이 탭 안쪽에 있어 그 높이만큼 올린다.
+        .moaSnackbar($collectionNotice, bottomInset: showsCollectionBottomBar ? bottomBarHeight : 0)
         // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 한다.
         .ignoresSafeArea(isRoot ? .keyboard : [], edges: .bottom)
         // 간 탭에 하단 탭이 안 보이면 직전 탭을 비운다. 남겨 두면 나중에 첫 화면으로 돌아왔을 때 엉뚱하게 미끄러진다.
@@ -132,7 +134,10 @@ struct MainTabView: View {
             if !showsBottomBar { bottomBarSlideFrom = nil }
         }
         .onChange(of: collectionPath) { _, path in
-            if !path.contains(where: \.isPlaceImport) { placeImportViewModel = nil }
+            if !path.contains(where: \.isPlaceImport) {
+                placeImportViewModel = nil
+                placeImportHandOff = nil
+            }
         }
         // 처음 뜰 때도 본다. 로그인 전에 받은 공유가 여기서 처리된다.
         .onChange(of: sharedLinkInbox.pending, initial: true) {
@@ -168,7 +173,15 @@ struct MainTabView: View {
         let viewModel = makePlaceImportViewModel(source, url)
         viewModel.loadTargetMaps()
         placeImportViewModel = viewModel
+        placeImportHandOff = nil
         collectionPath.append(.placeImport(.url))
+    }
+
+    /// 지도 선택 없이 편집 결과를 새 지도 만들기로 돌려준다.
+    private func startNewMapPlaceImport(path: Binding<[MainRoute]>, handOff: @escaping ([EditedPlace]) -> Void) {
+        placeImportViewModel = makePlaceImportViewModel(.mapShare, "")
+        placeImportHandOff = handOff
+        path.wrappedValue.append(.placeImport(.url))
     }
 
     /// 보던 화면과 진행 중이던 가져오기는 버리고 새 링크로 시작한다.
@@ -180,7 +193,7 @@ struct MainTabView: View {
             collectionPath = []
             startPlaceImport(source, url: url)
         case .unsupported:
-            shareNotice = SharedLinkParser.unsupportedMessage
+            collectionNotice = SharedLinkParser.unsupportedMessage
         }
     }
 
@@ -190,7 +203,8 @@ struct MainTabView: View {
             // 흐름의 단계는 늘 스택 맨 위에 이어 쌓여 있다.
             setSteps: { steps in
                 path.wrappedValue = path.wrappedValue.filter { !$0.isPlaceImport } + steps.map(MainRoute.placeImport)
-            }
+            },
+            handOff: placeImportHandOff
         )
     }
 
@@ -207,7 +221,14 @@ struct MainTabView: View {
             }
         case .createMap:
             // 만들기 화면을 남기면 뒤로가기로 돌아와 같은 지도를 또 만들 수 있다.
-            CreateMapView(viewModel: makeCreateMapViewModel()) { path.wrappedValue.removeLast() }
+            CreateMapView(
+                viewModel: makeCreateMapViewModel(),
+                onImportPlaces: { startNewMapPlaceImport(path: path, handOff: $0) },
+                onCreated: { notice in
+                    path.wrappedValue.removeLast()
+                    collectionNotice = notice
+                }
+            )
         case .editMap(let map):
             EditMapView(
                 viewModel: makeEditMapViewModel(map),
@@ -324,7 +345,7 @@ private final class PreviewLocationProvider: LocationProvider {
         collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository(), mapRepository: PreviewMapDetailRepository()),
         makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
-        makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository()) },
+        makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository(), importRepository: PreviewPlaceImportRepository()) },
         makeEditMapViewModel: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) },
         makePlaceImportViewModel: {
             PlaceImportViewModel(source: $0, url: $1, importRepository: PreviewPlaceImportRepository(), collectionRepository: PreviewCollectionRepository())

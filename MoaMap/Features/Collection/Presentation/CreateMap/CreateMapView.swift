@@ -15,12 +15,20 @@ struct CreateMapView: View {
     /// TextField에 붙는 입력 중인 글자. 확정된 결과는 `tagInput`으로 다시 받는다.
     @State private var tagDraft = ""
     @FocusState private var focusedField: Field?
-    private let onCreated: () -> Void
+    /// 외부 지도 가져오기 흐름을 열고, 편집을 마치면 받은 장소를 넘겨준다.
+    private let onImportPlaces: (@escaping ([EditedPlace]) -> Void) -> Void
+    /// 장소를 다 넣지 못했으면 그 안내를 넘긴다.
+    private let onCreated: (String?) -> Void
 
     private enum Field { case name, description, tag }
 
-    init(viewModel: CreateMapViewModel, onCreated: @escaping () -> Void) {
+    init(
+        viewModel: CreateMapViewModel,
+        onImportPlaces: @escaping (@escaping ([EditedPlace]) -> Void) -> Void,
+        onCreated: @escaping (String?) -> Void
+    ) {
         _viewModel = State(initialValue: viewModel)
+        self.onImportPlaces = onImportPlaces
         self.onCreated = onCreated
     }
 
@@ -90,11 +98,15 @@ struct CreateMapView: View {
                             focusedField = .tag
                         }
                         URLImportToggleRow(isOn: $allowsURLImport)
-                        // 가져오기 흐름은 장소 가져오기 작업에서 연결한다.
                         ImportActionCard(
-                            iconName: "map", iconTint: colors.secondary, title: "외부 지도", subtitle: "불러오기",
+                            iconName: "map", iconTint: colors.secondary, title: "외부 지도",
+                            subtitle: state.importedPlaces.isEmpty ? "불러오기" : "\(state.importedPlaces.count)곳 불러옴",
                             background: MoaMapPrimitiveColors.yellow50, titleColor: MoaMapPrimitiveColors.yellow800
-                        )
+                        ) {
+                            guard !state.isSubmitting else { return }
+                            focusedField = nil
+                            onImportPlaces { [viewModel] in viewModel.setImportedPlaces($0) }
+                        }
                     }
                     .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                     .padding(.top, 14)
@@ -156,7 +168,7 @@ struct CreateMapView: View {
             previewImage = viewModel.uiState.pickedImage.flatMap { UIImage(data: $0.image.data) }
         }
         .onChange(of: state.submit) { _, submit in
-            if case .done = submit { onCreated() }
+            if case .done = submit { onCreated(viewModel.uiState.placeSaveNotice) }
         }
     }
 
@@ -236,6 +248,9 @@ struct CreateMapView: View {
 
 #if DEBUG
 #Preview {
-    CreateMapView(viewModel: CreateMapViewModel(repository: PreviewCollectionRepository())) {}
+    CreateMapView(
+        viewModel: CreateMapViewModel(repository: PreviewCollectionRepository(), importRepository: PreviewPlaceImportRepository()),
+        onImportPlaces: { _ in }, onCreated: { _ in }
+    )
 }
 #endif

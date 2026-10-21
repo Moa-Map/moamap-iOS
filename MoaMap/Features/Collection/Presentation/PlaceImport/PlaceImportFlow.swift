@@ -15,6 +15,8 @@ struct PlaceImportNavigator {
     /// 지금 쌓여 있는 단계. 흐름 밖 화면은 빠져 있다.
     let steps: () -> [PlaceImportStep]
     let setSteps: ([PlaceImportStep]) -> Void
+    /// 채워지면 지도 선택 대신 편집 결과를 넘기고 흐름을 닫는다. 새 지도 만들기에서 들어왔을 때다.
+    var handOff: (([EditedPlace]) -> Void)?
 
     func push(_ step: PlaceImportStep) { setSteps(steps() + [step]) }
     func pop() { setSteps(Array(steps().dropLast())) }
@@ -50,7 +52,14 @@ struct PlaceImportDestination: View {
                 viewModel: viewModel,
                 onBack: navigator.pop,
                 onEdit: { navigator.push(.editDetail(placeID: $0)) },
-                onNext: { navigator.push(.maps) }
+                onNext: {
+                    if let handOff = navigator.handOff {
+                        handOff(viewModel.uiState.selectedEntries)
+                        navigator.finish()
+                    } else {
+                        navigator.push(.maps)
+                    }
+                }
             )
         case .editDetail(let placeID):
             if let place = viewModel.uiState.selectedPlaces.first(where: { $0.id == placeID }) {
