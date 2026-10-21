@@ -47,7 +47,7 @@ nonisolated extension MapDetail {
         return .leaveDisabled
     }
 
-    /// 멤버·지도 관리 메뉴. 공식지도는 메뉴 대신 나가기 글자를 둔다.
+    /// 멤버·장소 관리 메뉴. 공식지도는 메뉴 대신 나가기 글자를 둔다.
     var showsMenu: Bool { joined && type != .official }
 
     /// 공식지도는 나가도 화면에 남아 참여하기로 돌아간다.

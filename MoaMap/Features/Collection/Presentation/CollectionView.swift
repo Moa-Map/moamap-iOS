@@ -163,7 +163,7 @@ struct CollectionView: View {
                         let sections = PrivateMapSections(maps: maps)
                         VStack(alignment: .leading, spacing: 20) {
                             section("나만의 지도", maps: sections.personal)
-                            section("전체", maps: sections.others)
+                            section("프라이빗 지도", maps: sections.others)
                         }
                     }
                 }
