@@ -37,7 +37,7 @@ struct TermsAgreementView: View {
                 case .loading:
                     ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .failed(let message):
-                    MoaMapRetryPrompt(message: message) { viewModel.load() }
+                    MoaMapRetryPrompt(message: message) { viewModel.load(onAgreed: onAgreed) }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .loaded(let pending, let viewOnly):
                     agreement(pending: pending, viewOnly: viewOnly)
@@ -51,7 +51,7 @@ struct TermsAgreementView: View {
         }
         .moaSnackbar(notice)
         .task {
-            if viewModel.loadTask == nil { viewModel.load() }
+            if viewModel.loadTask == nil { viewModel.load(onAgreed: onAgreed) }
         }
         .preferredColorScheme(.light)
     }

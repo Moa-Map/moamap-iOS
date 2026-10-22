@@ -33,7 +33,7 @@ final class TermDetailViewModel {
                 // Task<Void, Never> 경계. 취소된 요청은 화면을 바꾸지 않는다.
             } catch {
                 guard !Task.isCancelled else { return }
-                self?.uiState = .failed(Self.failureMessage)
+                self?.uiState = .failed(TermsFailureMessage.message(for: error, fallback: Self.failureMessage))
             }
         }
     }

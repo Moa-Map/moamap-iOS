@@ -40,13 +40,16 @@ final class TermsAgreementViewModel {
         self.authRepository = authRepository
     }
 
-    func load() {
+    /// 이미 동의를 마친 상태면 그리지 않고 `onAgreed` 를 부른다.
+    func load(onAgreed: @escaping () -> Void) {
         loadTask?.cancel()
         uiState.content = .loading
         uiState.checkedIDs = []
         loadTask = Task { [weak self, repository] in
             do {
                 let status = try await repository.fetchAgreementStatus()
+                try Task.checkCancellation()
+                guard status.needsAgreement else { return onAgreed() }
                 let terms = try await repository.fetchTerms()
                 try Task.checkCancellation()
                 self?.uiState.content = .loaded(
@@ -56,7 +59,7 @@ final class TermsAgreementViewModel {
                 // Task<Void, Never> 경계. 취소된 요청은 화면을 바꾸지 않는다.
             } catch {
                 guard !Task.isCancelled else { return }
-                self?.uiState.content = .failed(Self.loadFailureMessage)
+                self?.uiState.content = .failed(TermsFailureMessage.message(for: error, fallback: Self.loadFailureMessage))
             }
         }
     }
@@ -97,11 +100,11 @@ final class TermsAgreementViewModel {
                 if !Task.isCancelled { self?.uiState.isSubmitting = false }
             } catch NetworkError.server(code: TermsErrorCode.changed, statusCode: _, message: _) {
                 guard !Task.isCancelled else { return }
-                self?.reloadChanged(viewOnly: viewOnly)
+                self?.reloadChanged(viewOnly: viewOnly, onAgreed: onAgreed)
             } catch {
                 guard !Task.isCancelled else { return }
                 self?.uiState.isSubmitting = false
-                self?.uiState.notice = Self.submitFailureMessage
+                self?.uiState.notice = TermsFailureMessage.message(for: error, fallback: Self.submitFailureMessage)
             }
         }
     }
@@ -126,7 +129,7 @@ final class TermsAgreementViewModel {
         }
     }
 
-    private func reloadChanged(viewOnly: [Term]) {
+    private func reloadChanged(viewOnly: [Term], onAgreed: @escaping () -> Void) {
         uiState.isSubmitting = false
         uiState.content = .loading
         uiState.checkedIDs = []
@@ -135,12 +138,13 @@ final class TermsAgreementViewModel {
             do {
                 let status = try await repository.fetchAgreementStatus()
                 try Task.checkCancellation()
+                guard status.needsAgreement else { return onAgreed() }
                 self?.uiState.content = .loaded(pending: status.pendingTerms, viewOnly: viewOnly)
             } catch is CancellationError {
                 // Task<Void, Never> 경계. 취소된 요청은 화면을 바꾸지 않는다.
             } catch {
                 guard !Task.isCancelled else { return }
-                self?.uiState.content = .failed(Self.loadFailureMessage)
+                self?.uiState.content = .failed(TermsFailureMessage.message(for: error, fallback: Self.loadFailureMessage))
             }
         }
     }

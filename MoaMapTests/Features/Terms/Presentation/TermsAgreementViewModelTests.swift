@@ -6,7 +6,7 @@ import Testing
 struct TermsAgreementViewModelTests {
     private func loaded(_ repository: TermsRepositoryStub, auth: LoginRepositoryStub = LoginRepositoryStub()) async -> TermsAgreementViewModel {
         let sut = TermsAgreementViewModel(repository: repository, authRepository: auth)
-        sut.load()
+        sut.load {}
         await sut.loadTask?.value
         return sut
     }
@@ -22,14 +22,50 @@ struct TermsAgreementViewModelTests {
 
     @Test func 불러오기에_실패하면_다시_시도할_수_있다() async {
         let repository = TermsRepositoryStub()
-        repository.terms = { throw NetworkError.connection(.notConnectedToInternet) }
+        repository.terms = { throw NetworkError.server(code: "COMMON_005", statusCode: 500) }
         let sut = await loaded(repository)
         #expect(sut.uiState.content == .failed(TermsAgreementViewModel.loadFailureMessage))
 
         repository.terms = { [TermsRepositoryStub.policy] }
-        sut.load()
+        sut.load {}
         await sut.loadTask?.value
         #expect(sut.uiState.pendingTerms.count == 2)
+    }
+
+    @Test func 오프라인이면_연결_안내를_띄운다() async {
+        let repository = TermsRepositoryStub()
+        repository.status = { throw NetworkError.connection(.notConnectedToInternet) }
+        let sut = await loaded(repository)
+        #expect(sut.uiState.content == .failed("네트워크에 연결할 수 없어요"))
+    }
+
+    @Test func 보내다_오프라인이면_연결_안내를_띄운다() async {
+        let repository = TermsRepositoryStub()
+        let sut = await loaded(repository)
+        sut.checkAll()
+        repository.agreeHandler = { _ in throw NetworkError.connection(.timedOut) }
+
+        sut.submit {}
+        await sut.loadTask?.value
+
+        #expect(sut.uiState.notice == "네트워크에 연결할 수 없어요")
+        #expect(!sut.uiState.isSubmitting)
+    }
+
+    @Test func 이미_동의를_마쳤으면_그리지_않고_바로_넘어간다() async {
+        let repository = TermsRepositoryStub()
+        repository.status = { TermAgreementStatus(needsAgreement: false, pendingTerms: []) }
+        var termsCalls = 0
+        repository.terms = { termsCalls += 1; return [] }
+        let sut = TermsAgreementViewModel(repository: repository, authRepository: LoginRepositoryStub())
+        var agreedCalls = 0
+
+        sut.load { agreedCalls += 1 }
+        await sut.loadTask?.value
+
+        #expect(agreedCalls == 1)
+        #expect(termsCalls == 0)
+        #expect(sut.uiState.content == .loading)
     }
 
     @Test func 모두_체크하고_보내면_동의를_마친다() async {

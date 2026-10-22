@@ -109,6 +109,15 @@ final class LoginViewModel {
         if uiState.loadingProvider != nil { uiState = .idle }
     }
 
+    static let sessionLostAfterLoginMessage = "로그인에 실패했어요. 다시 시도해 주세요."
+
+    /// 로그인 뒤 약관 확인 사이에 세션이 끊겼을 때. 새로 로그인한 직후면 실패로 안내하고, 복원한 세션이면 그냥 돌아간다.
+    func returnToLoginAfterSessionLoss() {
+        let isNewLogin = loggedInProvider != nil
+        returnToLogin()
+        if isNewLogin { uiState = .failed(Self.sessionLostAfterLoginMessage) }
+    }
+
     /// 세션 만료나 로그아웃 뒤 로그인 화면으로 돌아간다.
     func returnToLogin() {
         cancelLogin()

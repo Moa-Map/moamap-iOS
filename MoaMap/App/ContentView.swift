@@ -106,13 +106,18 @@ struct ContentView: View {
             if authenticated { termsGateViewModel.check() } else { termsGateViewModel.reset() }
         }
         .onChange(of: termsGateViewModel.state) { _, state in
-            if state == .unauthorized { loginViewModel.returnToLogin() }
+            if state == .unauthorized { loginViewModel.returnToLoginAfterSessionLoss() }
         }
         .task {
             loginViewModel.restoreSession()
             for await _ in container.sessionEvents.sessionExpired {
                 guard !Task.isCancelled else { return }
-                loginViewModel.returnToLogin()
+                // 갱신 거절은 관문보다 이 신호가 먼저 올 수 있다. 확인 중이면 관문이 만료를 본 것과 같게 처리한다.
+                if termsGateViewModel.state == .checking {
+                    loginViewModel.returnToLoginAfterSessionLoss()
+                } else {
+                    loginViewModel.returnToLogin()
+                }
             }
         }
         .task {
