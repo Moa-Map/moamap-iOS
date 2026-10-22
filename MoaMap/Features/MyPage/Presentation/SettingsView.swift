@@ -8,10 +8,12 @@ struct SettingsView: View {
     @State private var logoutDialogVisible = false
     @State private var withdrawDialogVisible = false
 
+    let onOpenTerm: (Term) -> Void
     let onLoggedOut: () -> Void
 
-    init(viewModel: SettingsViewModel, onLoggedOut: @escaping () -> Void) {
+    init(viewModel: SettingsViewModel, onOpenTerm: @escaping (Term) -> Void, onLoggedOut: @escaping () -> Void) {
         _viewModel = State(initialValue: viewModel)
+        self.onOpenTerm = onOpenTerm
         self.onLoggedOut = onLoggedOut
     }
 
@@ -25,8 +27,12 @@ struct SettingsView: View {
                     }
                     section("정보") {
                         navigationRow("공지사항")
-                        navigationRow("이용약관", showsDivider: true)
-                        navigationRow("개인정보처리방침", showsDivider: true)
+                        navigationRow("이용약관", showsDivider: true) {
+                            viewModel.openTerm(code: TermCode.service, onFound: onOpenTerm)
+                        }
+                        navigationRow("개인정보처리방침", showsDivider: true) {
+                            viewModel.openTerm(code: TermCode.policy, onFound: onOpenTerm)
+                        }
                         navigationRow("신고하기", showsDivider: true)
                     }
                     section("앱 정보") {
@@ -82,6 +88,7 @@ struct SettingsView: View {
         }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
+        .onDisappear { viewModel.cancelTermLoading() }
         .alert(errorTitle, isPresented: showsError) {
             Button("확인", role: .cancel) { viewModel.dismissError() }
         } message: {
@@ -193,7 +200,30 @@ final class PreviewAuthRepository: AuthRepository {
     func hasSession() throws -> Bool { true }
 }
 
+@MainActor
+final class PreviewTermsRepository: TermsRepository {
+    private static let terms = [
+        Term(id: 1, code: TermCode.service, title: "서비스 이용약관", version: "1", kind: .required),
+        Term(id: 2, code: "AGE", title: "만 14세 이상 확인", version: "1", kind: .required),
+        Term(id: 3, code: TermCode.policy, title: "개인정보 처리방침", version: "1", kind: .viewOnly)
+    ]
+
+    func fetchTerms() async throws -> [Term] { Self.terms }
+    func fetchTerm(id: Int64) async throws -> TermDetail {
+        TermDetail(term: Self.terms[0], isActive: true, content: "# 제1조\n\n**굵게**와 [링크](https://example.com)\n\n1. 하나\n   - 둘")
+    }
+    func fetchAgreementStatus() async throws -> TermAgreementStatus {
+        TermAgreementStatus(needsAgreement: true, pendingTerms: Array(Self.terms.prefix(2)))
+    }
+    func agree(termIDs: [Int64]) async throws -> TermAgreementStatus {
+        TermAgreementStatus(needsAgreement: false, pendingTerms: [])
+    }
+}
+
 #Preview {
-    SettingsView(viewModel: SettingsViewModel(repository: PreviewAuthRepository()), onLoggedOut: {})
+    SettingsView(
+        viewModel: SettingsViewModel(repository: PreviewAuthRepository(), termsRepository: PreviewTermsRepository()),
+        onOpenTerm: { _ in }, onLoggedOut: {}
+    )
 }
 #endif

@@ -15,7 +15,7 @@ struct SettingsViewModelTests {
             await started.open()
             await release.wait()
         }
-        var sut: SettingsViewModel? = SettingsViewModel(repository: repository)
+        var sut: SettingsViewModel? = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
         weak var releasedViewModel = sut
         sut?.logout { loginViewModel.returnToLogin() }
         let pending = sut?.loadTask
@@ -30,9 +30,88 @@ struct SettingsViewModelTests {
         #expect(loginViewModel.uiState == .idle)
     }
 
+    @Test func 약관_코드로_전문을_찾아_연다() async {
+        let sut = SettingsViewModel(repository: LoginRepositoryStub(), termsRepository: TermsRepositoryStub())
+        var opened: [Term] = []
+        sut.openTerm(code: "POLICY") { opened.append($0) }
+        #expect(sut.uiState == .loadingTerm)
+        await sut.loadTask?.value
+        #expect(opened == [TermsRepositoryStub.policy])
+        #expect(sut.uiState == .idle)
+    }
+
+    @Test func 약관_목록을_못_불러오면_오류를_띄운다() async {
+        let terms = TermsRepositoryStub()
+        terms.terms = { throw NetworkError.connection(.notConnectedToInternet) }
+        let sut = SettingsViewModel(repository: LoginRepositoryStub(), termsRepository: terms)
+        var opened: [Term] = []
+        sut.openTerm(code: "SERVICE") { opened.append($0) }
+        await sut.loadTask?.value
+        #expect(opened.isEmpty)
+        guard case .failed = sut.uiState else { Issue.record("오류 상태가 필요하다"); return }
+    }
+
+    @Test func 설정을_떠나면_찾던_약관을_열지_않는다() async {
+        let terms = TermsRepositoryStub()
+        let started = AsyncGate()
+        let release = AsyncGate()
+        terms.terms = {
+            await started.open()
+            await release.wait()
+            return [TermsRepositoryStub.service]
+        }
+        let sut = SettingsViewModel(repository: LoginRepositoryStub(), termsRepository: terms)
+        var opened: [Term] = []
+        sut.openTerm(code: "SERVICE") { opened.append($0) }
+        let pending = sut.loadTask
+        await started.wait()
+
+        sut.cancelTermLoading()
+        #expect(sut.uiState == .idle)
+        await release.open()
+        await pending?.value
+        #expect(opened.isEmpty)
+    }
+
+    @Test func ViewModel이_해제되면_찾던_약관을_열지_않는다() async {
+        let terms = TermsRepositoryStub()
+        let started = AsyncGate()
+        let release = AsyncGate()
+        terms.terms = {
+            await started.open()
+            await release.wait()
+            return [TermsRepositoryStub.service]
+        }
+        var sut: SettingsViewModel? = SettingsViewModel(repository: LoginRepositoryStub(), termsRepository: terms)
+        weak var released = sut
+        var opened: [Term] = []
+        sut?.openTerm(code: "SERVICE") { opened.append($0) }
+        let pending = sut?.loadTask
+        await started.wait()
+
+        sut = nil
+        #expect(released == nil)
+        await release.open()
+        await pending?.value
+        #expect(opened.isEmpty)
+    }
+
+    @Test func 약관을_찾는_중이_아니면_떠나도_로그아웃은_끝까지_간다() async {
+        let repository = LoginRepositoryStub()
+        let release = AsyncGate()
+        repository.logoutHandler = { await release.wait() }
+        let sut = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
+        sut.logout()
+        let pending = sut.loadTask
+        sut.cancelTermLoading()
+        await release.open()
+        await pending?.value
+        #expect(sut.uiState == .loggedOut)
+    }
+
     @Test func 로그아웃에_성공하면_로그인으로_보낼_상태가_된다() async {
         let repository = LoginRepositoryStub()
-        let sut = SettingsViewModel(repository: repository)
+        let sut = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
         sut.logout()
         await sut.loadTask?.value
         #expect(sut.uiState == .loggedOut)
@@ -41,7 +120,7 @@ struct SettingsViewModelTests {
     @Test func 로그아웃에_실패하면_로그인으로_보내지_않고_원문을_숨긴다() async {
         let repository = LoginRepositoryStub()
         repository.logoutHandler = { throw NetworkError.server(code: "COMMON_005", statusCode: 500) }
-        let sut = SettingsViewModel(repository: repository)
+        let sut = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
         var completionCalls = 0
         sut.logout { completionCalls += 1 }
         await sut.loadTask?.value
@@ -57,7 +136,7 @@ struct SettingsViewModelTests {
         let repository = LoginRepositoryStub()
         let release = AsyncGate()
         repository.logoutHandler = { await release.wait() }
-        let sut = SettingsViewModel(repository: repository)
+        let sut = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
         var completionCalls = 0
         sut.logout { completionCalls += 1 }
         let first = sut.loadTask
@@ -74,7 +153,7 @@ struct SettingsViewModelTests {
     @Test func 실패_후_다시_시도할_수_있다() async {
         let repository = LoginRepositoryStub()
         repository.logoutHandler = { throw URLError(.notConnectedToInternet) }
-        let sut = SettingsViewModel(repository: repository)
+        let sut = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
         sut.logout()
         await sut.loadTask?.value
         repository.logoutHandler = {}
@@ -86,7 +165,7 @@ struct SettingsViewModelTests {
 
     @Test func 탈퇴에_성공하면_로그인으로_보낼_상태가_된다() async {
         let repository = LoginRepositoryStub()
-        let sut = SettingsViewModel(repository: repository)
+        let sut = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
         var completionCalls = 0
         sut.withdraw { completionCalls += 1 }
         #expect(sut.uiState == .withdrawing)
@@ -98,7 +177,7 @@ struct SettingsViewModelTests {
     @Test func 탈퇴에_실패하면_로그인으로_보내지_않고_원문을_숨긴다() async {
         let repository = LoginRepositoryStub()
         repository.withdrawHandler = { throw NetworkError.server(code: "COMMON_005", statusCode: 500) }
-        let sut = SettingsViewModel(repository: repository)
+        let sut = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
         var completionCalls = 0
         sut.withdraw { completionCalls += 1 }
         await sut.loadTask?.value
@@ -114,7 +193,7 @@ struct SettingsViewModelTests {
         let repository = LoginRepositoryStub()
         let release = AsyncGate()
         repository.withdrawHandler = { await release.wait() }
-        let sut = SettingsViewModel(repository: repository)
+        let sut = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
         var completionCalls = 0
         sut.withdraw { completionCalls += 1 }
         let first = sut.loadTask
@@ -133,7 +212,7 @@ struct SettingsViewModelTests {
     @Test func 탈퇴_실패_후_다시_시도할_수_있다() async {
         let repository = LoginRepositoryStub()
         repository.withdrawHandler = { throw URLError(.notConnectedToInternet) }
-        let sut = SettingsViewModel(repository: repository)
+        let sut = SettingsViewModel(repository: repository, termsRepository: TermsRepositoryStub())
         sut.withdraw()
         await sut.loadTask?.value
         repository.withdrawHandler = {}

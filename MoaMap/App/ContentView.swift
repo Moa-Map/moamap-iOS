@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     let container: AppContainer
     @State private var loginViewModel: LoginViewModel
+    @State private var termsGateViewModel: TermsGateViewModel
     @State private var isSplashVisible = true
 
     /// 로고가 번쩍이고 사라지지 않도록 보장하는 최소 노출 시간. Android 와 같다.
@@ -18,17 +19,62 @@ struct ContentView: View {
     init(container: AppContainer) {
         self.container = container
         _loginViewModel = State(initialValue: container.makeLoginViewModel())
+        _termsGateViewModel = State(initialValue: container.makeTermsGateViewModel())
+    }
+
+    private enum Screen {
+        case splash(failureMessage: String?)
+        case login(loadingProvider: LoginProvider?, failureMessage: String?)
+        case agreement
+        case main
+    }
+
+    /// 로그인 뒤에는 약관 동의 여부를 확인해야 홈에 들어간다. 확인하는 동안은 들어온 화면에 머문다.
+    private var screen: Screen {
+        if isSplashVisible { return .splash(failureMessage: nil) }
+        guard isAuthenticated else {
+            return .login(loadingProvider: loginViewModel.uiState.loadingProvider, failureMessage: nil)
+        }
+        switch termsGateViewModel.state {
+        case .passed:
+            return .main
+        case .needsAgreement:
+            return .agreement
+        case .idle, .checking, .unauthorized, .loggingOut, .failed:
+            let failure = termsGateViewModel.state.failureMessage
+            guard let provider = loginViewModel.loggedInProvider else { return .splash(failureMessage: failure) }
+            return .login(loadingProvider: failure == nil ? provider : nil, failureMessage: failure)
+        }
+    }
+
+    private var isAuthenticated: Bool { loginViewModel.uiState == .authenticated }
+
+    private func logoutFromTermsCheck() {
+        termsGateViewModel.logout { loginViewModel.returnToLogin() }
     }
 
     var body: some View {
         ZStack {
-            if isSplashVisible {
-                SplashView()
-            } else if loginViewModel.uiState == .authenticated {
+            switch screen {
+            case .splash(let failureMessage):
+                SplashView(
+                    failureMessage: failureMessage,
+                    onRetry: { termsGateViewModel.check() },
+                    onLogout: logoutFromTermsCheck
+                )
+            case .agreement:
+                TermsAgreementView(
+                    viewModel: container.makeTermsAgreementViewModel(),
+                    makeTermDetailViewModel: container.makeTermDetailViewModel(termID:),
+                    onAgreed: { termsGateViewModel.agreed() },
+                    onLoggedOut: { loginViewModel.returnToLogin() }
+                )
+            case .main:
                 MainTabView(
                     exploreViewModel: container.makeExploreViewModel(),
                     collectionViewModel: container.makeCollectionViewModel(),
                     makeSettingsViewModel: container.makeSettingsViewModel,
+                    makeTermDetailViewModel: container.makeTermDetailViewModel(termID:),
                     makeProfileEditViewModel: container.makeProfileEditViewModel,
                     makeCreateMapViewModel: container.makeCreateMapViewModel,
                     makeEditMapViewModel: container.makeEditMapViewModel(map:),
@@ -44,20 +90,34 @@ struct ContentView: View {
                     locationProvider: container.locationProvider,
                     onLoggedOut: { loginViewModel.returnToLogin() }
                 )
-            } else {
+            case .login(let loadingProvider, let failureMessage):
                 LoginView(
-                    loadingProvider: loginViewModel.uiState.loadingProvider,
+                    loadingProvider: loadingProvider,
                     onKakaoLogin: { loginViewModel.loginWithKakao() },
                     onAppleLogin: { loginViewModel.loginWithApple() },
-                    onGoogleLogin: { loginViewModel.loginWithGoogle() }
+                    onGoogleLogin: { loginViewModel.loginWithGoogle() },
+                    failureMessage: failureMessage,
+                    onRetry: { termsGateViewModel.check() },
+                    onLogout: logoutFromTermsCheck
                 )
             }
+        }
+        .onChange(of: isAuthenticated, initial: true) { _, authenticated in
+            if authenticated { termsGateViewModel.check() } else { termsGateViewModel.reset() }
+        }
+        .onChange(of: termsGateViewModel.state) { _, state in
+            if state == .unauthorized { loginViewModel.returnToLoginAfterSessionLoss() }
         }
         .task {
             loginViewModel.restoreSession()
             for await _ in container.sessionEvents.sessionExpired {
                 guard !Task.isCancelled else { return }
-                loginViewModel.returnToLogin()
+                // 갱신 거절은 관문보다 이 신호가 먼저 올 수 있다. 확인 중이면 관문이 만료를 본 것과 같게 처리한다.
+                if termsGateViewModel.state == .checking {
+                    loginViewModel.returnToLoginAfterSessionLoss()
+                } else {
+                    loginViewModel.returnToLogin()
+                }
             }
         }
         .task {
