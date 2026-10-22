@@ -26,6 +26,8 @@ nonisolated enum LoginUiState: Equatable, Sendable {
 @MainActor @Observable
 final class LoginViewModel {
     private(set) var uiState: LoginUiState = .idle
+    /// 이번 실행에서 로그인한 수단. 저장된 세션을 복원했으면 nil 이다.
+    private(set) var loggedInProvider: LoginProvider?
     private(set) var loadTask: Task<Void, Never>?
     private let repository: any AuthRepository
 
@@ -56,6 +58,7 @@ final class LoginViewModel {
                 case .google: try await repository.loginWithGoogle()
                 }
                 try Task.checkCancellation()
+                self?.loggedInProvider = provider
                 self?.uiState = .authenticated
             } catch is CancellationError {
                 // Task<Void, Never> 경계. 취소된 요청은 UI를 갱신하지 않는다.
@@ -109,6 +112,7 @@ final class LoginViewModel {
     /// 세션 만료나 로그아웃 뒤 로그인 화면으로 돌아간다.
     func returnToLogin() {
         cancelLogin()
+        loggedInProvider = nil
         uiState = .idle
     }
 }

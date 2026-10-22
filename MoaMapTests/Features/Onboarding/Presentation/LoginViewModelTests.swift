@@ -17,6 +17,7 @@ struct LoginViewModelTests {
         await first?.value
         #expect(repository.calls == 1)
         #expect(sut.uiState == .authenticated)
+        #expect(sut.loggedInProvider == .kakao)
     }
 
     @Test func 사용자_취소는_오류없이_다시_시도할_수_있다() async {
@@ -208,6 +209,7 @@ struct LoginViewModelTests {
         let sut = LoginViewModel(repository: repository)
         sut.restoreSession()
         #expect(sut.uiState == .authenticated)
+        #expect(sut.loggedInProvider == nil)
         sut.returnToLogin()
         #expect(sut.uiState == .idle)
     }

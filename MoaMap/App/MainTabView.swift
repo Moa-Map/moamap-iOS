@@ -4,6 +4,7 @@ import SwiftUI
 private enum MainRoute: Hashable {
     case profileEdit
     case settings
+    case termDetail(id: Int64, title: String)
     case communityMaps
     case officialMaps
     case createMap
@@ -30,6 +31,7 @@ struct MainTabView: View {
     @State private var placeImportHandOff: (([EditedPlace]) -> Void)?
 
     private let makeSettingsViewModel: () -> SettingsViewModel
+    private let makeTermDetailViewModel: (Int64) -> TermDetailViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCreateMapViewModel: () -> CreateMapViewModel
     private let makeEditMapViewModel: (MapDetail) -> EditMapViewModel
@@ -54,6 +56,7 @@ struct MainTabView: View {
         exploreViewModel: ExploreViewModel,
         collectionViewModel: CollectionViewModel,
         makeSettingsViewModel: @escaping () -> SettingsViewModel,
+        makeTermDetailViewModel: @escaping (Int64) -> TermDetailViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCreateMapViewModel: @escaping () -> CreateMapViewModel,
         makeEditMapViewModel: @escaping (MapDetail) -> EditMapViewModel,
@@ -72,6 +75,7 @@ struct MainTabView: View {
         _collectionViewModel = State(initialValue: collectionViewModel)
         _exploreViewModel = State(initialValue: exploreViewModel)
         self.makeSettingsViewModel = makeSettingsViewModel
+        self.makeTermDetailViewModel = makeTermDetailViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCreateMapViewModel = makeCreateMapViewModel
         self.makeEditMapViewModel = makeEditMapViewModel
@@ -214,7 +218,13 @@ struct MainTabView: View {
         case .profileEdit:
             ProfileEditView(viewModel: makeProfileEditViewModel()) { _ in }
         case .settings:
-            SettingsView(viewModel: makeSettingsViewModel(), onLoggedOut: onLoggedOut)
+            SettingsView(
+                viewModel: makeSettingsViewModel(),
+                onOpenTerm: { path.wrappedValue.append(.termDetail(id: $0.id, title: $0.title)) },
+                onLoggedOut: onLoggedOut
+            )
+        case .termDetail(let id, let title):
+            TermDetailView(viewModel: makeTermDetailViewModel(id), title: title)
         case .placeImport(let step):
             if let placeImportViewModel {
                 PlaceImportDestination(step: step, viewModel: placeImportViewModel, navigator: placeImportNavigator(path))
@@ -343,7 +353,8 @@ private final class PreviewLocationProvider: LocationProvider {
             officialMapRepository: PreviewOfficialMapRepository()
         ),
         collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository(), mapRepository: PreviewMapDetailRepository()),
-        makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository()) },
+        makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository(), termsRepository: PreviewTermsRepository()) },
+        makeTermDetailViewModel: { TermDetailViewModel(termID: $0, repository: PreviewTermsRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository(), importRepository: PreviewPlaceImportRepository()) },
         makeEditMapViewModel: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) },

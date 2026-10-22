@@ -28,6 +28,7 @@ final class AppContainer {
     let mapPostRepository: any MapPostRepository
     let mapPostCommentRepository: any MapPostCommentRepository
     let userRepository: any UserRepository
+    let termsRepository: any TermsRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
     let placeImportRepository: any PlaceImportRepository
@@ -89,6 +90,7 @@ final class AppContainer {
             client: apiClient, uploader: PresignedImageUploader(transport: transport), timeZone: .current
         )
         userRepository = UserRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
+        termsRepository = TermsRepositoryImpl(client: apiClient)
     }
 
     convenience init(bundle: Bundle) throws {
@@ -244,7 +246,19 @@ final class AppContainer {
     }
 
     func makeSettingsViewModel() -> SettingsViewModel {
-        SettingsViewModel(repository: authRepository)
+        SettingsViewModel(repository: authRepository, termsRepository: termsRepository)
+    }
+
+    func makeTermsGateViewModel() -> TermsGateViewModel {
+        TermsGateViewModel(repository: termsRepository, authRepository: authRepository)
+    }
+
+    func makeTermsAgreementViewModel() -> TermsAgreementViewModel {
+        TermsAgreementViewModel(repository: termsRepository, authRepository: authRepository)
+    }
+
+    func makeTermDetailViewModel(termID: Int64) -> TermDetailViewModel {
+        TermDetailViewModel(termID: termID, repository: termsRepository)
     }
 
     func handleOpenURL(_ url: URL) {

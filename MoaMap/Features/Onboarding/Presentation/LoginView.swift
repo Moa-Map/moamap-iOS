@@ -8,6 +8,9 @@ struct LoginView: View {
     var onKakaoLogin: (() -> Void)?
     var onAppleLogin: (() -> Void)?
     var onGoogleLogin: (() -> Void)?
+    /// 로그인 뒤 약관 동의 여부를 확인하지 못했을 때의 안내. 있으면 아래쪽에 「다시 시도」와 함께 띄운다.
+    var failureMessage: String?
+    var onRetry: () -> Void = {}
 
     var body: some View {
         GeometryReader { geometry in
@@ -46,7 +49,7 @@ struct LoginView: View {
                             action: onAppleLogin
                         )
                     }
-                    .disabled(loadingProvider != nil)
+                    .disabled(loadingProvider != nil || failureMessage != nil)
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                 .padding(.vertical, verticalInset)
@@ -56,6 +59,13 @@ struct LoginView: View {
             }
             .scrollIndicators(.hidden)
             .ignoresSafeArea(edges: .vertical)
+        }
+        .overlay(alignment: .bottom) {
+            if let failureMessage {
+                MoaMapRetryPrompt(message: failureMessage, onRetry: onRetry)
+                    .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+                    .padding(.bottom, 24)
+            }
         }
         // 시안 배경은 단색 Background/Primary(#E6F6FF)다. iOS 의 backgroundPrimary 토큰은 그라데이션이라 쓰지 않는다.
         .background { MoaMapPrimitiveColors.blue50.ignoresSafeArea() }
@@ -73,4 +83,8 @@ struct LoginView: View {
 
 #Preview("Apple 로그인 중") {
     LoginView(loadingProvider: .apple)
+}
+
+#Preview("동의 확인 실패") {
+    LoginView(failureMessage: "약관 동의 여부를 확인하지 못했어요")
 }
