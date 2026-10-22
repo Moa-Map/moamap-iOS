@@ -24,7 +24,7 @@ nonisolated struct FeaturedMap: Identifiable, Hashable, Sendable {
     }
 }
 
-/// 운영자 추천 지도 카드 줄. 시안: 높이 150, 왼쪽 20 부터 카드 사이 8, 다음 카드가 오른쪽에 살짝 보인다.
+/// 운영자 추천 지도 카드 줄. 시안: 높이 170, 왼쪽 20 부터 카드 사이 8, 다음 카드가 오른쪽에 살짝 보인다.
 ///
 /// 한 장씩 맞춰 넘긴다. 카드 폭은 화면에서 좌우 20 을 뺀 값이라 393 화면에서 시안의 353 이 된다.
 struct FeaturedMapCarousel: View {
@@ -48,7 +48,9 @@ struct FeaturedMapCarousel: View {
 }
 
 private struct FeaturedMapCard: View {
-    static let height: CGFloat = 150
+    @Environment(\.moaColors) private var colors
+
+    static let height: CGFloat = 170
 
     let map: FeaturedMap
 
@@ -81,7 +83,7 @@ private struct FeaturedMapCard: View {
             }
             .frame(width: 242, alignment: .leading)
             .padding(.leading, 12)
-            .padding(.top, 52)
+            .padding(.top, 72)
 
             HStack(spacing: 4) {
                 ForEach(Array(map.tags.enumerated()), id: \.offset) { _, tag in
@@ -89,10 +91,12 @@ private struct FeaturedMapCard: View {
                 }
             }
             .padding(.leading, 10)
-            .padding(.top, 116)
+            .padding(.top, 136)
         }
         .frame(height: Self.height)
         .clipShape(shape)
+        // 시안 「탐색탭_배너」: 테두리 1 Line/Alternative 를 사진 위에 그린다.
+        .overlay { shape.strokeBorder(colors.lineAlternative, lineWidth: 1) }
         .accessibilityElement(children: .combine)
     }
 

@@ -13,6 +13,7 @@ nonisolated struct MyMapResponse: Decodable, Sendable {
     let memberCount: Int?
     let placeCount: Int?
     let personal: Bool?
+    let myRole: String?
 
     func toDomain() -> MyMap {
         let hasName = name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
@@ -24,7 +25,8 @@ nonisolated struct MyMapResponse: Decodable, Sendable {
             memberCount: memberCount ?? 0,
             placeCount: placeCount ?? 0,
             official: type == "OFFICIAL",
-            personal: personal ?? false
+            personal: personal ?? false,
+            role: MapRole(serverValue: myRole)
         )
     }
 }

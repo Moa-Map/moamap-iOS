@@ -56,30 +56,9 @@ struct MemberView: View {
     }
 
     private var roleGuide: some View {
-        Button { guideVisible.toggle() } label: {
-            HStack(spacing: 4) {
-                Image("Icons/info")
-                    .renderingMode(.template)
-                    .resizable()
-                    .frame(width: 20, height: 20)
-                    .accessibilityHidden(true)
-                Text("어떤 역할이 있는지 궁금하신가요?")
-                    .moaTextStyle(typography.body2)
-            }
-            .foregroundStyle(colors.textAssistive)
-            .contentShape(Rectangle())
+        MoaMapGuideRow(text: "어떤 역할이 있는지 궁금하신가요?", isPresented: $guideVisible, accessibilityHint: "역할 안내를 엽니다") {
+            RoleGuideTooltip()
         }
-        .buttonStyle(.plain)
-        .overlay(alignment: .topLeading) {
-            if guideVisible {
-                RoleGuideTooltip()
-                    // 꼬리가 ⓘ 가운데를 가리키도록 당기고, 안내 줄 바로 아래에 띄운다.
-                    .offset(x: -12, y: 23)
-                    .fixedSize()
-                    .transition(.opacity)
-            }
-        }
-        .accessibilityHint("역할 안내를 엽니다")
     }
 
     @ViewBuilder

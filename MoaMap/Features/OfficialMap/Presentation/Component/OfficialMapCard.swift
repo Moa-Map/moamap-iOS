@@ -1,6 +1,8 @@
 import SwiftUI
 
 /// 공식지도 목록 카드. 참여는 카드를 눌러 들어간 지도 소개에서 한다.
+///
+/// 설명은 두 줄까지, 비면 줄을 두지 않는다. 장소 수는 0 이어도 보인다.
 struct OfficialMapCard: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
@@ -22,15 +24,16 @@ struct OfficialMapCard: View {
                             .frame(width: 20, height: 20)
                             .accessibilityLabel("공식 인증")
                     }
-                    Text(map.description)
-                        .moaTextStyle(typography.caption0)
-                        .foregroundStyle(colors.textNormal)
-                        .lineLimit(1)
+                    if !map.description.isEmpty {
+                        Text(map.description)
+                            .moaTextStyle(typography.caption0)
+                            .foregroundStyle(colors.textNormal)
+                            .lineLimit(2)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 0)
-                // 유동인구·공중화장실 지도는 장소를 담지 않아 0곳으로 보이므로 숨긴다.
-                if map.placeCount > 0 { placeCount }
+                placeCount
             }
             .padding(.vertical, 2)
             .frame(height: 80)

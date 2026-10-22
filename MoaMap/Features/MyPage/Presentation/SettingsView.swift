@@ -54,11 +54,12 @@ struct SettingsView: View {
         }
         .overlay {
             if logoutDialogVisible {
-                // TODO: 시안이 나오면 문구를 맞춘다.
                 MoaMapConfirmDialog(
-                    title: "로그아웃하시겠습니까?",
-                    message: "다시 로그인하면 모은 지도를 그대로 볼 수 있어요",
-                    confirmText: "로그아웃",
+                    title: "로그아웃하시겠어요?",
+                    message: "다음에 또 지도를 함께 채워요!",
+                    dismissText: "닫기",
+                    dismissColor: MoaMapPrimitiveColors.gray200,
+                    confirmText: "확인",
                     onConfirm: {
                         logoutDialogVisible = false
                         viewModel.logout(onLoggedOut: onLoggedOut)

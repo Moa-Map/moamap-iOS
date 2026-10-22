@@ -35,7 +35,8 @@ struct CollectionView: View {
                     mapsContent
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-                .padding(.top, 28)
+                // 시안 「모음/커뮤니티」: 상단 바 아래 12 에 탭.
+                .padding(.top, 12)
                 .padding(.bottom, 20)
             }
             .scrollIndicators(.hidden)
@@ -72,6 +73,7 @@ struct CollectionView: View {
         }
     }
 
+    /// 시안 「모음탭_앱바」: 높이 58, 「초대 코드」(안쪽 8·열쇠↔글 4) ↔ 「새 지도」 12.
     private var header: some View {
         HStack(spacing: 12) {
             MoaMapTopBarLogo {
@@ -85,11 +87,13 @@ struct CollectionView: View {
             Button {
                 viewModel.openJoinDialog()
             } label: {
-                HStack(spacing: 2) {
+                HStack(spacing: 4) {
                     icon("key", size: 24)
                     Text("초대 코드").moaTextStyle(typography.button2)
                 }
+                .padding(8)
                 .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
             Button(action: onCreateMap) {
                 HStack(spacing: 2) {
@@ -104,7 +108,7 @@ struct CollectionView: View {
         .buttonStyle(.plain)
         .foregroundStyle(colors.textNormal)
         .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-        .frame(height: 52)
+        .frame(height: moaMapTabTopBarHeight)
     }
 
     private var tabs: some View {
@@ -191,7 +195,7 @@ struct CollectionView: View {
                     if editing == nil { onMapClick(map) } else { viewModel.toggleSelection(mapID: map.id) }
                 } label: {
                     CollectionMapCard(
-                        map: map, showsMembers: showsMembers,
+                        map: map, showsMembers: showsMembers, showsRoleBadge: showsMembers,
                         selected: editing.map { $0.selectedIDs.contains(map.id) },
                         showsDragHandle: editing != nil
                     )
