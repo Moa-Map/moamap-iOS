@@ -103,6 +103,22 @@ struct CollectionRepositoryTests {
         #expect(maps.allSatisfy { $0.imageURL == nil && $0.memberCount == 0 && $0.placeCount == 0 && !$0.personal })
     }
 
+    @Test func 목록_응답의_내_역할을_읽는다() async throws {
+        let sut = try repository(body: #"""
+        {"success":true,"data":{"content":[
+          {"id":1,"myRole":"OWNER"},{"id":2,"myRole":"ADMIN"},{"id":3,"myRole":"MEMBER"}
+        ]}}
+        """#)
+        #expect(try await sut.fetchMyMaps(type: .community).map(\.role) == [.owner, .admin, .member])
+    }
+
+    @Test func 내_역할이_없거나_null이어도_목록을_읽는다() async throws {
+        let sut = try repository(body: #"""
+        {"success":true,"data":{"content":[{"id":1},{"id":2,"myRole":null},{"id":3,"myRole":"UNKNOWN"}]}}
+        """#)
+        #expect(try await sut.fetchMyMaps(type: .community).map(\.role) == [.none, .none, .none])
+    }
+
     @Test func 초대_코드로_참여할_때_코드를_본문에_담아_보낸다() async throws {
         let sut = try repository(body: #"{"success":true,"data":{"id":7,"name":"지도"}}"#) { request in
             #expect(request.httpMethod == "POST")

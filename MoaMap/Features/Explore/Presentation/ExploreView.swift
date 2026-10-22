@@ -22,17 +22,14 @@ struct ExploreView: View {
                 header { withAnimation { proxy.scrollTo(Self.topID, anchor: .top) } }
 
                 ScrollView {
-                    // 시안 「메인 화면」: 상단 바 아래 20, 히어로 아래 21, 섹션 사이 20.
-                    VStack(alignment: .leading, spacing: 0) {
+                    // 시안 「메인 화면」: 상단 바 아래 12, 배너·커뮤니티·공식 섹션 사이 32.
+                    VStack(alignment: .leading, spacing: 32) {
                         // 운영자 추천 API 가 없어 임시 데이터다.
                         FeaturedMapCarousel(maps: FeaturedMap.mocks)
-                        VStack(alignment: .leading, spacing: 20) {
-                            communitySection
-                            officialSection
-                        }
-                        .padding(.top, 21)
+                        communitySection
+                        officialSection
                     }
-                    .padding(.top, 20)
+                    .padding(.top, 12)
                     // 하단 탭 위 띄움 8 과 합쳐 시안의 마지막 카드 ↔ 하단 탭 32.
                     .padding(.bottom, 24)
                     // 위 여백까지 포함해야 맨 위로 올렸을 때 처음 화면과 같다.
@@ -67,39 +64,44 @@ struct ExploreView: View {
                     onSettingsClick()
                 }
             )
-            // 시안: 상태 표시줄 아래 42(상단 바 아래쪽과 10 겹침), 화면 끝에서 20.
-            .padding(.top, 42)
-            .padding(.trailing, MoaMapDimens.screenHorizontalPadding)
+            // 프로필 아이콘 바로 아래 4(상단 바 위에서 45), 화면 끝에서 24.
+            .padding(.top, 45)
+            .padding(.trailing, 24)
             .accessibilityAction(.escape) { showsProfileMenu = false }
         }
     }
 
-    /// 시안 「메인 화면」: 높이 52, 로고 본체(43×34.3)가 왼쪽 24·위 9, 오른쪽 끝 20 에 알림·프로필 아이콘
-    /// 24 가 사이 8 로 놓인다. 로고는 홈으로 가는 버튼이라, 이미 홈인 여기서는 맨 위로 올린다.
+    /// 시안 「탐색탭_앱바」: 높이 58, 바탕 Background/Primary, 오른쪽 끝 24 에 채운 알림·프로필 아이콘
+    /// 24 가 사이 12 로 놓인다. 로고는 홈으로 가는 버튼이라, 이미 홈인 여기서는 맨 위로 올린다.
     private func header(onLogoClick: @escaping () -> Void) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             MoaMapTopBarLogo(action: onLogoClick)
                 .accessibilityLabel("맨 위로")
             Spacer()
             // 알림 기능이 생길 때까지 보이기만 한다.
-            headerIcon("Icons/bell-outline")
+            headerIcon("Icons/bell-filled")
                 .accessibilityLabel("알림")
-            Button { withAnimation(.dropdownMenu) { showsProfileMenu = true } } label: { headerIcon("Icons/person-outline") }
+            Button { withAnimation(.dropdownMenu) { showsProfileMenu = true } } label: { headerIcon("Icons/user-filled") }
                 .buttonStyle(.plain)
                 .accessibilityLabel("프로필 메뉴")
         }
-        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-        .frame(height: 52)
+        .padding(.leading, MoaMapDimens.screenHorizontalPadding)
+        .padding(.trailing, 24)
+        .frame(height: moaMapTabTopBarHeight)
+        // 토큰 backgroundPrimary 는 그라데이션이라 시안의 단색(#E6F6FF)을 직접 쓴다.
+        .background(MoaMapPrimitiveColors.blue50)
     }
 
     private func headerIcon(_ name: String) -> some View {
         Image(name)
+            .renderingMode(.template)
             .resizable()
+            .foregroundStyle(MoaMapPrimitiveColors.gray800)
             .frame(width: 24, height: 24)
             .contentShape(Rectangle().inset(by: -8))
     }
 
-    /// 섹션 제목 줄: 제목 + 「전체보기 >」.
+    /// 섹션 제목 줄: 제목(왼쪽 2 안쪽) + 「전체보기 >」.
     private func sectionHeader(_ title: String, onSeeAllClick: @escaping () -> Void) -> some View {
         HStack {
             Text(title)
@@ -120,6 +122,7 @@ struct ExploreView: View {
             }
             .buttonStyle(.plain)
         }
+        .padding(.leading, 2)
     }
 
     /// 시안: 제목 줄 ↔ 카드 16, 카드 사이 8. 인기순 앞 3개만 보여 준다.
@@ -140,7 +143,7 @@ struct ExploreView: View {
                         CommunityMapsPlaceholder { emptyMessage("아직 등록된 지도가 없어요") }
                     }
                     ForEach(viewModel.communityMaps) { map in
-                        Button { onMapClick(map) } label: { CommunityMapCard(map: map) }
+                        Button { onMapClick(map) } label: { CommunityMapCard(map: map, style: .home) }
                             .buttonStyle(.plain)
                     }
                 }
@@ -149,7 +152,7 @@ struct ExploreView: View {
         .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
     }
 
-    /// 시안: 제목 줄 ↔ 카드 16, 카드는 가로로 넘기고 사이 12. 로딩·오류·빈 상태는 시안이 없어
+    /// 시안: 제목 줄 ↔ 카드 16, 카드는 가로로 넘기고 사이 8. 로딩·오류·빈 상태는 시안이 없어
     /// 커뮤니티 섹션과 같은 모양을 쓴다.
     private var officialSection: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -170,7 +173,7 @@ struct ExploreView: View {
                     .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
             case .loaded(let maps):
                 ScrollView(.horizontal) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
                         ForEach(maps) { map in
                             Button { onOfficialMapClick(map) } label: { HomeOfficialMapCard(map: map) }
                                 .buttonStyle(.plain)

@@ -17,6 +17,8 @@ nonisolated enum MoaMapPrimitiveColors {
     static let black = Color(argb: 0xFF00_0000)
     static let white = Color(argb: 0xFFFF_FFFF)
     static let transparentBlack = Color(argb: 0xBF00_0000)
+    /// 팝업 뒤 어둡기. 모든 팝업에 쓴다.
+    static let dialogScrim = Color(argb: 0xCC00_0000)
 
     static let gray50 = Color(argb: 0xFFEC_EDED)
     static let gray100 = Color(argb: 0xFFC5_C7C7)

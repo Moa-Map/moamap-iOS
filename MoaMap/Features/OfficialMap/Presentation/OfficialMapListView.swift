@@ -6,6 +6,7 @@ struct OfficialMapListView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var viewModel: OfficialMapListViewModel
+    @State private var guideVisible = false
     private let onMapClick: (OfficialMap) -> Void
 
     /// 부모가 다시 그려져도 처음 받은 ViewModel 을 쓴다. 바뀌면 받아 둔 목록이 사라진다.
@@ -18,9 +19,10 @@ struct OfficialMapListView: View {
         VStack(spacing: 12) {
             topBar
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 8) {
                     guide
-                    content
+                        .zIndex(1)
+                    LazyVStack(spacing: 8) { content }
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                 .padding(.bottom, 20)
@@ -29,6 +31,9 @@ struct OfficialMapListView: View {
         }
         // 시안 배경은 단색 Background/Primary(#E6F6FF)다. iOS 의 backgroundPrimary 토큰은 그라데이션이라 쓰지 않는다.
         .background { MoaMapPrimitiveColors.blue50.ignoresSafeArea() }
+        // 말풍선 밖을 누르면 닫는다.
+        .contentShape(Rectangle())
+        .onTapGesture { guideVisible = false }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { viewModel.refresh() }
     }
@@ -57,18 +62,14 @@ struct OfficialMapListView: View {
         .frame(height: 58)
     }
 
-    /// 누르면 무엇을 보여줄지 아직 정해지지 않아 안내 줄만 둔다.
     private var guide: some View {
-        HStack(spacing: 4) {
-            Image("Icons/info")
-                .renderingMode(.template)
-                .resizable()
-                .frame(width: 20, height: 20)
-                .accessibilityHidden(true)
-            Text("공식지도가 궁금하신가요?")
-                .moaTextStyle(typography.body2)
+        MoaMapGuideRow(text: "공식지도가 궁금하신가요?", isPresented: $guideVisible, accessibilityHint: "공식지도 안내를 엽니다") {
+            MoaMapTooltip(tailInset: 14, fill: .solid(MoaMapPrimitiveColors.blue800)) {
+                Text("모아맵이 공공데이터로 만든 지도예요.\n참여하면 모음 탭에서 바로 볼 수 있어요.")
+                    .moaTextStyle(typography.caption0)
+                    .foregroundStyle(colors.textWhite)
+            }
         }
-        .foregroundStyle(colors.textAssistive)
     }
 
     @ViewBuilder

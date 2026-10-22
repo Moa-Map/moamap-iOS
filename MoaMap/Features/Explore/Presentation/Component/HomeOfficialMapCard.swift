@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// 홈의 공식 지도 카드. 시안: 여백 12, 사진 120(모서리 12) ↔ 글 16, 이름 줄 24 ↔ 설명 4.
+/// 홈의 공식 지도 카드. 시안 「탐색탭_지도」: 여백 12, 사진 110 ↔ 이름 8, 이름은 위아래 2 안쪽.
 ///
-/// 이름과 설명은 사진 폭 안에서 한 줄로, 넘치면 「…」.
+/// 설명은 없고 이름만 사진 폭 안에서 두 줄까지, 넘치면 「…」. 한 줄 이름도 두 줄 자리를 잡아
+/// 가로 목록의 카드 높이를 맞춘다.
 struct HomeOfficialMapCard: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
@@ -10,32 +11,25 @@ struct HomeOfficialMapCard: View {
     let map: OfficialMap
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             MapThumbnail(imageURL: map.imageURL, size: Self.imageSize)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(map.title)
-                    .moaTextStyle(typography.subtitle2)
-                    .foregroundStyle(colors.textNormal)
-                    .lineLimit(1)
-                    .frame(height: 24)
-                // 설명이 비어도 줄은 남긴다. 카드 높이가 달라지면 가로 목록이 들쭉날쭉해진다.
-                Text(map.description.isEmpty ? " " : map.description)
-                    .moaTextStyle(typography.caption0)
-                    .foregroundStyle(MoaMapPrimitiveColors.blue800)
-                    .lineLimit(1)
-            }
-            .frame(width: Self.imageSize, alignment: .leading)
+            Text(map.title)
+                .moaTextStyle(typography.body3)
+                .foregroundStyle(colors.textNormal)
+                .lineLimit(2, reservesSpace: true)
+                .padding(.vertical, 2)
+                .frame(width: Self.imageSize, alignment: .leading)
         }
         .padding(12)
         .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.04), radius: 4)
     }
 
-    private static let imageSize: CGFloat = 120
+    private static let imageSize: CGFloat = 110
 }
 
 #Preview {
-    HStack(spacing: 12) {
+    HStack(spacing: 8) {
         HomeOfficialMapCard(map: OfficialMap(id: 1, title: "공중화장실 지도", description: "행정안전부 공공데이터 기반", imageURL: nil, joined: false))
         HomeOfficialMapCard(map: OfficialMap(id: 2, title: "유동인구 지도", description: "", imageURL: nil, joined: true))
     }
