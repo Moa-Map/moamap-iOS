@@ -79,6 +79,54 @@ struct TermsGateViewModelTests {
         #expect(sut.state == .passed)
     }
 
+    @Test func 확인에_실패하면_로그아웃해_빠져나갈_수_있다() async {
+        let repository = TermsRepositoryStub()
+        let auth = LoginRepositoryStub()
+        repository.status = { throw NetworkError.server(code: "COMMON_005", statusCode: 500) }
+        let sut = TermsGateViewModel(repository: repository, authRepository: auth)
+        sut.check()
+        await sut.loadTask?.value
+        var loggedOutCalls = 0
+
+        sut.logout { loggedOutCalls += 1 }
+        #expect(sut.state == .loggingOut)
+        await sut.loadTask?.value
+
+        #expect(auth.logoutCalls == 1)
+        #expect(loggedOutCalls == 1)
+    }
+
+    @Test func 로그아웃에_실패하면_안내하고_머문다() async {
+        let repository = TermsRepositoryStub()
+        let auth = LoginRepositoryStub()
+        repository.status = { throw NetworkError.connection(.notConnectedToInternet) }
+        auth.logoutHandler = { throw URLError(.cannotWriteToFile) }
+        let sut = TermsGateViewModel(repository: repository, authRepository: auth)
+        sut.check()
+        await sut.loadTask?.value
+        var loggedOutCalls = 0
+
+        sut.logout { loggedOutCalls += 1 }
+        await sut.loadTask?.value
+
+        #expect(loggedOutCalls == 0)
+        #expect(sut.state == .failed(TermsGateViewModel.logoutFailureMessage))
+    }
+
+    @Test func 실패_상태가_아니면_로그아웃하지_않는다() async {
+        let repository = TermsRepositoryStub()
+        let auth = LoginRepositoryStub()
+        let sut = TermsGateViewModel(repository: repository, authRepository: auth)
+        sut.check()
+        await sut.loadTask?.value
+        #expect(sut.state == .needsAgreement)
+
+        sut.logout {}
+        await sut.loadTask?.value
+        #expect(auth.logoutCalls == 0)
+        #expect(sut.state == .needsAgreement)
+    }
+
     @Test func 초기화하면_진행_중인_확인이_상태를_덮지_않는다() async {
         let repository = TermsRepositoryStub()
         let auth = LoginRepositoryStub()

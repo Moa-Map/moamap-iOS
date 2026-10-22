@@ -5,9 +5,10 @@ struct SplashView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
-    /// 있으면 화면 아래쪽에 안내와 「다시 시도」를 띄운다. 로그인 화면과 같은 자리다.
+    /// 있으면 화면 아래쪽에 안내와 「다시 시도」·「로그아웃」을 띄운다. 로그인 화면과 같은 자리다.
     var failureMessage: String?
     var onRetry: () -> Void = {}
+    var onLogout: () -> Void = {}
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -27,7 +28,7 @@ struct SplashView: View {
 
             // 안내는 안전 영역 안에 둔다.
             if let failureMessage {
-                MoaMapRetryPrompt(message: failureMessage, onRetry: onRetry)
+                TermsCheckFailurePrompt(message: failureMessage, onRetry: onRetry, onLogout: onLogout)
                     .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                     .padding(.bottom, 24)
             }

@@ -8,9 +8,10 @@ struct LoginView: View {
     var onKakaoLogin: (() -> Void)?
     var onAppleLogin: (() -> Void)?
     var onGoogleLogin: (() -> Void)?
-    /// 로그인 뒤 약관 동의 여부를 확인하지 못했을 때의 안내. 있으면 아래쪽에 「다시 시도」와 함께 띄운다.
+    /// 로그인 뒤 약관 동의 여부를 확인하지 못했을 때의 안내. 있으면 아래쪽에 「다시 시도」·「로그아웃」과 함께 띄운다.
     var failureMessage: String?
     var onRetry: () -> Void = {}
+    var onLogout: () -> Void = {}
 
     var body: some View {
         GeometryReader { geometry in
@@ -62,7 +63,7 @@ struct LoginView: View {
         }
         .overlay(alignment: .bottom) {
             if let failureMessage {
-                MoaMapRetryPrompt(message: failureMessage, onRetry: onRetry)
+                TermsCheckFailurePrompt(message: failureMessage, onRetry: onRetry, onLogout: onLogout)
                     .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                     .padding(.bottom, 24)
             }

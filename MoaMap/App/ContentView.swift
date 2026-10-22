@@ -40,7 +40,7 @@ struct ContentView: View {
             return .main
         case .needsAgreement:
             return .agreement
-        case .idle, .checking, .unauthorized, .failed:
+        case .idle, .checking, .unauthorized, .loggingOut, .failed:
             let failure = termsGateViewModel.state.failureMessage
             guard let provider = loginViewModel.loggedInProvider else { return .splash(failureMessage: failure) }
             return .login(loadingProvider: failure == nil ? provider : nil, failureMessage: failure)
@@ -49,11 +49,19 @@ struct ContentView: View {
 
     private var isAuthenticated: Bool { loginViewModel.uiState == .authenticated }
 
+    private func logoutFromTermsCheck() {
+        termsGateViewModel.logout { loginViewModel.returnToLogin() }
+    }
+
     var body: some View {
         ZStack {
             switch screen {
             case .splash(let failureMessage):
-                SplashView(failureMessage: failureMessage) { termsGateViewModel.check() }
+                SplashView(
+                    failureMessage: failureMessage,
+                    onRetry: { termsGateViewModel.check() },
+                    onLogout: logoutFromTermsCheck
+                )
             case .agreement:
                 TermsAgreementView(
                     viewModel: container.makeTermsAgreementViewModel(),
@@ -89,7 +97,8 @@ struct ContentView: View {
                     onAppleLogin: { loginViewModel.loginWithApple() },
                     onGoogleLogin: { loginViewModel.loginWithGoogle() },
                     failureMessage: failureMessage,
-                    onRetry: { termsGateViewModel.check() }
+                    onRetry: { termsGateViewModel.check() },
+                    onLogout: logoutFromTermsCheck
                 )
             }
         }
