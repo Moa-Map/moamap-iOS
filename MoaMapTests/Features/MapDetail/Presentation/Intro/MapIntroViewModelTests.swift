@@ -33,6 +33,42 @@ struct MapIntroViewModelTests {
         #expect(!sut.uiState.hasMorePlaces)
     }
 
+    @Test func 더보기를_누르면_장소를_4개씩_더_펼친다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.places = { _ in (1...10).map { MapPlace.fixture(id: $0) } }
+        let sut = MapIntroViewModel(mapID: 7, repository: repository)
+        sut.refresh()
+        await sut.loadTask?.value
+
+        sut.showMorePlaces()
+        #expect(sut.uiState.previewPlaces.map(\.id) == Array(1...8))
+        #expect(sut.uiState.hasMorePlaces)
+
+        sut.showMorePlaces()
+        #expect(sut.uiState.previewPlaces.map(\.id) == Array(1...10))
+        #expect(!sut.uiState.hasMorePlaces)
+
+        sut.showMorePlaces()
+        #expect(sut.uiState.visiblePlaceCount == 12)
+    }
+
+    @Test func 돌아와서_다시_읽으면_펼친_목록을_두고_재시도하면_접는다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.places = { _ in (1...10).map { MapPlace.fixture(id: $0) } }
+        let sut = MapIntroViewModel(mapID: 7, repository: repository)
+        sut.refresh()
+        await sut.loadTask?.value
+        sut.showMorePlaces()
+
+        sut.refresh()
+        await sut.loadTask?.value
+        #expect(sut.uiState.previewPlaces.count == 8)
+
+        sut.retry()
+        await sut.loadTask?.value
+        #expect(sut.uiState.previewPlaces.count == 4)
+    }
+
     @Test func 장소_조회만_실패해도_지도는_보여준다() async {
         let repository = MapDetailRepositoryStub()
         repository.places = { _ in throw NetworkError.http(statusCode: 500) }

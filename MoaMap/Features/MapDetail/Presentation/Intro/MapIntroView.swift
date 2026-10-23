@@ -158,8 +158,7 @@ struct MapIntroView: View {
                 }
             }
             if viewModel.uiState.hasMorePlaces {
-                // 전체 장소 목록 화면이 없어 미리보기와 같이 상세로 보낸다.
-                Button { onPreview(title, official) } label: {
+                Button { viewModel.showMorePlaces() } label: {
                     Text("더보기")
                         .moaTextStyle(typography.caption0)
                         .underline()
