@@ -96,12 +96,12 @@ struct MapIntroTagRow: View {
                 ForEach(Array(tags.enumerated()), id: \.offset) { _, tag in
                     Text(tag)
                         .moaTextStyle(typography.caption0)
-                        .foregroundStyle(MoaMapPrimitiveColors.blue900)
+                        .foregroundStyle(MoaMapPrimitiveColors.yellow900)
                         .lineLimit(1)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 4)
-                        .background(MoaMapPrimitiveColors.blue50, in: Capsule())
-                        .overlay { Capsule().strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 1) }
+                        .background(MoaMapPrimitiveColors.yellow50, in: Capsule())
+                        .overlay { Capsule().strokeBorder(MoaMapPrimitiveColors.yellow500, lineWidth: 1) }
                 }
             }
         }
@@ -115,11 +115,13 @@ struct MapIntroPlaceItem: View {
     @Environment(\.moaTypography) private var typography
 
     let place: MapPlace
+    /// 이름과 주소 사이. 게시물 장소 고르기 시안은 4 다.
+    var textSpacing: CGFloat = 6
 
     var body: some View {
         HStack(spacing: 12) {
             PhotoThumbnail(imageURL: place.photoURL, size: 64)
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: textSpacing) {
                 Text(place.name)
                     .moaTextStyle(typography.subtitle2)
                     .lineLimit(1)
