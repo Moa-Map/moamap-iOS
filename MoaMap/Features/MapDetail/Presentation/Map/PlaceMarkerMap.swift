@@ -36,10 +36,7 @@ struct PlaceMarkerMap: View {
             .mapStyle(.standard(lightPreset: .day, show3dObjects: shows3DObjects))
             .cameraBounds(.korea)
             // 축척과 나침반은 띄우지 않는다. 로고와 저작권 표시는 약관상 남기되, 상세에서는 시트 밑에 깔린다.
-            .ornamentOptions(OrnamentOptions(
-                scaleBar: ScaleBarViewOptions(visibility: .hidden),
-                compass: CompassViewOptions(visibility: .hidden)
-            ))
+            .ornamentOptions(.moaMap)
             .gestureOptions(GestureOptions(
                 rotateEnabled: allowsRotation,
                 pitchEnabled: allowsRotation,

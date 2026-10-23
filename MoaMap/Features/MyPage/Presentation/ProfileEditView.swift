@@ -8,6 +8,8 @@ struct ProfileEditView: View {
     @State private var viewModel: ProfileEditViewModel
     @State private var showsPhotoPicker = false
     @FocusState private var focusedField: Field?
+    @State private var keyboardTop: CGFloat?
+    @State private var scrollBottom: CGFloat = 0
     /// 저장이 끝나면 서버가 확정한 프로필을 넘긴다. 다른 화면의 이름을 맞추는 데 쓴다.
     private let onSaved: (MyProfile) -> Void
 
@@ -32,8 +34,10 @@ struct ProfileEditView: View {
                 }
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
-                // 시스템은 글자 한 줄만 보이게 스크롤해 자기소개 칸이 키보드 위 저장 버튼에 가린다.
-                // 칸 전체가 보이게 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { scrollBottom = $0 }
+                // 화면은 키보드를 피하지 않으므로 키보드에 가리는 만큼만 스크롤 영역을 줄인다.
+                .safeAreaPadding(.bottom, keyboardOverlap)
+                // 자기소개 칸 전체가 보이게 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
                 .onChange(of: focusedField) { _, field in scroll(proxy, to: field) }
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
                     scroll(proxy, to: focusedField)
@@ -43,6 +47,12 @@ struct ProfileEditView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { saveButton }
+        // 저장 버튼이 키보드를 따라 올라오지 않게 한다.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+            guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+            withAnimation(.easeOut(duration: 0.25)) { keyboardTop = frame.minY }
+        }
         .fullScreenCover(isPresented: $showsPhotoPicker) {
             PhotoLibraryPicker(
                 maxSelection: 1,
@@ -73,6 +83,11 @@ struct ProfileEditView: View {
         } message: {
             Text(viewModel.uiState.errorMessage ?? "")
         }
+    }
+
+    private var keyboardOverlap: CGFloat {
+        guard let keyboardTop else { return 0 }
+        return max(0, scrollBottom - keyboardTop)
     }
 
     private func scroll(_ proxy: ScrollViewProxy, to field: Field?) {

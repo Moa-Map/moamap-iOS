@@ -9,11 +9,18 @@ struct SettingsView: View {
     @State private var withdrawDialogVisible = false
 
     let onOpenTerm: (Term) -> Void
+    let onOpenMapAttribution: () -> Void
     let onLoggedOut: () -> Void
 
-    init(viewModel: SettingsViewModel, onOpenTerm: @escaping (Term) -> Void, onLoggedOut: @escaping () -> Void) {
+    init(
+        viewModel: SettingsViewModel,
+        onOpenTerm: @escaping (Term) -> Void,
+        onOpenMapAttribution: @escaping () -> Void,
+        onLoggedOut: @escaping () -> Void
+    ) {
         _viewModel = State(initialValue: viewModel)
         self.onOpenTerm = onOpenTerm
+        self.onOpenMapAttribution = onOpenMapAttribution
         self.onLoggedOut = onLoggedOut
     }
 
@@ -41,6 +48,7 @@ struct SettingsView: View {
                                 .moaTextStyle(typography.caption2)
                                 .foregroundStyle(colors.textAssistive)
                         }
+                        navigationRow("지도 데이터 출처", showsDivider: true, action: onOpenMapAttribution)
                     }
                     section("계정") {
                         // 바로 로그아웃하지 않고 팝업에서 한 번 더 묻는다. 진행 중이면 다시 묻지 않는다.
@@ -223,7 +231,7 @@ final class PreviewTermsRepository: TermsRepository {
 #Preview {
     SettingsView(
         viewModel: SettingsViewModel(repository: PreviewAuthRepository(), termsRepository: PreviewTermsRepository()),
-        onOpenTerm: { _ in }, onLoggedOut: {}
+        onOpenTerm: { _ in }, onOpenMapAttribution: {}, onLoggedOut: {}
     )
 }
 #endif

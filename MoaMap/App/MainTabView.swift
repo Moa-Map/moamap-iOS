@@ -5,6 +5,7 @@ private enum MainRoute: Hashable {
     case profileEdit
     case settings
     case termDetail(id: Int64, title: String)
+    case mapAttribution
     case communityMaps
     case officialMaps
     case createMap
@@ -222,10 +223,13 @@ struct MainTabView: View {
             SettingsView(
                 viewModel: makeSettingsViewModel(),
                 onOpenTerm: { path.wrappedValue.append(.termDetail(id: $0.id, title: $0.title)) },
+                onOpenMapAttribution: { path.wrappedValue.append(.mapAttribution) },
                 onLoggedOut: onLoggedOut
             )
         case .termDetail(let id, let title):
             TermDetailView(viewModel: makeTermDetailViewModel(id), title: title)
+        case .mapAttribution:
+            MapAttributionView()
         case .placeImport(let step):
             if let placeImportViewModel {
                 PlaceImportDestination(step: step, viewModel: placeImportViewModel, navigator: placeImportNavigator(path))
