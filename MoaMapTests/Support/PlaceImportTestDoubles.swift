@@ -20,7 +20,7 @@ extension ImportedPlace {
 @MainActor
 final class PlaceImportRepositoryStub: PlaceImportRepository {
     var extractInstagram: (String) async throws -> [ImportedPlace] = { _ in [] }
-    var extractMapShare: (String) async throws -> [ImportedPlace] = { _ in [] }
+    var extractMapShare: (String) async throws -> MapShareExtraction = { _ in MapShareExtraction(places: [], report: MapShareReport()) }
     var upload: ([EditedPlace]) async throws -> [String: [String]] = { entries in
         Dictionary(uniqueKeysWithValues: entries.filter { !$0.edit.photos.isEmpty }.map { ($0.place.id, ["https://file/\($0.place.id)"]) })
     }
@@ -37,7 +37,7 @@ final class PlaceImportRepositoryStub: PlaceImportRepository {
         return try await extractInstagram(url)
     }
 
-    func extractMapSharePlaces(url: String) async throws -> [ImportedPlace] {
+    func extractMapSharePlaces(url: String) async throws -> MapShareExtraction {
         extractedURLs.append(url)
         return try await extractMapShare(url)
     }

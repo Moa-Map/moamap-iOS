@@ -17,6 +17,8 @@ struct PlaceImportNavigator {
     let setSteps: ([PlaceImportStep]) -> Void
     /// 채워지면 지도 선택 대신 편집 결과를 넘기고 흐름을 닫는다. 새 지도 만들기에서 들어왔을 때다.
     var handOff: (([EditedPlace]) -> Void)?
+    /// 저장을 마치고 흐름을 닫을 때 결과를 알린다.
+    var onSaved: (String) -> Void = { _ in }
 
     func push(_ step: PlaceImportStep) { setSteps(steps() + [step]) }
     func pop() { setSteps(Array(steps().dropLast())) }
@@ -69,7 +71,9 @@ struct PlaceImportDestination: View {
             PlaceImportMapView(viewModel: viewModel, onBack: navigator.pop)
                 // 한 곳이라도 들어갔으면 흐름을 끝낸다. 하나도 못 넣으면 남아서 안내만 띄운다.
                 .onChange(of: viewModel.uiState.saveResult) { _, result in
-                    if result != nil { navigator.finish() }
+                    guard let result else { return }
+                    navigator.finish()
+                    navigator.onSaved(PlaceImportViewModel.savedMessage(for: result))
                 }
         }
     }
@@ -115,7 +119,12 @@ final class PreviewPlaceImportRepository: PlaceImportRepository {
     ]
 
     func extractInstagramPlaces(url: String) async throws -> [ImportedPlace] { places }
-    func extractMapSharePlaces(url: String) async throws -> [ImportedPlace] { places }
+    func extractMapSharePlaces(url: String) async throws -> MapShareExtraction {
+        MapShareExtraction(
+            places: places,
+            report: MapShareReport(declaredCount: 983, extractedCount: 500, truncated: true, missedNames: ["비터포레스트", "카페 몰레큘"])
+        )
+    }
     func uploadPhotos(mapID: Int64, places: [EditedPlace]) async throws -> [String: [String]] { [:] }
     func savePlaces(mapIDs: [Int64], places: [EditedPlace], photoURLs: [String: [String]]) async throws -> PlaceSaveResult {
         PlaceSaveResult(created: places.count, duplicate: 0, failed: 0)

@@ -112,10 +112,15 @@ struct PlaceImportPlaceView: View {
             title: state.source == .instagram ? "이 장소가 맞나요?" : "지도의 장소들을 불러왔어요",
             description: state.source == .instagram
                 ? "영상에서 \(state.places.count)곳을 찾았어요!\n맞는 곳을 골라주세요."
-                : "지도에서 \(state.places.count)곳을 찾았어요!\n추가하고 싶지 않은 장소들은 선택 해제를 해주세요",
+                : "\(Self.mapShareSummary(found: state.places.count, report: state.mapShareReport))\n추가하고 싶지 않은 장소들은 선택 해제를 해주세요",
             errorSource: viewModel,
             onBack: onBack
         ) {
+            if let report = state.mapShareReport {
+                // 다른 링크로 다시 가져오면 펼쳐 둔 목록을 접은 채로 새로 시작한다.
+                MapShareReportNotice(report: report)
+                    .id(report)
+            }
             LazyVStack(spacing: 8) {
                 ForEach(state.places) { place in
                     ImportedPlaceCard(place: place, selected: state.selectedPlaceIDs.contains(place.id)) {
@@ -130,6 +135,14 @@ struct PlaceImportPlaceView: View {
             }
             PlaceImportButton(text: "다음으로", enabled: state.canProceed, action: onNext)
         }
+    }
+
+    /// 리스트에 적힌 수를 알면 그중 몇 곳인지 함께 말한다.
+    private static func mapShareSummary(found: Int, report: MapShareReport?) -> String {
+        if let declared = report?.declaredCount, declared > found {
+            return "지도의 \(declared)곳 중 \(found)곳을 찾았어요!"
+        }
+        return "지도에서 \(found)곳을 찾았어요!"
     }
 }
 

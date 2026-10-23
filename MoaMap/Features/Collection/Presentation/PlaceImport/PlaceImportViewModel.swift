@@ -16,7 +16,7 @@ final class PlaceImportViewModel {
     private(set) var saveTask: Task<Void, any Error>?
 
     /// 재시도를 취소하거나 실패했을 때 돌아갈 직전 결과.
-    private var previousResult: (places: [ImportedPlace], selection: Set<String>)?
+    private var previousResult: (places: [ImportedPlace], selection: Set<String>, report: MapShareReport?)?
     private let importRepository: any PlaceImportRepository
     private let collectionRepository: any CollectionRepository
 
@@ -42,24 +42,32 @@ final class PlaceImportViewModel {
         guard uiState.canSearch else { return }
         extractionTask?.cancel()
         if case .loaded(let places) = uiState.extraction {
-            previousResult = (places, uiState.selectedPlaceIDs)
+            previousResult = (places, uiState.selectedPlaceIDs, uiState.mapShareReport)
         }
         uiState.extraction = .loading
         uiState.selectedPlaceIDs = []
+        uiState.mapShareReport = nil
         uiState.errorMessage = nil
 
         let source = uiState.source
         let url = uiState.url
         extractionTask = Task { [weak self, importRepository] in
             do {
-                let places = switch source {
-                case .instagram: try await importRepository.extractInstagramPlaces(url: url)
-                case .mapShare: try await importRepository.extractMapSharePlaces(url: url)
+                let places: [ImportedPlace]
+                var report: MapShareReport?
+                switch source {
+                case .instagram:
+                    places = try await importRepository.extractInstagramPlaces(url: url)
+                case .mapShare:
+                    let extraction = try await importRepository.extractMapSharePlaces(url: url)
+                    places = extraction.places
+                    report = extraction.report
                 }
                 try Task.checkCancellation()
                 guard let self else { return }
                 previousResult = nil
                 uiState.extraction = .loaded(places)
+                uiState.mapShareReport = report
                 uiState.selectedPlaceIDs = Self.initialSelection(places, source: source)
             } catch {
                 try Task.checkCancellation()
@@ -82,6 +90,7 @@ final class PlaceImportViewModel {
         previousResult = nil
         uiState.extraction = restored.map { .loaded($0.places) } ?? .idle
         uiState.selectedPlaceIDs = restored?.selection ?? []
+        uiState.mapShareReport = restored?.report
         uiState.errorMessage = errorMessage
     }
 
@@ -213,6 +222,15 @@ final class PlaceImportViewModel {
     }
 
     // MARK: 안내
+
+    /// 저장이 끝나고 흐름 밖에서 띄우는 한 줄. 여러 지도에 넣었으면 지도마다 센 수를 더한다.
+    static func savedMessage(for result: PlaceSaveResult) -> String {
+        var notes: [String] = []
+        if result.duplicate > 0 { notes.append("이미 있던 \(result.duplicate)곳 제외") }
+        if result.failed > 0 { notes.append("\(result.failed)곳 실패") }
+        let base = "\(result.created)곳을 저장했어요"
+        return notes.isEmpty ? base : "\(base) (\(notes.joined(separator: ", ")))"
+    }
 
     /// 캡션을 못 읽은 이유와 서버가 준 거절 사유는 사용자가 조치할 수 있어 그대로 보여준다.
     private static func extractionMessage(for error: any Error) -> String {

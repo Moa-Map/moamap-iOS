@@ -35,15 +35,24 @@ final class PlaceImportRepositoryImpl: PlaceImportRepository {
             .enumerated().map { $1.toDomain(index: $0) }
     }
 
-    func extractMapSharePlaces(url: String) async throws -> [ImportedPlace] {
+    func extractMapSharePlaces(url: String) async throws -> MapShareExtraction {
         let request = APIRequest(
             path: ["api", "v1", "places", "map-share-extractions"],
             method: .post,
             jsonBody: try JSONEncoder().encode(MapShareExtractRequest(url: url.trimmingCharacters(in: .whitespacesAndNewlines)))
         )
         let response = try await client.send(request, as: MapShareExtractResponse.self)
-        return (response.matched ?? []).filter { !($0.name ?? "").trimmingCharacters(in: .whitespaces).isEmpty }
+        let matched = response.matched ?? []
+        let unmatched = response.unmatched ?? []
+        let places = matched.filter { !($0.name ?? "").trimmingCharacters(in: .whitespaces).isEmpty }
             .enumerated().map { $1.toDomain(index: $0, fallbackSource: response.source) }
+        let report = MapShareReport(
+            declaredCount: response.declaredCount,
+            extractedCount: response.extractedCount,
+            truncated: response.truncated ?? false,
+            missedNames: unmatched.compactMap { $0.name?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        )
+        return MapShareExtraction(places: places, report: report)
     }
 
     /// 발급이 한 번에 5장까지라 장소별로 나눠 부른다. 사진이 없는 장소는 부르지 않는다.
@@ -55,27 +64,24 @@ final class PlaceImportRepositoryImpl: PlaceImportRepository {
         return result
     }
 
-    /// 서버가 요청 하나에 지도 하나만 받는다. 일부 지도만 저장된 채 성공으로 알리면 나머지를 다시 시도할 수 없어 실패는 그대로 던진다.
+    /// 서버가 요청 하나에 지도 하나만 받는다. 장소는 추출 한도만큼 한 번에 받는다.
+    /// 일부 지도만 저장된 채 성공으로 알리면 나머지를 다시 시도할 수 없어 실패는 그대로 던진다.
     func savePlaces(mapIDs: [Int64], places: [EditedPlace], photoURLs: [String: [String]]) async throws -> PlaceSaveResult {
         var created = 0, duplicate = 0, failed = 0
         let items = places.map { PlaceBulkItem($0, photoURLs: photoURLs[$0.place.id] ?? []) }
         for mapID in mapIDs {
-            for start in stride(from: 0, to: items.count, by: PlaceBulkCreateRequest.maxPlaces) {
-                let chunk = Array(items[start..<min(start + PlaceBulkCreateRequest.maxPlaces, items.count)])
-                let request = APIRequest(
-                    path: ["api", "v1", "places", "bulk"],
-                    method: .post,
-                    jsonBody: try JSONEncoder().encode(PlaceBulkCreateRequest(mapId: mapID, places: chunk))
-                )
-                let response = try await client.send(request, as: PlaceBulkCreateResponse.self)
-                for result in response.results ?? [] {
-                    switch result.status {
-                    case "CREATED": created += 1
-                    case "DUPLICATE": duplicate += 1
-                    default: failed += 1
-                    }
-                }
-            }
+            let request = APIRequest(
+                path: ["api", "v1", "places", "bulk"],
+                method: .post,
+                jsonBody: try JSONEncoder().encode(PlaceBulkCreateRequest(mapId: mapID, places: items))
+            )
+            let response = try await client.send(request, as: PlaceBulkCreateResponse.self)
+            let mapCreated = response.created ?? 0
+            let mapSkipped = response.skipped ?? 0
+            created += mapCreated
+            duplicate += mapSkipped
+            // 새로 들어가지도, 이미 있지도 않은 나머지는 실패다.
+            failed += max(0, (response.requested ?? items.count) - mapCreated - mapSkipped)
         }
         return PlaceSaveResult(created: created, duplicate: duplicate, failed: failed)
     }

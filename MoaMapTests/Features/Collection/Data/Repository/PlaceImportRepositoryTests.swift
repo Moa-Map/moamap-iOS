@@ -81,7 +81,7 @@ struct PlaceImportRepositoryTests {
           {"name":""}
         ],"unmatched":[{"name":"못 찾음"}]}}
         """#, caption: .blocked)
-        let places = try await sut.extractMapSharePlaces(url: " https://naver.me/abc ")
+        let places = try await sut.extractMapSharePlaces(url: " https://naver.me/abc ").places
         #expect(log.requests.first?.url?.path == "/api/v1/places/map-share-extractions")
         #expect(log.bodies().first as? [String: String] == ["url": "https://naver.me/abc"])
         #expect(places.map(\.id) == ["21", "candidate-1"])
@@ -89,9 +89,24 @@ struct PlaceImportRepositoryTests {
         #expect(places[0].description == "메모")
     }
 
+    @Test func 공유_링크에서_다_가져오지_못한_내역을_읽는다() async throws {
+        let sut = try repository(body: #"""
+        {"success":true,"data":{"declaredCount":983,"extractedCount":500,"truncated":true,"matched":[],
+          "unmatched":[{"name":"못 찾음","reason":"NO_RESULT"},{"name":"  "},{"reason":"TOO_FAR"},{"name":"이름 다름","reason":"NAME_MISMATCH"}]}}
+        """#)
+        let report = try await sut.extractMapSharePlaces(url: "https://naver.me/abc").report
+        #expect(report == MapShareReport(declaredCount: 983, extractedCount: 500, truncated: true, missedNames: ["못 찾음", "이름 다름"]))
+    }
+
+    @Test func 공유_링크_내역이_비어도_기본값으로_읽는다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"matched":[{"kakaoPlaceId":"1","name":"식당"}]}}"#)
+        let report = try await sut.extractMapSharePlaces(url: "https://naver.me/abc").report
+        #expect(report == MapShareReport(declaredCount: nil, extractedCount: nil, truncated: false, missedNames: []))
+    }
+
     // MARK: 등록
 
-    private let createdBody = #"{"success":true,"data":{"results":[{"status":"CREATED"},{"status":"DUPLICATE"},{"status":"FAILED"}]}}"#
+    private let createdBody = #"{"success":true,"data":{"requested":3,"created":1,"skipped":1,"results":[]}}"#
 
     @Test func 고른_지도마다_등록하고_결과를_합산한다() async throws {
         let sut = try repository(body: createdBody)
@@ -102,11 +117,18 @@ struct PlaceImportRepositoryTests {
         #expect(result == PlaceSaveResult(created: 2, duplicate: 2, failed: 2))
     }
 
-    @Test func 한_번에_보낼_수_있는_수를_넘으면_나눠_보낸다() async throws {
-        let sut = try repository(body: #"{"success":true,"data":{"results":[]}}"#)
-        let entries = (0..<101).map { EditedPlace(place: .fixture(id: "\($0)"), edit: PlaceEdit()) }
+    @Test func 장소가_많아도_지도마다_한_번에_보낸다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"requested":500,"created":500,"skipped":0}}"#)
+        let entries = (0..<500).map { EditedPlace(place: .fixture(id: "\($0)"), edit: PlaceEdit()) }
         _ = try await sut.savePlaces(mapIDs: [1], places: entries, photoURLs: [:])
-        #expect(log.bodies().map { ($0["places"] as? [Any])?.count } == [100, 1])
+        #expect(log.bodies().map { ($0["places"] as? [Any])?.count } == [500])
+    }
+
+    @Test func 요청_수가_없으면_보낸_수로_실패를_센다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"created":1,"skipped":1}}"#)
+        let entries = (0..<3).map { EditedPlace(place: .fixture(id: "\($0)"), edit: PlaceEdit()) }
+        let result = try await sut.savePlaces(mapIDs: [1], places: entries, photoURLs: [:])
+        #expect(result == PlaceSaveResult(created: 1, duplicate: 1, failed: 1))
     }
 
     @Test func 편집값을_담고_빈_값은_보내지_않는다() async throws {

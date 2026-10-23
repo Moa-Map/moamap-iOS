@@ -208,7 +208,8 @@ struct MainTabView: View {
             setSteps: { steps in
                 path.wrappedValue = path.wrappedValue.filter { !$0.isPlaceImport } + steps.map(MainRoute.placeImport)
             },
-            handOff: placeImportHandOff
+            handOff: placeImportHandOff,
+            onSaved: { collectionNotice = $0 }
         )
     }
 

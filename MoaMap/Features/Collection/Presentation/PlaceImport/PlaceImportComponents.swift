@@ -135,6 +135,109 @@ struct PlaceImportLabels: View {
     }
 }
 
+/// 외부 지도에서 다 가져오지 못한 까닭. 리스트가 잘렸거나 위치를 못 찾은 곳이 있을 때만 보인다.
+/// 항목마다 개수를 굵게 앞세우고 까닭은 아래 작게 둔다. 못 찾은 곳은 눌러 이름을 펼친다.
+struct MapShareReportNotice: View {
+    @Environment(\.moaColors) private var colors
+    @Environment(\.moaTypography) private var typography
+
+    let report: MapShareReport
+
+    @State private var showsMissed = false
+
+    var body: some View {
+        if report.truncated || !report.missedNames.isEmpty {
+            VStack(alignment: .leading, spacing: 16) {
+                if report.truncated {
+                    row(title: truncatedTitle, detail: truncatedDetail)
+                }
+                if report.truncated && !report.missedNames.isEmpty {
+                    Rectangle().fill(colors.lineAlternative).frame(height: 1)
+                }
+                if !report.missedNames.isEmpty {
+                    missedSection
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.04), radius: 4)
+        }
+    }
+
+    private var truncatedTitle: String {
+        if let declared = report.declaredCount, let extracted = report.extractedCount, declared > extracted {
+            return "\(declared - extracted)곳은 가져오지 못했어요"
+        }
+        return "일부 장소는 가져오지 못했어요"
+    }
+
+    /// 한도는 응답의 읽은 수로만 안다. 없으면 숫자 없이 말한다.
+    private var truncatedDetail: String {
+        report.extractedCount.map { "한 번에 \($0)곳까지만 불러올 수 있어요" } ?? "리스트가 길어 뒤쪽 장소는 불러오지 못했어요"
+    }
+
+    private var missedSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) { showsMissed.toggle() }
+            } label: {
+                HStack(alignment: .center, spacing: 8) {
+                    row(title: "\(report.missedNames.count)곳은 위치를 찾지 못했어요", detail: "이름이 다르거나 검색되지 않는 장소예요")
+                    Image("Icons/arrow-right")
+                        .renderingMode(.template)
+                        .resizable()
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(colors.textAssistive)
+                        .rotationEffect(.degrees(showsMissed ? -90 : 90))
+                        .accessibilityHidden(true)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(showsMissed ? "목록을 접습니다" : "찾지 못한 장소 이름을 펼칩니다")
+
+            if showsMissed {
+                FlowLayout(spacing: 6, lineSpacing: 6) {
+                    ForEach(Array(report.missedNames.enumerated()), id: \.offset) { _, name in
+                        Text(name)
+                            .moaTextStyle(typography.caption0)
+                            .foregroundStyle(colors.textAlternative)
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(colors.backgroundSecondary, in: Capsule())
+                    }
+                }
+                .padding(.leading, 28)
+            }
+        }
+    }
+
+    /// 아이콘 + 굵은 제목 + 작은 설명.
+    private func row(title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image("Icons/info")
+                .renderingMode(.template)
+                .resizable()
+                .frame(width: 20, height: 20)
+                .foregroundStyle(colors.textAssistive)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .moaTextStyle(typography.body3)
+                    .foregroundStyle(colors.textNormal)
+                Text(detail)
+                    .moaTextStyle(typography.caption0)
+                    .foregroundStyle(colors.textAlternative)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 /// 추출된 장소 후보. 여러 개 고를 수 있어 파란 테두리와 체크박스로 표시한다.
 struct ImportedPlaceCard: View {
     @Environment(\.moaColors) private var colors

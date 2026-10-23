@@ -24,8 +24,19 @@ nonisolated struct MapShareExtractRequest: Encodable, Sendable {
 nonisolated struct MapShareExtractResponse: Decodable, Sendable {
     /// NAVER_MAP, KAKAO_MAP, GOOGLE_MAP
     let source: String?
-    /// 카카오 장소와 다시 맞춘 항목. 맞추지 못한 `unmatched` 는 등록할 수 없어 읽지 않는다.
+    /// 외부 지도 리스트에 적힌 장소 수.
+    let declaredCount: Int?
+    /// 서버가 읽은 수. 한 번에 읽는 수를 넘으면 `truncated` 다.
+    let extractedCount: Int?
+    let truncated: Bool?
+    /// 카카오 장소와 다시 맞춘 항목.
     let matched: [MapSharePlaceCandidateResponse]?
+    /// 맞추지 못한 항목. 등록할 수 없어 이름만 알린다.
+    let unmatched: [UnmatchedPlaceResponse]?
+}
+
+nonisolated struct UnmatchedPlaceResponse: Decodable, Sendable {
+    let name: String?
 }
 
 nonisolated struct MapSharePlaceCandidateResponse: Decodable, Sendable {
@@ -42,9 +53,6 @@ nonisolated struct MapSharePlaceCandidateResponse: Decodable, Sendable {
 }
 
 nonisolated struct PlaceBulkCreateRequest: Encodable, Sendable {
-    /// 서버가 한 요청에 받는 장소 수.
-    static let maxPlaces = 100
-
     let mapId: Int64
     let places: [PlaceBulkItem]
 }
@@ -85,12 +93,10 @@ nonisolated struct PlaceBulkItem: Encodable, Sendable {
 }
 
 nonisolated struct PlaceBulkCreateResponse: Decodable, Sendable {
-    let results: [PlaceBulkResult]?
-}
-
-nonisolated struct PlaceBulkResult: Decodable, Sendable {
-    /// CREATED, DUPLICATE, FAILED
-    let status: String?
+    let requested: Int?
+    let created: Int?
+    /// 그 지도에 이미 있어 건너뛴 수.
+    let skipped: Int?
 }
 
 nonisolated extension PlaceCandidateResponse {
