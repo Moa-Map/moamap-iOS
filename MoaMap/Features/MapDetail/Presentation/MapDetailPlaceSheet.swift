@@ -194,6 +194,11 @@ struct MapDetailPlaceSheet: View {
                     .padding(EdgeInsets(top: official ? 20 : 16, leading: 20, bottom: 20, trailing: 20))
                     .id(Self.listTopID)
                 }
+                // 스크롤한 카드가 칩 줄에 붙어 잘리지 않게 간격 중 그림자 몫을 뺀 만큼 위를 가린다.
+                // 패딩 대신 가려야 그 띠에서 시작한 스와이프도 목록을 움직인다.
+                .mask(alignment: .bottom) {
+                    Rectangle().padding(.top, (official ? 20 : 16) - PlaceListItem.shadowRadius)
+                }
                 .scrollDismissesKeyboard(.immediately)
                 .ignoresSafeArea(.container, edges: .bottom)
                 // 앞 결과의 위치가 남으면 첫 장소가 칩 줄 아래에 잘려 보인다.
