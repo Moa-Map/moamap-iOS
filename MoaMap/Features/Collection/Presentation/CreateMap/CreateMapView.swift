@@ -17,15 +17,15 @@ struct CreateMapView: View {
     @FocusState private var focusedField: Field?
     /// 외부 지도 가져오기 흐름을 열고, 편집을 마치면 받은 장소를 넘겨준다.
     private let onImportPlaces: (@escaping ([EditedPlace]) -> Void) -> Void
-    /// 장소를 다 넣지 못했으면 그 안내를 넘긴다.
-    private let onCreated: (String?) -> Void
+    /// 장소를 다 넣지 못했으면 그 안내를, 프라이빗 지도면 초대 코드를 넘긴다.
+    private let onCreated: (_ notice: String?, _ invite: CreatedMapInvite?) -> Void
 
     private enum Field { case name, description, tag }
 
     init(
         viewModel: CreateMapViewModel,
         onImportPlaces: @escaping (@escaping ([EditedPlace]) -> Void) -> Void,
-        onCreated: @escaping (String?) -> Void
+        onCreated: @escaping (_ notice: String?, _ invite: CreatedMapInvite?) -> Void
     ) {
         _viewModel = State(initialValue: viewModel)
         self.onImportPlaces = onImportPlaces
@@ -42,7 +42,11 @@ struct CreateMapView: View {
                         MapPhotoField(image: previewImage) {
                             // 올리는 중에는 열지 않는다. 고른 사진이 반영되지 않는다.
                             guard !state.isSubmitting else { return }
-                            focusedField = nil
+                            // 입력 중이면 바깥을 누른 것처럼 키보드만 내린다.
+                            guard focusedField == nil else {
+                                focusedField = nil
+                                return
+                            }
                             showsPhotoPicker = true
                         }
                         CreateMapInputField(
@@ -114,7 +118,8 @@ struct CreateMapView: View {
                 }
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
-                // 키보드가 올라오면 시스템은 글자 한 줄만 보이게 스크롤해서, 입력칸이 키보드에 너무 붙는다.
+                .keyboardOverlapPadding()
+                // 화면이 키보드를 피하지 않아 시스템이 입력칸을 맞춰 주지 않는다.
                 // 입력칸 아래로 여유를 두고 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
                 .onChange(of: focusedField) { _, field in scroll(proxy, to: field) }
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
@@ -137,6 +142,8 @@ struct CreateMapView: View {
             // 스크롤한 내용이 버튼 뒤로 비치지 않게 한다.
             .background(colors.backgroundSecondary)
         }
+        // 아래 버튼이 키보드를 따라 올라오지 않게 한다.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .fullScreenCover(isPresented: $showsPhotoPicker) {
             PhotoLibraryPicker(
                 maxSelection: 1,
@@ -152,14 +159,6 @@ struct CreateMapView: View {
                 }
             )
         }
-        .overlay {
-            if case .showingInviteCode(_, let inviteCode) = state.submit {
-                MapInviteCodeDialog(
-                    mapName: state.name, inviteCode: inviteCode, title: "프라이빗 지도가 만들어졌어요",
-                    onDismiss: viewModel.dismissInviteCode
-                )
-            }
-        }
         .background { colors.backgroundSecondary.ignoresSafeArea() }
         .contentShape(Rectangle())
         .onTapGesture { focusedField = nil }
@@ -168,7 +167,9 @@ struct CreateMapView: View {
             previewImage = viewModel.uiState.pickedImage.flatMap { UIImage(data: $0.image.data) }
         }
         .onChange(of: state.submit) { _, submit in
-            if case .done = submit { onCreated(viewModel.uiState.placeSaveNotice) }
+            guard case .done(_, let inviteCode) = submit else { return }
+            let state = viewModel.uiState
+            onCreated(state.placeSaveNotice, inviteCode.map { CreatedMapInvite(mapName: state.name, inviteCode: $0) })
         }
     }
 
@@ -177,15 +178,14 @@ struct CreateMapView: View {
         withAnimation { proxy.scrollTo(field, anchor: .bottom) }
     }
 
-    /// 키보드 위로 입력칸을 맞출 때 쓰는 자리. 입력칸보다 아래로 길게 잡아 아래 버튼과 붙지 않게 띄운다. 장소 추가와 같다.
+    /// 키보드 위로 입력칸을 맞출 때 쓰는 자리. 입력칸보다 아래로 길게 잡아 키보드와 붙지 않게 띄운다.
     private func scrollTarget(_ field: Field) -> some View {
         Color.clear
             .id(field)
-            .padding(.bottom, -Self.keyboardButtonGap)
+            .padding(.bottom, -Self.keyboardGap)
     }
 
-    /// 아래 버튼 위에 이미 13 여백이 있어, 더해서 장소 추가와 같은 20이 되게 한다.
-    private static let keyboardButtonGap: CGFloat = 7
+    private static let keyboardGap: CGFloat = 20
 
     /// 입력창에 보이는 글자 그대로 태그로 확정하고 입력창을 남은 값으로 맞춘다.
     private func commitTagDraft() {
@@ -236,11 +236,17 @@ struct CreateMapView: View {
                 VisibilityCard(
                     iconName: "language", title: "공개 지도", subtitle: "모두가 볼 수 있어요",
                     selected: selected == .public
-                ) { viewModel.selectVisibility(.public) }
+                ) {
+                    focusedField = nil
+                    viewModel.selectVisibility(.public)
+                }
                 VisibilityCard(
                     iconName: "lock", title: "프라이빗 지도", subtitle: "초대한 사람만 볼 수 있어요",
                     selected: selected == .private
-                ) { viewModel.selectVisibility(.private) }
+                ) {
+                    focusedField = nil
+                    viewModel.selectVisibility(.private)
+                }
             }
         }
     }
@@ -250,7 +256,7 @@ struct CreateMapView: View {
 #Preview {
     CreateMapView(
         viewModel: CreateMapViewModel(repository: PreviewCollectionRepository(), importRepository: PreviewPlaceImportRepository()),
-        onImportPlaces: { _ in }, onCreated: { _ in }
+        onImportPlaces: { _ in }, onCreated: { _, _ in }
     )
 }
 #endif

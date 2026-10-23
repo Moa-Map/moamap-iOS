@@ -39,6 +39,9 @@ struct MainTabView: View {
     private let makePlaceImportViewModel: (PlaceImportSource, String) -> PlaceImportViewModel
     private let sharedLinkInbox: SharedLinkInbox
     @State private var collectionNotice: String?
+    /// 프라이빗 지도를 만들고 모음 탭으로 돌아와 띄우는 초대 코드 팝업. 장소 안내는 팝업을 닫은 뒤 보여준다.
+    @State private var createdMapInvite: CreatedMapInvite?
+    @State private var noticeAfterInvite: String?
     /// 스낵바가 하단 탭을 피해 뜨도록 잰다.
     @State private var bottomBarHeight: CGFloat = 0
     /// 하단 탭을 눌러 탭을 바꿨을 때 직전 탭. 새 탭의 하단 탭이 여기서 미끄러져 온다.
@@ -135,6 +138,19 @@ struct MainTabView: View {
         }
         // 공유·지도 생성 안내는 모음 탭에서 뜬다. 첫 화면이면 하단 탭이 탭 안쪽에 있어 그 높이만큼 올린다.
         .moaSnackbar($collectionNotice, bottomInset: showsCollectionBottomBar ? bottomBarHeight : 0)
+        // 하단 탭까지 덮는다.
+        .overlay {
+            if let invite = createdMapInvite {
+                MapInviteCodeDialog(
+                    mapName: invite.mapName, inviteCode: invite.inviteCode, title: "프라이빗 지도가 만들어졌어요",
+                    onDismiss: {
+                        createdMapInvite = nil
+                        collectionNotice = noticeAfterInvite
+                        noticeAfterInvite = nil
+                    }
+                )
+            }
+        }
         // 간 탭에 하단 탭이 안 보이면 직전 탭을 비운다. 남겨 두면 나중에 첫 화면으로 돌아왔을 때 엉뚱하게 미끄러진다.
         .onChange(of: selection) {
             if !showsBottomBar { bottomBarSlideFrom = nil }
@@ -240,9 +256,18 @@ struct MainTabView: View {
             CreateMapView(
                 viewModel: makeCreateMapViewModel(),
                 onImportPlaces: { startNewMapPlaceImport(path: path, handOff: $0) },
-                onCreated: { notice in
+                onCreated: { notice, invite in
                     path.wrappedValue.removeLast()
-                    collectionNotice = notice
+                    guard let invite else {
+                        collectionNotice = notice
+                        return
+                    }
+                    noticeAfterInvite = notice
+                    // 모음 탭으로 돌아가는 전환이 끝난 뒤 띄운다.
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(350))
+                        createdMapInvite = invite
+                    }
                 }
             )
         case .editMap(let map):

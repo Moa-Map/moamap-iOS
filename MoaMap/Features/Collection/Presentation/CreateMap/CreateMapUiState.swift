@@ -3,9 +3,14 @@ import Foundation
 nonisolated enum CreateMapSubmitState: Equatable, Sendable {
     case idle
     case submitting
-    /// 프라이빗 지도라 초대 코드를 보여줄 차례다. 지도는 이미 만들어졌다.
-    case showingInviteCode(mapID: Int64, inviteCode: String)
-    case done(mapID: Int64)
+    /// 프라이빗 지도면 초대 코드가 함께 온다. 모음 탭으로 돌아가 보여준다.
+    case done(mapID: Int64, inviteCode: String? = nil)
+}
+
+/// 만든 프라이빗 지도의 초대 코드 팝업에 쓸 값.
+nonisolated struct CreatedMapInvite: Equatable, Sendable {
+    let mapName: String
+    let inviteCode: String
 }
 
 /// 고른 커버 사진. 제출할 때 올린다.

@@ -37,27 +37,26 @@ struct CreateMapViewModelTests {
         #expect(sut.uiState.description.count == 500)
     }
 
-    @Test func 공백이나_줄바꿈이_들어오면_태그로_확정한다() {
+    @Test func 줄바꿈이_들어와야_태그로_확정하고_공백은_태그_안에_남긴다() {
         let sut = makeSUT()
-        sut.updateTagInput("카페")
-        #expect(sut.uiState.tags.isEmpty)
         sut.updateTagInput("카페 ")
-        #expect(sut.uiState.tags == ["카페"])
+        #expect(sut.uiState.tags.isEmpty)
+        #expect(sut.uiState.tagInput == "카페 ")
+        sut.updateTagInput("성수 카페\n")
+        #expect(sut.uiState.tags == ["성수 카페"])
         #expect(sut.uiState.tagInput == "")
-        sut.updateTagInput("성수\n카페  데이트 맛")
-        #expect(sut.uiState.tags == ["카페", "성수", "데이트"])
+        sut.updateTagInput("데이트\n 맛집 \n맛")
+        #expect(sut.uiState.tags == ["성수 카페", "데이트", "맛집"])
         #expect(sut.uiState.tagInput == "맛")
-        sut.updateTagInput("맛\n")
-        #expect(sut.uiState.tags == ["카페", "성수", "데이트", "맛"])
-        sut.removeTag("성수")
-        #expect(sut.uiState.tags == ["카페", "데이트", "맛"])
+        sut.removeTag("데이트")
+        #expect(sut.uiState.tags == ["성수 카페", "맛집"])
     }
 
     @Test func 태그는_30자에서_자르고_빈_값은_담지_않는다() {
         let sut = makeSUT()
         sut.updateTagInput(String(repeating: "a", count: 31))
         #expect(sut.uiState.tagInput.count == 30)
-        sut.updateTagInput("   ")
+        sut.updateTagInput("   \n")
         #expect(sut.uiState.tags.isEmpty)
     }
 
@@ -76,7 +75,7 @@ struct CreateMapViewModelTests {
         repository.create = { _ in CreatedMap(id: 7, inviteCode: nil) }
         let sut = filled(repository)
         sut.updateDescription("설명")
-        sut.updateTagInput("카페 성수")
+        sut.updateTagInput("카페\n성수")
         sut.selectImage(data: png.data, type: .png)
         sut.submit()
         #expect(sut.uiState.isSubmitting)
@@ -99,15 +98,13 @@ struct CreateMapViewModelTests {
         #expect(repository.createdMaps.first?.imageURL == nil)
     }
 
-    @Test func 프라이빗_지도는_초대_코드를_보여준_뒤_끝낸다() async throws {
+    @Test func 프라이빗_지도는_초대_코드를_넘기며_끝낸다() async throws {
         let repository = CollectionRepositoryStub()
         repository.create = { _ in CreatedMap(id: 3, inviteCode: "VH4YXZ") }
         let sut = filled(repository, visibility: .private)
         sut.submit()
         try await sut.submitTask?.value
-        #expect(sut.uiState.submit == .showingInviteCode(mapID: 3, inviteCode: "VH4YXZ"))
-        sut.dismissInviteCode()
-        #expect(sut.uiState.submit == .done(mapID: 3))
+        #expect(sut.uiState.submit == .done(mapID: 3, inviteCode: "VH4YXZ"))
     }
 
     @Test(arguments: [
@@ -135,7 +132,7 @@ struct CreateMapViewModelTests {
         let repository = CollectionRepositoryStub()
         repository.create = { _ in throw error }
         let sut = filled(repository)
-        sut.updateTagInput("카페 ")
+        sut.updateTagInput("카페\n")
         sut.submit()
         try await sut.submitTask?.value
         #expect(sut.uiState.submit == .idle)
@@ -260,9 +257,7 @@ struct CreateMapViewModelTests {
         #expect(repository.createdMaps.count == 1)
         #expect(sut.uiState.placeSaveNotice == (failure == .partial ? "일부 장소를 못 넣었어요" : "불러온 장소를 넣지 못했어요"))
         #expect(sut.uiState.errorMessage == nil)
-        #expect(sut.uiState.submit == .showingInviteCode(mapID: 4, inviteCode: "VH4YXZ"))
-        sut.dismissInviteCode()
-        #expect(sut.uiState.submit == .done(mapID: 4))
+        #expect(sut.uiState.submit == .done(mapID: 4, inviteCode: "VH4YXZ"))
     }
 
     @Test func 이미_들어_있던_장소는_넣은_것으로_보고_안내하지_않는다() async throws {

@@ -190,31 +190,33 @@ struct URLImportToggleRow: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        Button { isOn.toggle() } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("URL로 장소 추가 허용하기")
-                        .moaTextStyle(typography.subtitle1)
-                        .foregroundStyle(colors.textNormal)
-                    Text("URL을 붙여넣어 장소를 추가할 수 있어요")
-                        .moaTextStyle(typography.body2)
-                        .foregroundStyle(colors.textAssistive)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("URL로 장소 추가 허용하기")
+                    .moaTextStyle(typography.subtitle1)
+                    .foregroundStyle(colors.textNormal)
+                Text("URL을 붙여넣어 장소를 추가할 수 있어요")
+                    .moaTextStyle(typography.body2)
+                    .foregroundStyle(colors.textAssistive)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityHidden(true)
+            // 글자를 눌러도 바뀌지 않게 스위치만 버튼으로 둔다.
+            Button { isOn.toggle() } label: {
                 Circle()
                     .fill(MoaMapPrimitiveColors.white)
                     .frame(width: 18, height: 18)
                     .padding(3)
                     .frame(width: 48, height: 24, alignment: isOn ? .trailing : .leading)
                     .background(isOn ? colors.primary : Color(argb: 0xFFB1B3B4), in: Capsule())
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel("URL로 장소 추가 허용하기")
+            .accessibilityValue(isOn ? "켬" : "끔")
+            .accessibilityAddTraits(.isToggle)
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("URL로 장소 추가 허용하기")
-        .accessibilityValue(isOn ? "켬" : "끔")
-        .accessibilityAddTraits(.isToggle)
     }
 }
 

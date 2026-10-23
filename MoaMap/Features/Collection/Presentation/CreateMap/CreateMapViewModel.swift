@@ -109,8 +109,7 @@ final class CreateMapViewModel {
             if !places.isEmpty {
                 uiState.placeSaveNotice = try await savePlaces(places, mapID: created.id)
             }
-            uiState.submit = created.inviteCode.map { .showingInviteCode(mapID: created.id, inviteCode: $0) }
-                ?? .done(mapID: created.id)
+            uiState.submit = .done(mapID: created.id, inviteCode: created.inviteCode)
         }
     }
 
@@ -132,11 +131,6 @@ final class CreateMapViewModel {
             if error is CancellationError { throw error }
             return Self.placeSaveFailedMessage
         }
-    }
-
-    func dismissInviteCode() {
-        guard case .showingInviteCode(let mapID, _) = uiState.submit else { return }
-        uiState.submit = .done(mapID: mapID)
     }
 
     func consumeError() {
