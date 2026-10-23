@@ -6,7 +6,7 @@ nonisolated struct MapIntroUiState: Equatable, Sendable {
     static let previewPlaceCount = 4
 
     var map: MapLoadState = .loading
-    /// 지도에 찍을 장소 전부. 목록은 앞의 몇 개만 쓴다.
+    /// 지도에 찍을 장소 전부. 목록은 펼친 만큼만 쓴다.
     var places: [MapPlace] = []
     var joining = false
     /// 한 번 보여주고 지우는 실패 안내.
@@ -39,11 +39,14 @@ final class MapIntroViewModel {
         load(keepCurrent: uiState.map.map != nil)
     }
 
+    /// 처음부터 다시 읽으니 펼친 목록도 처음으로 접는다.
     func retry() {
+        uiState.visiblePlaceCount = MapIntroUiState.previewPlaceCount
         load(keepCurrent: false)
     }
 
     func showMorePlaces() {
+        guard uiState.hasMorePlaces else { return }
         uiState.visiblePlaceCount += MapIntroUiState.previewPlaceCount
     }
 
