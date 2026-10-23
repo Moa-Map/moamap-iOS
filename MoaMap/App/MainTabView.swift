@@ -106,6 +106,8 @@ struct MainTabView: View {
                     onOfficialMapClick: { explorePath.append(.map($0)) }
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+                // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 해 첫 화면에만 둔다.
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $explorePath) }
             }
             .tag(MainTab.explore)
@@ -125,6 +127,7 @@ struct MainTabView: View {
                     // 편집 중에는 편집 바가 대신 뜬다.
                     if collectionViewModel.uiState.editing == nil { bottomBar }
                 }
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $collectionPath) }
             }
             .tag(MainTab.collection)
@@ -132,8 +135,6 @@ struct MainTabView: View {
         }
         // 공유·지도 생성 안내는 모음 탭에서 뜬다. 첫 화면이면 하단 탭이 탭 안쪽에 있어 그 높이만큼 올린다.
         .moaSnackbar($collectionNotice, bottomInset: showsCollectionBottomBar ? bottomBarHeight : 0)
-        // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 한다.
-        .ignoresSafeArea(isRoot ? .keyboard : [], edges: .bottom)
         // 간 탭에 하단 탭이 안 보이면 직전 탭을 비운다. 남겨 두면 나중에 첫 화면으로 돌아왔을 때 엉뚱하게 미끄러진다.
         .onChange(of: selection) {
             if !showsBottomBar { bottomBarSlideFrom = nil }

@@ -120,13 +120,22 @@ struct CollectionViewModelTests {
         #expect(sut.uiState.join == .editing(JoinMapEditing(code: "VH4YXZ")))
     }
 
-    @Test func 빈_코드는_제출하지_않는다() {
+    @Test func 여섯_자리가_안_된_코드는_제출하지_않는다() {
         let repository = CollectionRepositoryStub()
         let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.openJoinDialog()
         sut.join()
+        sut.updateInviteCode("VH4YX")
+        sut.join()
         #expect(sut.joinTask == nil)
         #expect(repository.joinedCodes.isEmpty)
+    }
+
+    @Test func 초대_코드는_여섯_자리까지만_받는다() {
+        let sut = CollectionViewModel(repository: CollectionRepositoryStub(), mapRepository: MapDetailRepositoryStub())
+        sut.openJoinDialog()
+        sut.updateInviteCode("VH4YXZ7")
+        #expect(sut.uiState.join == .editing(JoinMapEditing(code: "VH4YXZ")))
     }
 
     @Test func 참여에_성공하면_다이얼로그를_닫고_프라이빗_목록을_다시_읽는다() async throws {

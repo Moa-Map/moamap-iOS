@@ -228,7 +228,7 @@ struct MyLocationButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image("Icons/location")
+            Image("Icons/location-searching")
                 .renderingMode(.template)
                 .resizable()
                 .frame(width: 32, height: 32)

@@ -208,7 +208,8 @@ final class CollectionViewModel {
     /// `#` 은 장식이라 값에 넣지 않는다. 서버 코드는 ASCII 영숫자다.
     func updateInviteCode(_ input: String) {
         guard case .editing(var editing) = uiState.join, !editing.submitting else { return }
-        editing.code = input.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }.uppercased()
+        editing.code = String(input.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }.uppercased()
+            .prefix(JoinMapEditing.codeLength))
         editing.errorMessage = nil
         uiState.join = .editing(editing)
     }

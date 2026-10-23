@@ -4,7 +4,6 @@ import SwiftUI
 struct JoinMapDialog: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
-    @FocusState private var isCodeFocused: Bool
     let state: JoinMapEditing
     let onCodeChange: (String) -> Void
     let onSubmit: () -> Void
@@ -19,7 +18,6 @@ struct JoinMapDialog: View {
             content
                 .padding(.horizontal, 20)
         }
-        .onAppear { isCodeFocused = true }
         .accessibilityAction(.escape) { onDismiss() }
     }
 
@@ -53,7 +51,6 @@ struct JoinMapDialog: View {
                         .keyboardType(.asciiCapable)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
-                        .focused($isCodeFocused)
                         .submitLabel(.done)
                         .onSubmit(onSubmit)
                         .disabled(state.submitting)
