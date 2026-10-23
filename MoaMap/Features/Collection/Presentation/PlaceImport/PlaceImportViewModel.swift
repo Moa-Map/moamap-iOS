@@ -193,11 +193,10 @@ final class PlaceImportViewModel {
         saveTask = Task { [weak self, importRepository] in
             do {
                 var photoURLs = uploaded
-                // 앞서 올려 둔 장소는 건너뛴다. 실패 뒤 새로 고른 장소의 사진만 올린다.
-                let pending = entries.filter { uploaded[$0.place.id] == nil }
-                if pending.contains(where: { !$0.edit.photos.isEmpty }) {
+                // 앞서 올려 둔 장소는 건너뛴다. 장소마다 올리자마자 남겨, 중간에 실패해도 다시 누르면 남은 장소만 올린다.
+                for entry in entries where uploaded[entry.place.id] == nil && !entry.edit.photos.isEmpty {
                     // 발급 권한만 확인하는 값이라 고른 지도 중 아무거나면 된다.
-                    let fresh = try await importRepository.uploadPhotos(mapID: photoMapID, places: pending)
+                    let fresh = try await importRepository.uploadPhotos(mapID: photoMapID, places: [entry])
                     try Task.checkCancellation()
                     photoURLs.merge(fresh) { _, new in new }
                     self?.uiState.uploadedPhotoURLs = photoURLs
