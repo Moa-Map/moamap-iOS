@@ -156,7 +156,7 @@ struct PlaceImportViewModelTests {
     @Test func 사진은_장소_추가와_같은_장수까지_붙인다() async throws {
         let place = ImportedPlace.fixture(id: "1")
         let sut = try await extracted([place], select: ["1"])
-        #expect(PlaceImportUiState.maxPhotos == AddPlaceUiState.maxPhotos)
+        #expect(PlaceImportUiState.maxPhotos == 5)
         for index in 0...PlaceImportUiState.maxPhotos {
             sut.addEditPhoto("1", data: Data([UInt8(index + 10)]), type: .png)
         }
@@ -252,7 +252,34 @@ struct PlaceImportViewModelTests {
         repository.save = { _, places, _ in PlaceSaveResult(created: places.count, duplicate: 0, failed: 0) }
         sut.savePlaces()
         try await sut.saveTask?.value
-        #expect(uploadedIDs == [["1"], ["2", "3"]])
+        #expect(uploadedIDs == [["1"], ["2"]])
+        #expect(repository.saveCalls.last?.photoURLs == ["1": ["https://file/1"], "2": ["https://file/2"]])
+    }
+
+    @Test func 사진_업로드가_중간에_실패해도_앞서_올린_장소는_다시_올리지_않는다() async throws {
+        let sut = try await extracted([.fixture(id: "1"), .fixture(id: "2")], select: ["1", "2"])
+        sut.addEditPhoto("1", data: photo.data, type: .png)
+        sut.addEditPhoto("2", data: Data([7]), type: .png)
+        sut.toggleMap(1)
+        var uploadedIDs: [[String]] = []
+        let upload = repository.upload
+        repository.upload = { entries in
+            uploadedIDs.append(entries.map(\.place.id))
+            if entries.contains(where: { $0.place.id == "2" }) { throw NetworkError.http(statusCode: 500) }
+            return try await upload(entries)
+        }
+        sut.savePlaces()
+        try await sut.saveTask?.value
+        #expect(sut.uiState.errorMessage != nil)
+        #expect(sut.uiState.uploadedPhotoURLs == ["1": ["https://file/1"]])
+
+        repository.upload = { entries in
+            uploadedIDs.append(entries.map(\.place.id))
+            return try await upload(entries)
+        }
+        sut.savePlaces()
+        try await sut.saveTask?.value
+        #expect(uploadedIDs == [["1"], ["2"], ["2"]])
         #expect(repository.saveCalls.last?.photoURLs == ["1": ["https://file/1"], "2": ["https://file/2"]])
     }
 
