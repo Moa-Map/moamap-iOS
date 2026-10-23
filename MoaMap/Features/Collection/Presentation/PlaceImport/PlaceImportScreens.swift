@@ -117,7 +117,9 @@ struct PlaceImportPlaceView: View {
             onBack: onBack
         ) {
             if let report = state.mapShareReport {
+                // 다른 링크로 다시 가져오면 펼쳐 둔 목록을 접은 채로 새로 시작한다.
                 MapShareReportNotice(report: report)
+                    .id(report)
             }
             LazyVStack(spacing: 8) {
                 ForEach(state.places) { place in

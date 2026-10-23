@@ -48,7 +48,7 @@ final class PlaceImportRepositoryImpl: PlaceImportRepository {
             .enumerated().map { $1.toDomain(index: $0, fallbackSource: response.source) }
         let report = MapShareReport(
             declaredCount: response.declaredCount,
-            extractedCount: response.extractedCount ?? matched.count + unmatched.count,
+            extractedCount: response.extractedCount,
             truncated: response.truncated ?? false,
             missedNames: unmatched.compactMap { $0.name?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         )

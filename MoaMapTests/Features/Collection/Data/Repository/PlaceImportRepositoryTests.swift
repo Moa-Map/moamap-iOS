@@ -101,7 +101,7 @@ struct PlaceImportRepositoryTests {
     @Test func 공유_링크_내역이_비어도_기본값으로_읽는다() async throws {
         let sut = try repository(body: #"{"success":true,"data":{"matched":[{"kakaoPlaceId":"1","name":"식당"}]}}"#)
         let report = try await sut.extractMapSharePlaces(url: "https://naver.me/abc").report
-        #expect(report == MapShareReport(declaredCount: nil, extractedCount: 1, truncated: false, missedNames: []))
+        #expect(report == MapShareReport(declaredCount: nil, extractedCount: nil, truncated: false, missedNames: []))
     }
 
     // MARK: 등록

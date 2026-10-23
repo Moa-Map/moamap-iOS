@@ -149,7 +149,7 @@ struct MapShareReportNotice: View {
         if report.truncated || !report.missedNames.isEmpty {
             VStack(alignment: .leading, spacing: 16) {
                 if report.truncated {
-                    row(title: truncatedTitle, detail: "한 번에 \(report.extractedCount)곳까지만 불러올 수 있어요")
+                    row(title: truncatedTitle, detail: truncatedDetail)
                 }
                 if report.truncated && !report.missedNames.isEmpty {
                     Rectangle().fill(colors.lineAlternative).frame(height: 1)
@@ -166,10 +166,15 @@ struct MapShareReportNotice: View {
     }
 
     private var truncatedTitle: String {
-        if let declared = report.declaredCount, declared > report.extractedCount {
-            return "\(declared - report.extractedCount)곳은 가져오지 못했어요"
+        if let declared = report.declaredCount, let extracted = report.extractedCount, declared > extracted {
+            return "\(declared - extracted)곳은 가져오지 못했어요"
         }
         return "일부 장소는 가져오지 못했어요"
+    }
+
+    /// 한도는 응답의 읽은 수로만 안다. 없으면 숫자 없이 말한다.
+    private var truncatedDetail: String {
+        report.extractedCount.map { "한 번에 \($0)곳까지만 불러올 수 있어요" } ?? "리스트가 길어 뒤쪽 장소는 불러오지 못했어요"
     }
 
     private var missedSection: some View {
