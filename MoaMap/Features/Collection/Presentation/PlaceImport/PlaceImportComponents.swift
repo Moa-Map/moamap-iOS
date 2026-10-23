@@ -136,6 +136,7 @@ struct PlaceImportLabels: View {
 }
 
 /// 외부 지도에서 다 가져오지 못한 까닭. 리스트가 잘렸거나 위치를 못 찾은 곳이 있을 때만 보인다.
+/// 항목마다 개수를 굵게 앞세우고 까닭은 아래 작게 둔다. 못 찾은 곳은 눌러 이름을 펼친다.
 struct MapShareReportNotice: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
@@ -146,48 +147,89 @@ struct MapShareReportNotice: View {
 
     var body: some View {
         if report.truncated || !report.missedNames.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 16) {
                 if report.truncated {
-                    line(truncatedMessage)
+                    row(title: truncatedTitle, detail: "한 번에 \(report.extractedCount)곳까지만 불러올 수 있어요")
+                }
+                if report.truncated && !report.missedNames.isEmpty {
+                    Rectangle().fill(colors.lineAlternative).frame(height: 1)
                 }
                 if !report.missedNames.isEmpty {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        line("\(report.missedNames.count)곳은 위치를 찾지 못해 가져오지 못했어요")
-                        Spacer(minLength: 0)
-                        Button(showsMissed ? "접기" : "목록 보기") {
-                            withAnimation(.easeOut(duration: 0.2)) { showsMissed.toggle() }
-                        }
-                        .moaTextStyle(typography.caption0)
-                        .foregroundStyle(colors.textAlternative)
-                        .buttonStyle(.plain)
-                    }
-                    if showsMissed {
-                        Text(report.missedNames.joined(separator: ", "))
-                            .moaTextStyle(typography.caption0)
-                            .foregroundStyle(colors.textAssistive)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    missedSection
                 }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.04), radius: 4)
         }
     }
 
-    /// 한 번에 읽는 수는 서버가 정해 응답의 읽은 수로 알린다.
-    private var truncatedMessage: String {
+    private var truncatedTitle: String {
         if let declared = report.declaredCount, declared > report.extractedCount {
-            return "한 번에 \(report.extractedCount)곳까지 불러올 수 있어 \(declared - report.extractedCount)곳은 가져오지 못했어요"
+            return "\(declared - report.extractedCount)곳은 가져오지 못했어요"
         }
-        return "한 번에 \(report.extractedCount)곳까지 불러올 수 있어 나머지는 가져오지 못했어요"
+        return "일부 장소는 가져오지 못했어요"
     }
 
-    private func line(_ text: String) -> some View {
-        Text(text)
-            .moaTextStyle(typography.body2)
-            .foregroundStyle(colors.textNormal)
+    private var missedSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) { showsMissed.toggle() }
+            } label: {
+                HStack(alignment: .center, spacing: 8) {
+                    row(title: "\(report.missedNames.count)곳은 위치를 찾지 못했어요", detail: "이름이 다르거나 검색되지 않는 장소예요")
+                    Image("Icons/arrow-right")
+                        .renderingMode(.template)
+                        .resizable()
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(colors.textAssistive)
+                        .rotationEffect(.degrees(showsMissed ? -90 : 90))
+                        .accessibilityHidden(true)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(showsMissed ? "목록을 접습니다" : "찾지 못한 장소 이름을 펼칩니다")
+
+            if showsMissed {
+                FlowLayout(spacing: 6, lineSpacing: 6) {
+                    ForEach(Array(report.missedNames.enumerated()), id: \.offset) { _, name in
+                        Text(name)
+                            .moaTextStyle(typography.caption0)
+                            .foregroundStyle(colors.textAlternative)
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(colors.backgroundSecondary, in: Capsule())
+                    }
+                }
+                .padding(.leading, 28)
+            }
+        }
+    }
+
+    /// 아이콘 + 굵은 제목 + 작은 설명.
+    private func row(title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image("Icons/info")
+                .renderingMode(.template)
+                .resizable()
+                .frame(width: 20, height: 20)
+                .foregroundStyle(colors.textAssistive)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .moaTextStyle(typography.body3)
+                    .foregroundStyle(colors.textNormal)
+                Text(detail)
+                    .moaTextStyle(typography.caption0)
+                    .foregroundStyle(colors.textAlternative)
+            }
             .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
