@@ -171,6 +171,9 @@ struct AddPlaceSearchContent: View {
         .padding(.horizontal, 16)
         .frame(height: 44)
         .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            if focus.wrappedValue == .search { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) }
+        }
         .shadow(color: .black.opacity(0.04), radius: 4)
     }
 

@@ -6,6 +6,8 @@ struct ExploreSearchBar: View {
     @Environment(\.moaTypography) private var typography
 
     let query: String
+    /// 화면이 빈 곳을 누를 때 키보드를 내릴 수 있게 밖에서 받는다.
+    let focused: FocusState<Bool>.Binding
     let maxLength: Int
     let onQueryChange: (String) -> Void
     /// 키보드 검색 버튼.
@@ -14,8 +16,15 @@ struct ExploreSearchBar: View {
     /// 바깥 값이 그대로면 TextField 가 다시 그려지지 않아 넘친 글자가 남는다. 여기서 잘라 되돌린다.
     @State private var text: String
 
-    init(query: String, maxLength: Int, onQueryChange: @escaping (String) -> Void, onSearch: @escaping () -> Void) {
+    init(
+        query: String,
+        focused: FocusState<Bool>.Binding,
+        maxLength: Int,
+        onQueryChange: @escaping (String) -> Void,
+        onSearch: @escaping () -> Void
+    ) {
         self.query = query
+        self.focused = focused
         self.maxLength = maxLength
         self.onQueryChange = onQueryChange
         self.onSearch = onSearch
@@ -34,12 +43,14 @@ struct ExploreSearchBar: View {
                 .moaTextStyle(typography.body2)
                 .foregroundStyle(colors.textNormal)
                 .tint(MoaMapPrimitiveColors.blue500)
+                .focused(focused)
                 .submitLabel(.search)
                 .onSubmit(onSearch)
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         .background(colors.textWhite, in: Capsule())
+        .overlay { if focused.wrappedValue { Capsule().strokeBorder(colors.primary, lineWidth: 1) } }
         .shadow(color: .black.opacity(0.04), radius: 8)
         .onChange(of: text) { _, new in
             let limited = String(new.prefix(maxLength))
@@ -57,6 +68,7 @@ struct ExploreSearchBar: View {
 
 #Preview {
     @Previewable @State var query = ""
-    ExploreSearchBar(query: query, maxLength: 50, onQueryChange: { query = $0 }, onSearch: {})
+    @Previewable @FocusState var focused: Bool
+    ExploreSearchBar(query: query, focused: $focused, maxLength: 50, onQueryChange: { query = $0 }, onSearch: {})
         .padding()
 }

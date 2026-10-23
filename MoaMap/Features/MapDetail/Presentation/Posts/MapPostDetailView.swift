@@ -13,6 +13,7 @@ struct MapPostDetailView: View {
     let canComment: Bool
 
     @State private var commentText = ""
+    @FocusState private var commentFocused: Bool
 
     private static let closeButtonColor = Color(argb: 0xFF3E_3E3F)
     private static let bottomID = "bottom"
@@ -28,7 +29,7 @@ struct MapPostDetailView: View {
                     LazyVStack(spacing: 4) {
                         // 카드와 댓글 사이 16. 목록 간격 4 에 12 를 더한다.
                         ExpandedPostCard(post: post, dateLabel: dateLabel)
-                            .onTapGesture {}
+                            .onTapGesture { commentFocused = false }
                             .padding(.bottom, 12)
                         comments
                         Color.clear.frame(height: 1).id(Self.bottomID)
@@ -39,7 +40,10 @@ struct MapPostDetailView: View {
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
                 // 카드·말풍선·입력 줄 밖을 누르면 닫는다. 안쪽은 각자 탭을 받아 여기까지 오지 않는다.
-                .onTapGesture { viewModel.close() }
+                // 댓글을 쓰는 중이면 닫지 않고 키보드만 내린다.
+                .onTapGesture {
+                    if commentFocused { commentFocused = false } else { viewModel.close() }
+                }
                 .safeAreaInset(edge: .bottom, spacing: 0) { inputBar }
                 .onChange(of: state.sentCount) {
                     // 남겼으면 입력칸을 비우고 내 댓글이 보이게 맨 아래로 내린다.
@@ -79,7 +83,7 @@ struct MapPostDetailView: View {
             }
         case .loaded(let comments):
             ForEach(comments) { comment in
-                MapPostCommentRow(comment: comment, mine: comment.authorID == state.myUserID)
+                MapPostCommentRow(comment: comment, mine: comment.authorID == state.myUserID) { commentFocused = false }
             }
         }
     }
@@ -98,6 +102,7 @@ struct MapPostDetailView: View {
                     get: { commentText },
                     set: { commentText = String($0.prefix(MapPostDetailUiState.maxCommentLength)) }
                 ),
+                focused: $commentFocused,
                 placeholder: canComment ? "댓글을 입력해주세요" : "지도에 참여하면 댓글을 남길 수 있어요",
                 enabled: enabled,
                 canSend: enabled && !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -126,7 +131,7 @@ struct MapPostDetailView: View {
             .ignoresSafeArea(edges: .bottom)
         }
         .contentShape(Rectangle())
-        .onTapGesture {}
+        .onTapGesture { commentFocused = false }
     }
 
     private var closeButton: some View {
@@ -152,6 +157,8 @@ private struct MapPostCommentRow: View {
 
     let comment: MapPostComment
     let mine: Bool
+    /// 말풍선을 누르면 닫지 않고 이것만 한다.
+    let onTap: () -> Void
 
     /// 말풍선이 줄 끝까지 차면 내 것·남의 것이 구별되지 않는다.
     private static let bubbleMaxWidth: CGFloat = 280
@@ -175,7 +182,7 @@ private struct MapPostCommentRow: View {
                 .foregroundStyle(colors.textNormal)
                 .padding(12)
                 .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 16))
-                .onTapGesture {}
+                .onTapGesture(perform: onTap)
                 .frame(maxWidth: Self.bubbleMaxWidth, alignment: mine ? .trailing : .leading)
         }
         .frame(maxWidth: .infinity, alignment: mine ? .trailing : .leading)

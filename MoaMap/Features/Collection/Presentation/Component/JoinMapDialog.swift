@@ -4,6 +4,7 @@ import SwiftUI
 struct JoinMapDialog: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
+    @FocusState private var isCodeFocused: Bool
     let state: JoinMapEditing
     let onCodeChange: (String) -> Void
     let onSubmit: () -> Void
@@ -13,7 +14,8 @@ struct JoinMapDialog: View {
         ZStack {
             MoaMapPrimitiveColors.dialogScrim
                 .ignoresSafeArea()
-                .onTapGesture { onDismiss() }
+                // 입력 중이면 닫지 않고 키보드만 내린다.
+                .onTapGesture { if isCodeFocused { isCodeFocused = false } else { onDismiss() } }
                 .accessibilityHidden(true)
             content
                 .padding(.horizontal, 20)
@@ -53,6 +55,7 @@ struct JoinMapDialog: View {
                         .autocorrectionDisabled()
                         .submitLabel(.done)
                         .onSubmit(onSubmit)
+                        .focused($isCodeFocused)
                         .disabled(state.submitting)
                         .frame(width: 181, height: 39)
                         .overlay(alignment: .bottom) {
@@ -100,6 +103,9 @@ struct JoinMapDialog: View {
             RoundedRectangle(cornerRadius: 16).strokeBorder(colors.primary, lineWidth: 2)
         }
         .shadow(color: .black.opacity(0.04), radius: 4)
+        // 모달 안의 빈 곳을 누르면 키보드를 내린다.
+        .contentShape(Rectangle())
+        .onTapGesture { isCodeFocused = false }
     }
 }
 

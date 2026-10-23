@@ -110,8 +110,8 @@ struct MapPostCreateView: View {
         .padding(.vertical, 12)
         .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
         .overlay {
-            // 입력하고 있는 칸은 하늘색 테두리를 두른다.
-            if contentFocused { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.blue300, lineWidth: 1) }
+            // 입력하고 있는 칸은 파란 테두리를 두른다.
+            if contentFocused { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) }
         }
         .shadow(color: .black.opacity(0.04), radius: 4)
         .contentShape(Rectangle())
