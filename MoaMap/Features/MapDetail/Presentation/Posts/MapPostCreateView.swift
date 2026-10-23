@@ -230,7 +230,7 @@ private struct MapPostPlacePicker: View {
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                 .padding(.top, 18)
             if visible.isEmpty {
-                Text("태그할 수 있는 장소가 없어요")
+                Text(places.isEmpty ? "태그할 수 있는 장소가 없어요" : "검색 결과가 없어요")
                     .moaTextStyle(typography.body2)
                     .foregroundStyle(colors.textAssistive)
                     .frame(maxWidth: .infinity)
