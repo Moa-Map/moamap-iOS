@@ -218,10 +218,18 @@ private struct MapPostPlacePicker: View {
     let onSelect: (MapPlace) -> Void
     let onBack: () -> Void
 
+    @State private var query = ""
+    @FocusState private var searchFocused: Bool
+
     var body: some View {
+        // 받아 둔 목록을 이름으로 거른다. 지도 상세 검색과 같다.
+        let visible = places.filtered(by: .all, query: query)
         VStack(spacing: 0) {
-            MoaMapTopBar(title: "장소 선택", onBack: onBack)
-            if places.isEmpty {
+            MoaMapTopBar(title: "새 게시물", onBack: onBack)
+            searchField
+                .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+                .padding(.top, 18)
+            if visible.isEmpty {
                 Text("태그할 수 있는 장소가 없어요")
                     .moaTextStyle(typography.body2)
                     .foregroundStyle(colors.textAssistive)
@@ -230,25 +238,50 @@ private struct MapPostPlacePicker: View {
                 Spacer()
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(places) { place in
+                    LazyVStack(spacing: 8) {
+                        ForEach(visible) { place in
                             Button { onSelect(place) } label: {
-                                MapPostPlaceLabel(name: place.name, address: place.address)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-                                    .padding(.vertical, 12)
-                                    .contentShape(Rectangle())
+                                MapIntroPlaceItem(place: place, textSpacing: 4)
                             }
                             .buttonStyle(.plain)
                         }
                     }
+                    .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
+                    .padding(.vertical, 20)
                 }
+                .scrollIndicators(.hidden)
+                .scrollDismissesKeyboard(.immediately)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(colors.backgroundSecondary)
-        // 뒤에 깔린 작성 화면으로 터치가 새지 않게 한다.
+        // 뒤에 깔린 작성 화면으로 터치가 새지 않게 하고, 빈 곳을 누르면 키보드를 내린다.
         .contentShape(Rectangle())
+        .onTapGesture { searchFocused = false }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 4) {
+            Image("Icons/search")
+                .renderingMode(.template)
+                .resizable()
+                .frame(width: 20, height: 20)
+                .foregroundStyle(colors.textAssistive)
+                .accessibilityHidden(true)
+            TextField("", text: $query, prompt: Text("장소를 검색해보세요").foregroundStyle(colors.textAssistive))
+                .moaTextStyle(typography.body2)
+                .foregroundStyle(colors.textNormal)
+                .tint(colors.primary)
+                .submitLabel(.search)
+                .focused($searchFocused)
+                .onSubmit { searchFocused = false }
+            ClearTextButton(text: $query)
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 44)
+        .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 12))
+        .overlay { if searchFocused { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) } }
+        .shadow(color: .black.opacity(0.04), radius: 4)
     }
 }
 

@@ -17,6 +17,7 @@ struct MapPostDetailView: View {
 
     private static let closeButtonColor = Color(argb: 0xFF3E_3E3F)
     private static let bottomID = "bottom"
+    private static let cardID = "card"
 
     private var state: MapPostDetailUiState { viewModel.uiState }
 
@@ -30,6 +31,7 @@ struct MapPostDetailView: View {
                         // 카드와 댓글 사이 16. 목록 간격 4 에 12 를 더한다.
                         ExpandedPostCard(post: post, dateLabel: dateLabel)
                             .onTapGesture { commentFocused = false }
+                            .id(Self.cardID)
                             .padding(.bottom, 12)
                         comments
                         Color.clear.frame(height: 1).id(Self.bottomID)
@@ -45,6 +47,11 @@ struct MapPostDetailView: View {
                     if commentFocused { commentFocused = false } else { viewModel.close() }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) { inputBar }
+                // 키보드가 올라오면 카드 아래 끝이 입력 줄 바로 위에 오도록 올린다. 그대로 두면 카드 사진이 키보드에 가린다.
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                    guard commentFocused else { return }
+                    withAnimation { proxy.scrollTo(Self.cardID, anchor: .bottom) }
+                }
                 .onChange(of: state.sentCount) {
                     // 남겼으면 입력칸을 비우고 내 댓글이 보이게 맨 아래로 내린다.
                     commentText = ""
