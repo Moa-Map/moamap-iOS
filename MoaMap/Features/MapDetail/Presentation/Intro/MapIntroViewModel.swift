@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 nonisolated struct MapIntroUiState: Equatable, Sendable {
-    /// 목록에 보여 줄 장소 수.
+    /// 목록에 처음 보여 줄 장소 수. 더보기를 누를 때마다 이만큼 늘린다.
     static let previewPlaceCount = 4
 
     var map: MapLoadState = .loading
@@ -13,9 +13,11 @@ nonisolated struct MapIntroUiState: Equatable, Sendable {
     var errorMessage: String?
     /// 참여가 끝났다. 화면이 이 신호를 보고 상세로 넘어간다.
     var joined = false
+    /// 목록에 펼쳐 둔 장소 수.
+    var visiblePlaceCount = previewPlaceCount
 
-    var previewPlaces: ArraySlice<MapPlace> { places.prefix(Self.previewPlaceCount) }
-    var hasMorePlaces: Bool { places.count > Self.previewPlaceCount }
+    var previewPlaces: ArraySlice<MapPlace> { places.prefix(visiblePlaceCount) }
+    var hasMorePlaces: Bool { places.count > visiblePlaceCount }
 }
 
 @MainActor @Observable
@@ -39,6 +41,10 @@ final class MapIntroViewModel {
 
     func retry() {
         load(keepCurrent: false)
+    }
+
+    func showMorePlaces() {
+        uiState.visiblePlaceCount += MapIntroUiState.previewPlaceCount
     }
 
     func consumeErrorMessage() {

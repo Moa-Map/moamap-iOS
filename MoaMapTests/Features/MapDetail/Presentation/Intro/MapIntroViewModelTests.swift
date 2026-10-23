@@ -33,6 +33,22 @@ struct MapIntroViewModelTests {
         #expect(!sut.uiState.hasMorePlaces)
     }
 
+    @Test func 더보기를_누르면_장소를_4개씩_더_펼친다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.places = { _ in (1...10).map { MapPlace.fixture(id: $0) } }
+        let sut = MapIntroViewModel(mapID: 7, repository: repository)
+        sut.refresh()
+        await sut.loadTask?.value
+
+        sut.showMorePlaces()
+        #expect(sut.uiState.previewPlaces.map(\.id) == Array(1...8))
+        #expect(sut.uiState.hasMorePlaces)
+
+        sut.showMorePlaces()
+        #expect(sut.uiState.previewPlaces.map(\.id) == Array(1...10))
+        #expect(!sut.uiState.hasMorePlaces)
+    }
+
     @Test func 장소_조회만_실패해도_지도는_보여준다() async {
         let repository = MapDetailRepositoryStub()
         repository.places = { _ in throw NetworkError.http(statusCode: 500) }
