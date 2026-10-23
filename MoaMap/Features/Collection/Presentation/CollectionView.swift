@@ -54,7 +54,11 @@ struct CollectionView: View {
             if case .editing(let editing) = viewModel.uiState.join {
                 JoinMapDialog(
                     state: editing,
-                    onCodeChange: viewModel.updateInviteCode,
+                    onCodeChange: {
+                        viewModel.updateInviteCode($0)
+                        guard case .editing(let editing) = viewModel.uiState.join else { return $0 }
+                        return editing.code
+                    },
                     onSubmit: viewModel.join,
                     onDismiss: viewModel.closeJoinDialog
                 )
