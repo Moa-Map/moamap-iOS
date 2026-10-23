@@ -82,6 +82,7 @@ struct MapDetailTopBar: View {
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())
         }
+        .buttonStyle(.noPressEffect)
         .disabled(!enabled)
     }
 }

@@ -56,6 +56,8 @@ struct DensityMapView: View {
     private var content: some View {
         let state = viewModel.uiState
         return map(features: viewModel.visibleFeatures, selected: state.selectedArea)
+            // 지도는 홈 인디케이터 밑까지 깐다. 위에 겹치는 것들은 안전 영역을 지킨다.
+            .ignoresSafeArea(edges: .bottom)
             .overlay(alignment: .top) {
                 CongestionFilterChips(selected: state.filterLevel) { viewModel.selectLevel($0) }
                     .padding(.top, 18)
@@ -75,23 +77,28 @@ struct DensityMapView: View {
             GeoJSONSource(id: Id.source)
                 .data(.featureCollection(FeatureCollection(features: features)))
             // 평소에는 옅게 채우고 경계를 흐리게 번지게 한다.
+            // 밤 조명을 받으면 혼잡도 색이 어두워지므로 레이어마다 조명을 받지 않게 한다.
             FillLayer(id: Id.fill, source: Id.source)
                 .fillColor(Self.levelColor)
-                .fillOpacity(0.35)
+                .fillOpacity(0.55)
+                .fillEmissiveStrength(1)
             LineLayer(id: "density-line", source: Id.source)
                 .lineColor(Self.levelColor)
                 .lineWidth(10)
                 .lineBlur(8)
                 .lineOpacity(0.5)
+                .lineEmissiveStrength(1)
             // 고른 지역은 진하게 채우고 테두리를 또렷하게 그린다.
             GeoJSONSource(id: Id.selectedSource)
                 .data(.featureCollection(FeatureCollection(features: [selected].compactMap { $0 }.densityFeatures())))
             FillLayer(id: "density-selected-fill", source: Id.selectedSource)
                 .fillColor(Self.levelColor)
-                .fillOpacity(0.55)
+                .fillOpacity(0.75)
+                .fillEmissiveStrength(1)
             LineLayer(id: "density-selected-line", source: Id.selectedSource)
                 .lineColor(Self.levelColor)
                 .lineWidth(2.5)
+                .lineEmissiveStrength(1)
             TapInteraction(.layer(Id.fill)) { feature, _ in
                 guard case .string(let code) = feature.properties["code"] else { return false }
                 viewModel.selectArea(code)
@@ -103,7 +110,7 @@ struct DensityMapView: View {
                 return true
             }
         }
-        .mapStyle(.standard(lightPreset: .day))
+        .mapStyle(.standard(theme: .faded, lightPreset: .night))
         .cameraBounds(.korea)
         // 한 번 탭은 두 번 탭 확대가 아닌 게 확정될 때까지 늦게 온다. 구역을 누르면 바로 칠하도록 끈다.
         .gestureOptions(GestureOptions(doubleTapToZoomInEnabled: false, panDecelerationFactor: MapCameraDefaults.panDeceleration))
