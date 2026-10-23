@@ -10,6 +10,9 @@ struct PlaceListItem: View {
     let onClick: () -> Void
     var onLikeClick: () -> Void = {}
 
+    /// 목록이 첫 카드 위에 이만큼은 남겨야 그림자가 잘리지 않는다.
+    static let shadowRadius: CGFloat = 4
+
     var body: some View {
         Button(action: onClick) {
             if showsReactions {
@@ -67,7 +70,7 @@ struct PlaceListItem: View {
         }
         .padding(16)
         .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.04), radius: 4)
+        .shadow(color: .black.opacity(0.04), radius: Self.shadowRadius)
         .contentShape(RoundedRectangle(cornerRadius: 12))
     }
 }

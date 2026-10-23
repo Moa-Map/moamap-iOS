@@ -33,8 +33,6 @@ struct MapDetailPlaceSheet: View {
     /// 펼친 목록이 내려가도 되는 홈 표시줄 칸. 실제 칸보다 넉넉하면 된다.
     private static let homeIndicatorAllowance: CGFloat = 100
     private static let listTopID = "listTop"
-    /// 카드 그림자 반경.
-    private static let listShadowInset: CGFloat = 4
 
     /// 짧게 끌고 놓아 펼침이 그대로면 제자리로 부드럽게 돌아간다.
     @GestureState(resetTransaction: Transaction(animation: .easeOut(duration: 0.25))) private var dragOffset: CGFloat = 0
@@ -192,12 +190,15 @@ struct MapDetailPlaceSheet: View {
                             )
                         }
                     }
-                    // 첫 카드 그림자가 잘리지 않을 만큼만 목록 안에 둔다.
-                    .padding(EdgeInsets(top: Self.listShadowInset, leading: 20, bottom: 20, trailing: 20))
+                    // 칩 줄과의 간격을 목록 안에 둬야 첫 카드 그림자가 잘리지 않는다.
+                    .padding(EdgeInsets(top: official ? 20 : 16, leading: 20, bottom: 20, trailing: 20))
                     .id(Self.listTopID)
                 }
-                // 나머지 간격은 목록 밖에 둬야 스크롤할 때 카드가 칩 줄에 붙어 잘리지 않는다.
-                .padding(.top, (official ? 20 : 16) - Self.listShadowInset)
+                // 스크롤한 카드가 칩 줄에 붙어 잘리지 않게 간격 중 그림자 몫을 뺀 만큼 위를 가린다.
+                // 패딩 대신 가려야 그 띠에서 시작한 스와이프도 목록을 움직인다.
+                .mask(alignment: .bottom) {
+                    Rectangle().padding(.top, (official ? 20 : 16) - PlaceListItem.shadowRadius)
+                }
                 .scrollDismissesKeyboard(.immediately)
                 .ignoresSafeArea(.container, edges: .bottom)
                 // 앞 결과의 위치가 남으면 첫 장소가 칩 줄 아래에 잘려 보인다.
