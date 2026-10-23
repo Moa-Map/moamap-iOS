@@ -42,7 +42,11 @@ struct EditMapView: View {
                         MapPhotoField(image: previewImage, imageURL: state.original.imageURL, showsEditOverlay: true) {
                             // 올리는 중에는 열지 않는다. 고른 사진이 반영되지 않는다.
                             guard !state.saving else { return }
-                            focusedField = nil
+                            // 입력 중이면 바깥을 누른 것처럼 키보드만 내린다.
+                            guard focusedField == nil else {
+                                focusedField = nil
+                                return
+                            }
                             showsPhotoPicker = true
                         }
                         CreateMapInputField(
@@ -71,7 +75,8 @@ struct EditMapView: View {
                 }
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
-                // 키보드가 올라오면 시스템은 글자 한 줄만 보이게 스크롤해서, 입력칸이 키보드에 너무 붙는다.
+                .keyboardOverlapPadding()
+                // 화면이 키보드를 피하지 않아 시스템이 입력칸을 맞춰 주지 않는다.
                 // 입력칸 아래로 여유를 두고 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
                 .onChange(of: focusedField) { _, field in scroll(proxy, to: field) }
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
@@ -94,6 +99,8 @@ struct EditMapView: View {
             // 스크롤한 내용이 버튼 뒤로 비치지 않게 한다.
             .background(colors.backgroundSecondary)
         }
+        // 아래 버튼이 키보드를 따라 올라오지 않게 한다.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .fullScreenCover(isPresented: $showsPhotoPicker) {
             PhotoLibraryPicker(
                 maxSelection: 1,
@@ -126,7 +133,7 @@ struct EditMapView: View {
     private func tagField(_ state: EditMapUiState) -> some View {
         CreateMapInputField(
             label: "태그",
-            text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터",
+            text: $tagDraft, placeholder: "태그 입력 후 엔터",
             focused: focusedField == .tag
         ) {
             if !state.tags.isEmpty {
@@ -161,15 +168,14 @@ struct EditMapView: View {
         withAnimation { proxy.scrollTo(field, anchor: .bottom) }
     }
 
-    /// 키보드 위로 입력칸을 맞출 때 쓰는 자리. 입력칸보다 아래로 길게 잡아 아래 버튼과 붙지 않게 띄운다. 장소 추가와 같다.
+    /// 키보드 위로 입력칸을 맞출 때 쓰는 자리. 입력칸보다 아래로 길게 잡아 키보드와 붙지 않게 띄운다.
     private func scrollTarget(_ field: Field) -> some View {
         Color.clear
             .id(field)
-            .padding(.bottom, -Self.keyboardButtonGap)
+            .padding(.bottom, -Self.keyboardGap)
     }
 
-    /// 아래 버튼 위에 이미 13 여백이 있어, 더해서 장소 추가와 같은 20이 되게 한다.
-    private static let keyboardButtonGap: CGFloat = 7
+    private static let keyboardGap: CGFloat = 20
 
     /// 입력창에 보이는 글자 그대로 태그로 확정하고 입력창을 남은 값으로 맞춘다.
     private func commitTagDraft() {

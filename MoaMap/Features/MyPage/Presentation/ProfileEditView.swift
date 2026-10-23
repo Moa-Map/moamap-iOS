@@ -32,8 +32,8 @@ struct ProfileEditView: View {
                 }
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
-                // 시스템은 글자 한 줄만 보이게 스크롤해 자기소개 칸이 키보드 위 저장 버튼에 가린다.
-                // 칸 전체가 보이게 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
+                .keyboardOverlapPadding()
+                // 자기소개 칸 전체가 보이게 직접 맞춘다. 키보드가 이미 떠 있을 때 칸을 옮기는 경우와, 키보드가 다 올라온 뒤 둘 다 맞춘다.
                 .onChange(of: focusedField) { _, field in scroll(proxy, to: field) }
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
                     scroll(proxy, to: focusedField)
@@ -43,6 +43,8 @@ struct ProfileEditView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { saveButton }
+        // 저장 버튼이 키보드를 따라 올라오지 않게 한다.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .fullScreenCover(isPresented: $showsPhotoPicker) {
             PhotoLibraryPicker(
                 maxSelection: 1,
@@ -189,7 +191,8 @@ struct ProfileEditView: View {
                 .lineLimit(1...6)
                 .focused($focusedField, equals: .introduction)
             }
-            .id(Field.introduction)
+            // 키보드에 붙지 않게 칸보다 아래로 길게 잡은 자리로 맞춘다.
+            .background { Color.clear.id(Field.introduction).padding(.bottom, -20) }
         }
         .padding(.horizontal, 18)
     }

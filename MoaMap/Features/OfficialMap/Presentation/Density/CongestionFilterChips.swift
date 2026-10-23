@@ -42,7 +42,7 @@ struct CongestionFilterChips: View {
             .background(isSelected ? MoaMapPrimitiveColors.gray800 : MoaMapPrimitiveColors.white, in: Capsule())
             .shadow(color: .black.opacity(0.1), radius: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.noPressEffect)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

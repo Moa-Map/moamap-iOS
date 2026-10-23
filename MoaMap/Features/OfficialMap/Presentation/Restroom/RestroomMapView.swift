@@ -50,6 +50,8 @@ struct RestroomMapView: View {
                 // 들어올 때 권한을 묻는다. 허용되는 순간부터 내 위치가 보인다.
                 showsMyLocation: locationProvider.authorization == .granted
             )
+            // 지도는 홈 인디케이터 밑까지 깐다. 위에 겹치는 것들은 안전 영역을 지킨다.
+            .ignoresSafeArea(edges: .bottom)
             .overlay(alignment: .top) {
                 if let message = noticeMessage { notice(message) }
             }

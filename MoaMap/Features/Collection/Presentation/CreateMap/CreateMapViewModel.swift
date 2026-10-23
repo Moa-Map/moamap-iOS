@@ -36,6 +36,12 @@ final class CreateMapViewModel {
         }
     }
 
+    /// 제출 중에는 무시한다. 이미 올리고 있는 사진과 화면이 어긋난다.
+    func removeImage() {
+        guard !uiState.isSubmitting else { return }
+        uiState.pickedImage = nil
+    }
+
     func showImageLoadFailure() {
         uiState.errorMessage = ImageUploadError.unreadable.userMessage
     }
@@ -109,8 +115,7 @@ final class CreateMapViewModel {
             if !places.isEmpty {
                 uiState.placeSaveNotice = try await savePlaces(places, mapID: created.id)
             }
-            uiState.submit = created.inviteCode.map { .showingInviteCode(mapID: created.id, inviteCode: $0) }
-                ?? .done(mapID: created.id)
+            uiState.submit = .done(mapID: created.id, inviteCode: created.inviteCode)
         }
     }
 
@@ -132,11 +137,6 @@ final class CreateMapViewModel {
             if error is CancellationError { throw error }
             return Self.placeSaveFailedMessage
         }
-    }
-
-    func dismissInviteCode() {
-        guard case .showingInviteCode(let mapID, _) = uiState.submit else { return }
-        uiState.submit = .done(mapID: mapID)
     }
 
     func consumeError() {

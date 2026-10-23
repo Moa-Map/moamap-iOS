@@ -5,10 +5,10 @@ private enum MainRoute: Hashable {
     case profileEdit
     case settings
     case termDetail(id: Int64, title: String)
+    case mapAttribution
     case communityMaps
     case officialMaps
     case createMap
-    case editMap(MapDetail)
     case placeImport(PlaceImportStep)
     case mapIntro(mapID: Int64)
     case mapDetail(mapID: Int64, title: String)
@@ -34,10 +34,12 @@ struct MainTabView: View {
     private let makeTermDetailViewModel: (Int64) -> TermDetailViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCreateMapViewModel: () -> CreateMapViewModel
-    private let makeEditMapViewModel: (MapDetail) -> EditMapViewModel
     private let makePlaceImportViewModel: (PlaceImportSource, String) -> PlaceImportViewModel
     private let sharedLinkInbox: SharedLinkInbox
     @State private var collectionNotice: String?
+    /// 프라이빗 지도를 만들고 모음 탭으로 돌아와 띄우는 초대 코드 팝업. 장소 안내는 팝업을 닫은 뒤 보여준다.
+    @State private var createdMapInvite: CreatedMapInvite?
+    @State private var noticeAfterInvite: String?
     /// 스낵바가 하단 탭을 피해 뜨도록 잰다.
     @State private var bottomBarHeight: CGFloat = 0
     /// 하단 탭을 눌러 탭을 바꿨을 때 직전 탭. 새 탭의 하단 탭이 여기서 미끄러져 온다.
@@ -59,7 +61,6 @@ struct MainTabView: View {
         makeTermDetailViewModel: @escaping (Int64) -> TermDetailViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCreateMapViewModel: @escaping () -> CreateMapViewModel,
-        makeEditMapViewModel: @escaping (MapDetail) -> EditMapViewModel,
         makePlaceImportViewModel: @escaping (PlaceImportSource, String) -> PlaceImportViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeOfficialMapListViewModel: @escaping () -> OfficialMapListViewModel,
@@ -78,7 +79,6 @@ struct MainTabView: View {
         self.makeTermDetailViewModel = makeTermDetailViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCreateMapViewModel = makeCreateMapViewModel
-        self.makeEditMapViewModel = makeEditMapViewModel
         self.makePlaceImportViewModel = makePlaceImportViewModel
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.makeOfficialMapListViewModel = makeOfficialMapListViewModel
@@ -105,6 +105,8 @@ struct MainTabView: View {
                     onOfficialMapClick: { explorePath.append(.map($0)) }
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+                // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 해 첫 화면에만 둔다.
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $explorePath) }
             }
             .tag(MainTab.explore)
@@ -117,13 +119,13 @@ struct MainTabView: View {
                     onCreateMap: { collectionPath.append(.createMap) },
                     onImportPlaces: { startPlaceImport($0) },
                     // 모음에는 참여한 지도만 있어 소개를 건너뛴다.
-                    onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) },
-                    onEditMap: { collectionPath.append(.editMap($0)) }
+                    onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) }
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     // 편집 중에는 편집 바가 대신 뜬다.
                     if collectionViewModel.uiState.editing == nil { bottomBar }
                 }
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .navigationDestination(for: MainRoute.self) { destination($0, path: $collectionPath) }
             }
             .tag(MainTab.collection)
@@ -131,8 +133,19 @@ struct MainTabView: View {
         }
         // 공유·지도 생성 안내는 모음 탭에서 뜬다. 첫 화면이면 하단 탭이 탭 안쪽에 있어 그 높이만큼 올린다.
         .moaSnackbar($collectionNotice, bottomInset: showsCollectionBottomBar ? bottomBarHeight : 0)
-        // 하단 탭이 키보드를 따라 올라오지 않게 한다. 하위 화면은 입력창이 키보드를 피해야 한다.
-        .ignoresSafeArea(isRoot ? .keyboard : [], edges: .bottom)
+        // 하단 탭까지 덮는다.
+        .overlay {
+            if let invite = createdMapInvite {
+                MapInviteCodeDialog(
+                    mapName: invite.mapName, inviteCode: invite.inviteCode, title: "프라이빗 지도가 만들어졌어요",
+                    onDismiss: {
+                        createdMapInvite = nil
+                        collectionNotice = noticeAfterInvite
+                        noticeAfterInvite = nil
+                    }
+                )
+            }
+        }
         // 간 탭에 하단 탭이 안 보이면 직전 탭을 비운다. 남겨 두면 나중에 첫 화면으로 돌아왔을 때 엉뚱하게 미끄러진다.
         .onChange(of: selection) {
             if !showsBottomBar { bottomBarSlideFrom = nil }
@@ -222,10 +235,13 @@ struct MainTabView: View {
             SettingsView(
                 viewModel: makeSettingsViewModel(),
                 onOpenTerm: { path.wrappedValue.append(.termDetail(id: $0.id, title: $0.title)) },
+                onOpenMapAttribution: { path.wrappedValue.append(.mapAttribution) },
                 onLoggedOut: onLoggedOut
             )
         case .termDetail(let id, let title):
             TermDetailView(viewModel: makeTermDetailViewModel(id), title: title)
+        case .mapAttribution:
+            MapAttributionView()
         case .placeImport(let step):
             if let placeImportViewModel {
                 PlaceImportDestination(step: step, viewModel: placeImportViewModel, navigator: placeImportNavigator(path))
@@ -235,18 +251,18 @@ struct MainTabView: View {
             CreateMapView(
                 viewModel: makeCreateMapViewModel(),
                 onImportPlaces: { startNewMapPlaceImport(path: path, handOff: $0) },
-                onCreated: { notice in
+                onCreated: { notice, invite in
                     path.wrappedValue.removeLast()
-                    collectionNotice = notice
-                }
-            )
-        case .editMap(let map):
-            EditMapView(
-                viewModel: makeEditMapViewModel(map),
-                onBack: { path.wrappedValue.removeLast() },
-                onSaved: {
-                    path.wrappedValue.removeLast()
-                    collectionViewModel.mapEdited()
+                    guard let invite else {
+                        collectionNotice = notice
+                        return
+                    }
+                    noticeAfterInvite = notice
+                    // 모음 탭으로 돌아가는 전환이 끝난 뒤 띄운다.
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(350))
+                        createdMapInvite = invite
+                    }
                 }
             )
         case .communityMaps:
@@ -358,7 +374,6 @@ private final class PreviewLocationProvider: LocationProvider {
         makeTermDetailViewModel: { TermDetailViewModel(termID: $0, repository: PreviewTermsRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository(), importRepository: PreviewPlaceImportRepository()) },
-        makeEditMapViewModel: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) },
         makePlaceImportViewModel: {
             PlaceImportViewModel(source: $0, url: $1, importRepository: PreviewPlaceImportRepository(), collectionRepository: PreviewCollectionRepository())
         },

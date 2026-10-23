@@ -143,10 +143,12 @@ struct MapDetailPlaceSheet: View {
                 .submitLabel(.search)
                 .focused($searchFocused)
                 .onSubmit { searchFocused = false }
+            ClearTextButton(text: $searchQuery)
         }
         .padding(.horizontal, 16)
         .frame(height: 44)
         .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 12))
+        .overlay { if searchFocused { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) } }
         .shadow(color: .black.opacity(0.04), radius: 4)
         .padding(.horizontal, 20)
     }

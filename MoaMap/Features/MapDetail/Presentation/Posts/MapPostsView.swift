@@ -194,12 +194,12 @@ private struct MapPostViewModeChip: View {
                 HStack(spacing: 2) {
                     Text(viewMode.label)
                         .moaTextStyle(typography.button3)
-                    // 오른쪽 화살표를 돌려 쓴다. 닫혀 있으면 아래, 펼치면 위를 가리킨다.
+                    // 오른쪽 화살표를 돌려 아래를 가리키게 쓴다. 펼쳐도 그대로 둔다.
                     Image("Icons/arrow-right")
                         .renderingMode(.template)
                         .resizable()
                         .frame(width: 20, height: 20)
-                        .rotationEffect(.degrees(expanded ? -90 : 90))
+                        .rotationEffect(.degrees(90))
                 }
                 .foregroundStyle(colors.textNormal)
                 .padding(.horizontal, 12)

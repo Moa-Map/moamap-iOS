@@ -63,8 +63,10 @@ final class CollectionViewModel {
         uiState.editDialog = nil
     }
 
+    /// 나만의 지도는 나가거나 순서를 바꿀 수 없어 고르지 않는다.
     func toggleSelection(mapID: Int64) {
         guard var editing = uiState.editing, !editing.processing else { return }
+        if case .loaded(let maps) = uiState.currentMaps, maps.first(where: { $0.id == mapID })?.personal == true { return }
         if editing.selectedIDs.remove(mapID) == nil { editing.selectedIDs.insert(mapID) }
         uiState.editing = editing
     }
@@ -167,29 +169,7 @@ final class CollectionViewModel {
         uiState.editDialog = nil
     }
 
-    /// 수정 권한은 상세를 읽어야 안다. 권한이 있을 때만 수정 화면을 연다.
-    func requestEditInfo() {
-        guard let editing = uiState.editing, editing.canEditInfo, let id = editing.selectedIDs.first else { return }
-        runEditTask { [mapRepository] in
-            try await mapRepository.fetchMapDetail(mapID: id)
-        } onSuccess: { [weak self] map in
-            if map.canEditInfo {
-                self?.uiState.mapToEdit = map
-            } else {
-                self?.uiState.notice = EditMapViewModel.noPermissionMessage
-            }
-        }
-    }
 
-    func consumeMapToEdit() {
-        uiState.mapToEdit = nil
-    }
-
-    /// 고친 지도가 목록에 바로 보이도록 다시 읽는다.
-    func mapEdited() {
-        finishEditing()
-        load(uiState.selectedTab, keepCurrent: true)
-    }
 
     func consumeNotice() {
         uiState.notice = nil
@@ -208,7 +188,8 @@ final class CollectionViewModel {
     /// `#` 은 장식이라 값에 넣지 않는다. 서버 코드는 ASCII 영숫자다.
     func updateInviteCode(_ input: String) {
         guard case .editing(var editing) = uiState.join, !editing.submitting else { return }
-        editing.code = input.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }.uppercased()
+        editing.code = String(input.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }.uppercased()
+            .prefix(JoinMapEditing.codeLength))
         editing.errorMessage = nil
         uiState.join = .editing(editing)
     }

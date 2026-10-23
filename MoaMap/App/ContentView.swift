@@ -77,7 +77,6 @@ struct ContentView: View {
                     makeTermDetailViewModel: container.makeTermDetailViewModel(termID:),
                     makeProfileEditViewModel: container.makeProfileEditViewModel,
                     makeCreateMapViewModel: container.makeCreateMapViewModel,
-                    makeEditMapViewModel: container.makeEditMapViewModel(map:),
                     makePlaceImportViewModel: container.makePlaceImportViewModel(source:url:),
                     makeCommunityMapListViewModel: container.makeCommunityMapListViewModel,
                     makeOfficialMapListViewModel: container.makeOfficialMapListViewModel,

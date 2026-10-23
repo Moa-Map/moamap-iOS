@@ -35,6 +35,7 @@ struct PlaceImportURLView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+            .overlay { if focused { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) } }
             .shadow(color: .black.opacity(0.04), radius: 4)
         } buttons: {
             PlaceImportButton(text: "검색하기", enabled: viewModel.uiState.canSearch) {

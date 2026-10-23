@@ -26,6 +26,8 @@ struct EditMapViewModelTests {
         sut.updateTagInput("데이트")
         #expect(!sut.uiState.canSave)
         sut.updateTagInput("데이트 ")
+        #expect(!sut.uiState.canSave)
+        sut.updateTagInput("데이트\n")
         #expect(sut.uiState.canSave)
     }
 
@@ -41,7 +43,7 @@ struct EditMapViewModelTests {
         let repository = CollectionRepositoryStub()
         let sut = EditMapViewModel(map: map(), repository: repository)
         sut.updateDescription("")
-        sut.updateTagInput("데이트 성수")
+        sut.updateTagInput("데이트\n성수")
         sut.save()
         #expect(sut.uiState.saving)
         try await sut.saveTask?.value

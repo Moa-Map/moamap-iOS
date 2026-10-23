@@ -32,6 +32,8 @@ struct MapPhotoField: View {
     var imageURL: URL?
     /// 사진 위에 `사진 수정하기` 를 덮는다.
     var showsEditOverlay = false
+    /// 있으면 사진이 있을 때 오른쪽 위에 지우기 버튼을 둔다.
+    var onRemove: (() -> Void)?
     let onTap: () -> Void
 
     private var hasImage: Bool { image != nil || imageURL != nil }
@@ -70,6 +72,24 @@ struct MapPhotoField: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(hasImage ? "지도 사진 바꾸기" : "지도 사진 추가하기")
+            .overlay(alignment: .topTrailing) {
+                if hasImage, let onRemove {
+                    // 장소 추가의 사진 빼기와 같은 모양이다.
+                    Button(action: onRemove) {
+                        Image("Icons/close")
+                            .renderingMode(.template)
+                            .resizable()
+                            .frame(width: 16, height: 16)
+                            .foregroundStyle(MoaMapPrimitiveColors.white)
+                            .frame(width: 24, height: 24)
+                            .background(MoaMapPrimitiveColors.transparentBlack, in: Circle())
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("지도 사진 빼기")
+                }
+            }
         }
     }
 
@@ -99,19 +119,22 @@ struct CreateMapInputField<Accessory: View>: View {
             CreateMapLabel(text: label, style: typography.subtitle2, required: required)
                 .padding(.leading, 2)
             accessory()
-            TextField("", text: $text, prompt: Text(placeholder).foregroundStyle(colors.textAssistive))
-                .moaTextStyle(typography.body2)
-                .foregroundStyle(colors.textNormal)
-                .tint(colors.primary)
-                .accessibilityLabel(label)
-                // 입력값과 안내 문구의 줄 높이가 달라 칸 높이가 바뀌지 않게 고정한다.
-                .frame(height: 21)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
-                // 입력 중인 칸에 선택 테두리를 보여 준다. 장소 추가와 같다.
-                .overlay { if focused { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) } }
-                .shadow(color: .black.opacity(0.04), radius: 4)
+            HStack(spacing: 4) {
+                TextField("", text: $text, prompt: Text(placeholder).foregroundStyle(colors.textAssistive))
+                    .moaTextStyle(typography.body2)
+                    .foregroundStyle(colors.textNormal)
+                    .tint(colors.primary)
+                    .accessibilityLabel(label)
+                ClearTextButton(text: $text)
+            }
+            // 입력값과 안내 문구의 줄 높이가 달라 칸 높이가 바뀌지 않게 고정한다.
+            .frame(height: 21)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+            // 입력 중인 칸에 선택 테두리를 보여 준다. 장소 추가와 같다.
+            .overlay { if focused { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.primary, lineWidth: 1) } }
+            .shadow(color: .black.opacity(0.04), radius: 4)
         }
     }
 }
@@ -190,31 +213,33 @@ struct URLImportToggleRow: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        Button { isOn.toggle() } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("URL로 장소 추가 허용하기")
-                        .moaTextStyle(typography.subtitle1)
-                        .foregroundStyle(colors.textNormal)
-                    Text("URL을 붙여넣어 장소를 추가할 수 있어요")
-                        .moaTextStyle(typography.body2)
-                        .foregroundStyle(colors.textAssistive)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("URL로 장소 추가 허용하기")
+                    .moaTextStyle(typography.subtitle1)
+                    .foregroundStyle(colors.textNormal)
+                Text("URL을 붙여넣어 장소를 추가할 수 있어요")
+                    .moaTextStyle(typography.body2)
+                    .foregroundStyle(colors.textAssistive)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityHidden(true)
+            // 글자를 눌러도 바뀌지 않게 스위치만 버튼으로 둔다.
+            Button { isOn.toggle() } label: {
                 Circle()
                     .fill(MoaMapPrimitiveColors.white)
                     .frame(width: 18, height: 18)
                     .padding(3)
                     .frame(width: 48, height: 24, alignment: isOn ? .trailing : .leading)
                     .background(isOn ? colors.primary : Color(argb: 0xFFB1B3B4), in: Capsule())
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel("URL로 장소 추가 허용하기")
+            .accessibilityValue(isOn ? "켬" : "끔")
+            .accessibilityAddTraits(.isToggle)
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("URL로 장소 추가 허용하기")
-        .accessibilityValue(isOn ? "켬" : "끔")
-        .accessibilityAddTraits(.isToggle)
     }
 }
 

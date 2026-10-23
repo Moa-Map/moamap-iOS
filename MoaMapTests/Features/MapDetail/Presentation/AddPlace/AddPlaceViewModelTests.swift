@@ -56,7 +56,7 @@ struct AddPlaceViewModelTests {
         sut.updateQuery("카페")
         await sut.searchTask?.value
         sut.select(.fixture())
-        sut.updateTagInput("성수 ")
+        sut.updateTagInput("성수\n")
         sut.updateMemo("메모")
         sut.addPhoto(data: png, type: .png)
         sut.backToSearch()
@@ -77,7 +77,7 @@ struct AddPlaceViewModelTests {
         let sut = makeSUT()
         sut.select(.fixture())
         sut.confirmLocation()
-        sut.updateTagInput("성수 ")
+        sut.updateTagInput("성수\n")
         sut.updateMemo("메모")
         sut.addPhoto(data: png, type: .png)
         sut.backToLocation()
@@ -111,7 +111,7 @@ struct AddPlaceViewModelTests {
         let sut = makeSUT(add: add)
         sut.select(.fixture())
         sut.addPhoto(data: png, type: .png)
-        sut.updateTagInput("성수 카페 ")
+        sut.updateTagInput("성수\n카페\n")
         sut.updateMemo("좋아요")
         sut.submit(map: map())
         #expect(sut.uiState.submitting)
@@ -124,7 +124,7 @@ struct AddPlaceViewModelTests {
         let add = PlaceAddRepositoryStub()
         let sut = makeSUT(add: add)
         sut.select(.fixture())
-        sut.updateTagInput("성수 카페")
+        sut.updateTagInput("성수\n카페")
         sut.submit(map: map())
         await sut.submitTask?.value
         #expect(add.added.first?.tags == ["성수"])
@@ -186,7 +186,7 @@ struct AddPlaceViewModelTests {
 
     @Test func 입력이_비었을_때_지우면_마지막_태그를_지운다() {
         let sut = makeSUT()
-        sut.updateTagInput("성수 카페 ")
+        sut.updateTagInput("성수\n카페\n")
         sut.removeLastTagIfInputEmpty()
         #expect(sut.uiState.tags == ["성수"])
         sut.updateTagInput("데")
@@ -200,11 +200,11 @@ struct AddPlaceViewModelTests {
         #expect(sut.uiState.tagInput == String(repeating: "가", count: 30))
     }
 
-    @Test func 태그는_구분자마다_끊고_중복과_빈_조각을_버리고_30자로_자른다() {
+    @Test func 태그는_줄바꿈마다_끊고_공백은_태그_안에_남기며_중복과_빈_조각을_버리고_30자로_자른다() {
         let long = String(repeating: "가", count: 35)
-        let result = TagInput.apply(tags: ["성수"], rawInput: "성수  카페\n\(long) 데이")
-        #expect(result.tags == ["성수", "카페", String(repeating: "가", count: 30)])
-        #expect(result.input == "데이")
-        #expect(TagInput.apply(tags: [], rawInput: "입력중").input == "입력중")
+        let result = TagInput.apply(tags: ["성수"], rawInput: "성수\n \n 성수 카페 \n\(long)\n데이 ")
+        #expect(result.tags == ["성수", "성수 카페", String(repeating: "가", count: 30)])
+        #expect(result.input == "데이 ")
+        #expect(TagInput.apply(tags: [], rawInput: "입력 중").input == "입력 중")
     }
 }

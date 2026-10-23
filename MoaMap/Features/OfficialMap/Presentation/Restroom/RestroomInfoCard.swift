@@ -7,6 +7,8 @@ struct RestroomInfoCard: View {
 
     let restroom: RestroomMarker
     let detail: RestroomDetailState?
+    /// 다른 화장실로 바꿔 누르면 받는 동안 이 모양으로 자리를 지켜 카드 높이가 출렁이지 않게 한다.
+    @State private var lastLoaded: RestroomDetail?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -30,8 +32,15 @@ struct RestroomInfoCard: View {
             case .failed:
                 message("정보를 불러오지 못했어요. 화장실을 다시 누르면 다시 불러와요")
             case .loading, nil:
-                message("정보를 불러오는 중이에요")
+                if let lastLoaded {
+                    rows(lastLoaded).redacted(reason: .placeholder)
+                } else {
+                    message("정보를 불러오는 중이에요")
+                }
             }
+        }
+        .onChange(of: detail, initial: true) {
+            if case .loaded(let detail) = detail { lastLoaded = detail }
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)

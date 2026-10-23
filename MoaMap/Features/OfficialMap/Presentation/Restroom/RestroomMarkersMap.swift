@@ -72,10 +72,7 @@ struct RestroomMarkersMap: View {
             }
             .mapStyle(.standard(lightPreset: .day, show3dObjects: false))
             .cameraBounds(.korea)
-            .ornamentOptions(OrnamentOptions(
-                scaleBar: ScaleBarViewOptions(visibility: .hidden),
-                compass: CompassViewOptions(visibility: .hidden)
-            ))
+            .ornamentOptions(.moaMap)
             .gestureOptions(GestureOptions(
                 rotateEnabled: allowsRotation,
                 pitchEnabled: allowsRotation,

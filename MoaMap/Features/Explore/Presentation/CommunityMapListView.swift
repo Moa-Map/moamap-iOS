@@ -6,6 +6,7 @@ struct CommunityMapListView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var viewModel: CommunityMapListViewModel
+    @FocusState private var searchFocused: Bool
     private let onMapClick: (MapSummary) -> Void
 
     /// 끝에서 이만큼 남으면 다음 페이지를 부른다.
@@ -24,6 +25,7 @@ struct CommunityMapListView: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ExploreSearchBar(
                         query: viewModel.uiState.query,
+                        focused: $searchFocused,
                         maxLength: CommunityMapListViewModel.searchKeywordMaxLength,
                         onQueryChange: { viewModel.updateQuery($0) },
                         onSearch: { viewModel.searchNow() }
@@ -49,6 +51,9 @@ struct CommunityMapListView: View {
             .scrollDismissesKeyboard(.immediately)
         }
         .background { colors.backgroundPrimary.ignoresSafeArea() }
+        // 빈 곳을 누르면 키보드를 내린다. 카드·칩 같은 버튼은 그대로 눌린다.
+        .contentShape(Rectangle())
+        .onTapGesture { searchFocused = false }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { viewModel.refresh() }
     }

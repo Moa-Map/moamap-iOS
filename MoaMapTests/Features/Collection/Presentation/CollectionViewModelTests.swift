@@ -120,13 +120,22 @@ struct CollectionViewModelTests {
         #expect(sut.uiState.join == .editing(JoinMapEditing(code: "VH4YXZ")))
     }
 
-    @Test func 빈_코드는_제출하지_않는다() {
+    @Test func 여섯_자리가_안_된_코드는_제출하지_않는다() {
         let repository = CollectionRepositoryStub()
         let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
         sut.openJoinDialog()
         sut.join()
+        sut.updateInviteCode("VH4YX")
+        sut.join()
         #expect(sut.joinTask == nil)
         #expect(repository.joinedCodes.isEmpty)
+    }
+
+    @Test func 초대_코드는_여섯_자리까지만_받는다() {
+        let sut = CollectionViewModel(repository: CollectionRepositoryStub(), mapRepository: MapDetailRepositoryStub())
+        sut.openJoinDialog()
+        sut.updateInviteCode("VH4YXZ7")
+        #expect(sut.uiState.join == .editing(JoinMapEditing(code: "VH4YXZ")))
     }
 
     @Test func 참여에_성공하면_다이얼로그를_닫고_프라이빗_목록을_다시_읽는다() async throws {
@@ -201,6 +210,19 @@ struct CollectionViewModelTests {
         #expect(PrivateMapSections(maps: []).personal.isEmpty)
     }
 
+    @Test func 나만의_지도는_편집에서_고르지_않는다() async throws {
+        let repository = CollectionRepositoryStub()
+        repository.fetch = { $0 == .private ? [self.map(1, personal: true), self.map(2)] : [] }
+        let sut = CollectionViewModel(repository: repository, mapRepository: MapDetailRepositoryStub())
+        sut.selectTab(.private)
+        try await sut.loadTask?.value
+        sut.startEditing()
+        sut.toggleSelection(mapID: 1)
+        #expect(sut.uiState.editing?.selectedIDs == [])
+        sut.toggleSelection(mapID: 2)
+        #expect(sut.uiState.editing?.selectedIDs == [2])
+    }
+
     private func editing(
         _ repository: CollectionRepositoryStub = CollectionRepositoryStub(),
         mapRepository: MapDetailRepositoryStub,
@@ -218,10 +240,8 @@ struct CollectionViewModelTests {
         let sut = try await editing(mapRepository: MapDetailRepositoryStub(), selecting: [1, 2])
         #expect(sut.uiState.editing?.selectedIDs == [1, 2])
         #expect(sut.uiState.editing?.canLeave == true)
-        #expect(sut.uiState.editing?.canEditInfo == false)
         sut.toggleSelection(mapID: 2)
         #expect(sut.uiState.editing?.selectedIDs == [1])
-        #expect(sut.uiState.editing?.canEditInfo == true)
         sut.selectTab(.private)
         #expect(sut.uiState.editing == nil)
     }
@@ -288,31 +308,7 @@ struct CollectionViewModelTests {
         #expect(sut.uiState.editing == CollectionEditing(selectedIDs: [1]))
     }
 
-    @Test(arguments: [MapRole.owner, .admin, .member])
-    func 정보_수정은_방장과_관리자에게만_연다(role: MapRole) async throws {
-        let mapRepository = MapDetailRepositoryStub()
-        mapRepository.detail = { MapDetail.fixture(id: $0, joined: true, role: role) }
-        let sut = try await editing(mapRepository: mapRepository, selecting: [4])
-        sut.requestEditInfo()
-        await sut.editTask?.value
-        if role == .member {
-            #expect(sut.uiState.mapToEdit == nil)
-            #expect(sut.uiState.notice == EditMapViewModel.noPermissionMessage)
-        } else {
-            #expect(sut.uiState.mapToEdit?.id == 4)
-            sut.consumeMapToEdit()
-            #expect(sut.uiState.mapToEdit == nil)
-        }
-    }
 
-    @Test func 정보를_고치면_편집을_끝내고_목록을_다시_읽는다() async throws {
-        let repository = CollectionRepositoryStub()
-        let sut = try await editing(repository, mapRepository: MapDetailRepositoryStub(), selecting: [1])
-        sut.mapEdited()
-        #expect(sut.uiState.editing == nil)
-        try await sut.loadTask?.value
-        #expect(repository.calls == [.community, .community])
-    }
 
     @Test func 편집_중_목록이_비면_편집을_끝낸다() async throws {
         let repository = CollectionRepositoryStub()

@@ -242,6 +242,7 @@ struct PlaceReviewComposer: View {
     /// false 면 참여 전이라 입력을 막는다.
     let canWrite: Bool
     @Binding var text: String
+    let focused: FocusState<Bool>.Binding
     let photo: UploadImage?
     let onAddPhoto: () -> Void
     let onRemovePhoto: () -> Void
@@ -275,6 +276,7 @@ struct PlaceReviewComposer: View {
             if let photo { draftPhoto(photo) }
             CommentInputRow(
                 text: $text,
+                focused: focused,
                 placeholder: canWrite ? "이 장소에 대한 경험을 공유해주세요" : "지도에 참여하면 댓글을 남길 수 있어요",
                 enabled: inputEnabled,
                 canSend: canSend,

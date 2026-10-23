@@ -45,6 +45,8 @@ struct MapInviteCodeDialog: View {
             .padding(.vertical, 20)
             .frame(width: 300)
             .background(colors.backgroundSecondary, in: RoundedRectangle(cornerRadius: 16))
+            .overlay { RoundedRectangle(cornerRadius: 16).strokeBorder(colors.primary, lineWidth: 2) }
+            .shadow(color: .black.opacity(0.04), radius: 4)
             .accessibilityAddTraits(.isModal)
             .accessibilityAction(.escape, onDismiss)
         }

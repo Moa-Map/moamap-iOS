@@ -5,8 +5,11 @@ struct JoinMapDialog: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
     @FocusState private var isCodeFocused: Bool
+    /// 입력창에 붙는 글자. 걸러진 값이 그대로면 TextField 가 다시 그려지지 않아 넘친 글자가 남는다. 여기서 되돌린다.
+    @State private var draft = ""
     let state: JoinMapEditing
-    let onCodeChange: (String) -> Void
+    /// 입력을 넘기고 걸러져 남은 코드를 돌려받는다.
+    let onCodeChange: (String) -> String
     let onSubmit: () -> Void
     let onDismiss: () -> Void
 
@@ -14,17 +17,20 @@ struct JoinMapDialog: View {
         ZStack {
             MoaMapPrimitiveColors.dialogScrim
                 .ignoresSafeArea()
-                .onTapGesture { onDismiss() }
+                // 입력 중이면 닫지 않고 키보드만 내린다.
+                .onTapGesture { if isCodeFocused { isCodeFocused = false } else { onDismiss() } }
                 .accessibilityHidden(true)
             content
                 .padding(.horizontal, 20)
         }
-        .onAppear { isCodeFocused = true }
         .accessibilityAction(.escape) { onDismiss() }
-    }
-
-    private var code: Binding<String> {
-        Binding(get: { state.code }, set: onCodeChange)
+        .onChange(of: draft) { _, input in
+            let accepted = onCodeChange(input)
+            if accepted != input { draft = accepted }
+        }
+        .onChange(of: state.code, initial: true) { _, code in
+            if draft != code { draft = code }
+        }
     }
 
     private var content: some View {
@@ -46,16 +52,16 @@ struct JoinMapDialog: View {
                         .kerning(-0.6)
                         .frame(width: 19, height: 39)
                         .accessibilityHidden(true)
-                    TextField("", text: code)
+                    TextField("", text: $draft)
                         .font(.custom(MoaMapFontName.nanumSquareBold, size: 30))
                         .kerning(-0.6)
                         .multilineTextAlignment(.center)
                         .keyboardType(.asciiCapable)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
-                        .focused($isCodeFocused)
                         .submitLabel(.done)
                         .onSubmit(onSubmit)
+                        .focused($isCodeFocused)
                         .disabled(state.submitting)
                         .frame(width: 181, height: 39)
                         .overlay(alignment: .bottom) {
@@ -103,13 +109,16 @@ struct JoinMapDialog: View {
             RoundedRectangle(cornerRadius: 16).strokeBorder(colors.primary, lineWidth: 2)
         }
         .shadow(color: .black.opacity(0.04), radius: 4)
+        // 모달 안의 빈 곳을 누르면 키보드를 내린다.
+        .contentShape(Rectangle())
+        .onTapGesture { isCodeFocused = false }
     }
 }
 
 #Preview {
     JoinMapDialog(
         state: JoinMapEditing(code: "A1B2C3", errorMessage: "코드를 다시 확인해주세요"),
-        onCodeChange: { _ in },
+        onCodeChange: { $0 },
         onSubmit: {},
         onDismiss: {}
     )

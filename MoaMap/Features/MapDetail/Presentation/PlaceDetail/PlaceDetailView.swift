@@ -249,6 +249,7 @@ struct PlaceDetailView: View {
                     state: reviews.uiState,
                     canWrite: canWriteReview,
                     text: $reviewText,
+                    focused: $composerFocused,
                     photo: reviewPhoto,
                     onAddPhoto: {
                         composerFocused = false
@@ -259,7 +260,6 @@ struct PlaceDetailView: View {
                     onSubmit: { reviews.submit(content: reviewText, photo: reviewPhoto) },
                     onCancelEdit: reviews.cancelEdit
                 )
-                .focused($composerFocused)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

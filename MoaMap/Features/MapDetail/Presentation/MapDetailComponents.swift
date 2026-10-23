@@ -82,12 +82,14 @@ struct MapDetailTopBar: View {
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())
         }
+        .buttonStyle(.noPressEffect)
         .disabled(!enabled)
     }
 }
 
 /// 상단바 메뉴. 볼 수 없는 줄은 넣지 않는다.
 struct MapDetailMenu: View {
+    let showsMembers: Bool
     let showsInfo: Bool
     let showsInviteCode: Bool
     let canLeave: Bool
@@ -98,10 +100,9 @@ struct MapDetailMenu: View {
     let onLeave: () -> Void
 
     var body: some View {
-        var items = [
-            ActionMenuItem(icon: "person", label: "멤버 관리", action: onMembers),
-            ActionMenuItem(icon: "map", label: "장소 관리", action: onManage)
-        ]
+        var items: [ActionMenuItem] = []
+        if showsMembers { items.append(ActionMenuItem(icon: "person", label: "멤버 관리", action: onMembers)) }
+        items.append(ActionMenuItem(icon: "map", label: "장소 관리", action: onManage))
         if showsInfo { items.append(ActionMenuItem(icon: "info", label: "지도 정보", action: onInfo)) }
         if showsInviteCode { items.append(ActionMenuItem(icon: "key", label: "초대코드", action: onInviteCode)) }
         if canLeave { items.append(ActionMenuItem(icon: "out", label: "나가기", action: onLeave)) }
@@ -227,7 +228,7 @@ struct MyLocationButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image("Icons/location")
+            Image("Icons/location-searching")
                 .renderingMode(.template)
                 .resizable()
                 .frame(width: 32, height: 32)
@@ -261,7 +262,7 @@ struct MyLocationButton: View {
             actionEnabled: true, onBack: {}, onAction: {}
         )
         MapDetailMenu(
-            showsInfo: true, showsInviteCode: true, canLeave: false,
+            showsMembers: true, showsInfo: true, showsInviteCode: true, canLeave: false,
             onMembers: {}, onManage: {}, onInfo: {}, onInviteCode: {}, onLeave: {}
         )
         MapDetailTabBar(selection: .places) { _ in }.padding(.horizontal, 20)
