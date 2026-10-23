@@ -46,6 +46,7 @@ struct ExploreSearchBar: View {
                 .focused(focused)
                 .submitLabel(.search)
                 .onSubmit(onSearch)
+            ClearTextButton(text: $text)
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)

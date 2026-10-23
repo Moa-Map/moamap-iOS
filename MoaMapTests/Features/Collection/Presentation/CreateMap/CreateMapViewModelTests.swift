@@ -60,6 +60,14 @@ struct CreateMapViewModelTests {
         #expect(sut.uiState.tags.isEmpty)
     }
 
+    @Test func 고른_사진을_지울_수_있다() {
+        let sut = makeSUT()
+        sut.selectImage(data: png.data, type: .png)
+        #expect(sut.uiState.pickedImage != nil)
+        sut.removeImage()
+        #expect(sut.uiState.pickedImage == nil)
+    }
+
     @Test func 허용되지_않는_사진은_고르지_않고_안내한다() {
         let sut = makeSUT()
         sut.selectImage(data: Data("x".utf8), type: .heic)

@@ -29,6 +29,7 @@ struct CommentInputRow<Leading: View>: View {
                     .focused(focused)
                     .submitLabel(.send)
                     .onSubmit { if canSend { onSend() } }
+                if enabled { ClearTextButton(text: $text) }
             }
             // + 는 누르는 칸 32 가운데 20 이라 왼쪽 10 이면 그림이 끝에서 16 에 선다.
             .padding(.leading, Leading.self == EmptyView.self ? 16 : 10)

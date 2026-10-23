@@ -36,6 +36,12 @@ final class CreateMapViewModel {
         }
     }
 
+    /// 제출 중에는 무시한다. 이미 올리고 있는 사진과 화면이 어긋난다.
+    func removeImage() {
+        guard !uiState.isSubmitting else { return }
+        uiState.pickedImage = nil
+    }
+
     func showImageLoadFailure() {
         uiState.errorMessage = ImageUploadError.unreadable.userMessage
     }

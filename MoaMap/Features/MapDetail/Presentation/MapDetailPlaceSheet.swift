@@ -143,6 +143,7 @@ struct MapDetailPlaceSheet: View {
                 .submitLabel(.search)
                 .focused($searchFocused)
                 .onSubmit { searchFocused = false }
+            ClearTextButton(text: $searchQuery)
         }
         .padding(.horizontal, 16)
         .frame(height: 44)

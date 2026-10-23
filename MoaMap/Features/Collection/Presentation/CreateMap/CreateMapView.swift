@@ -39,7 +39,7 @@ struct CreateMapView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 20) {
-                        MapPhotoField(image: previewImage) {
+                        MapPhotoField(image: previewImage, onRemove: viewModel.removeImage) {
                             // 올리는 중에는 열지 않는다. 고른 사진이 반영되지 않는다.
                             guard !state.isSubmitting else { return }
                             // 입력 중이면 바깥을 누른 것처럼 키보드만 내린다.
@@ -47,6 +47,8 @@ struct CreateMapView: View {
                                 focusedField = nil
                                 return
                             }
+                            // 사진이 있으면 바꾸지 않는다. x 로 지운 뒤 다시 고른다.
+                            guard previewImage == nil else { return }
                             showsPhotoPicker = true
                         }
                         CreateMapInputField(
