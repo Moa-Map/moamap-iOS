@@ -409,10 +409,10 @@ struct AddPlaceFormContent: View {
                         }
                         // Binding setter 안에서 값을 비우면 TextField가 화면에 반영하지 않는다.
                         // 그래서 입력은 그대로 받아 두고, 확정과 되돌려 받기는 onChange에서 한다.
-                        inputField(text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터", focused: focus.wrappedValue == .tag)
+                        inputField(text: $tagDraft, placeholder: "태그 입력 후 엔터", focused: focus.wrappedValue == .tag)
                         .focused(focus, equals: .tag)
                         .onChange(of: tagDraft) { _, draft in
-                            // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 "카페 "를 붙여넣는 경우 등.
+                            // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 줄바꿈이 붙은 "카페"를 붙여넣는 경우 등.
                             let remaining = onTagInputChange(draft)
                             if remaining != draft { tagDraft = remaining }
                         }

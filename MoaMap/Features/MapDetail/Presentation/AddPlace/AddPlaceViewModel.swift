@@ -246,20 +246,19 @@ nonisolated enum AddPlaceMessage {
     }
 }
 
-/// 스페이스나 줄바꿈이 들어오면 그 앞까지를 태그로 확정한다.
+/// 줄바꿈(엔터)이 들어오면 그 앞까지를 태그로 확정한다. 공백은 태그 안에 남는다.
 nonisolated enum TagInput {
     /// 서버가 태그 하나를 30자로 제한한다.
     static let maxLength = 30
 
     /// 붙여넣기로 여러 개가 한 번에 들어올 수 있어 구분자마다 끊는다.
     static func apply(tags: [String], rawInput: String) -> (tags: [String], input: String) {
-        let delimiters: Set<Character> = [" ", "\n"]
-        guard rawInput.contains(where: delimiters.contains) else { return (tags, rawInput) }
-        let pieces = rawInput.split(omittingEmptySubsequences: false, whereSeparator: delimiters.contains)
+        guard rawInput.contains(where: \.isNewline) else { return (tags, rawInput) }
+        let pieces = rawInput.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
         var next = tags
         // 마지막 조각은 구분자 뒤에 남은 부분이라 아직 입력 중이다.
         for piece in pieces.dropLast() {
-            let tag = String(piece.trimmingCharacters(in: .whitespaces).prefix(maxLength))
+            let tag = String(piece.trimmingCharacters(in: .whitespacesAndNewlines).prefix(maxLength))
             if !tag.isEmpty && !next.contains(tag) { next.append(tag) }
         }
         return (next, String(pieces.last ?? ""))

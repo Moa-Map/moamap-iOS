@@ -133,7 +133,7 @@ struct EditMapView: View {
     private func tagField(_ state: EditMapUiState) -> some View {
         CreateMapInputField(
             label: "태그",
-            text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터",
+            text: $tagDraft, placeholder: "태그 입력 후 엔터",
             focused: focusedField == .tag
         ) {
             if !state.tags.isEmpty {

@@ -74,7 +74,7 @@ struct CreateMapView: View {
                         // 그래서 입력은 그대로 받아 두고, 확정과 되돌려 받기는 onChange에서 한다.
                         CreateMapInputField(
                             label: "태그",
-                            text: $tagDraft, placeholder: "태그 입력 후 스페이스 또는 엔터",
+                            text: $tagDraft, placeholder: "태그 입력 후 엔터",
                             focused: focusedField == .tag
                         ) {
                             if !state.tags.isEmpty {
@@ -88,7 +88,7 @@ struct CreateMapView: View {
                         .focused($focusedField, equals: .tag)
                         .background { scrollTarget(.tag) }
                         .onChange(of: tagDraft) { _, draft in
-                            // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 "카페 "를 붙여넣는 경우 등.
+                            // 확정 뒤 남은 값이 이전과 같아도 입력창은 맞춰야 한다. 빈 칸에 줄바꿈이 붙은 "카페"를 붙여넣는 경우 등.
                             viewModel.updateTagInput(draft)
                             let remaining = viewModel.uiState.tagInput
                             if remaining != draft { tagDraft = remaining }
