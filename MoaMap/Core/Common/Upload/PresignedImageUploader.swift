@@ -1,6 +1,8 @@
 import Foundation
 
 nonisolated protocol ImageUploader: Sendable {
+    /// 올릴 모양으로 바꾼다. 발급 요청에 이 결과의 형식·크기를 보내야 업로드 서명과 맞는다.
+    func prepare(_ image: UploadImage, maxFileSize: Int) async throws -> UploadImage
     func upload(_ image: UploadImage, to uploadURL: URL) async throws
 }
 
@@ -12,6 +14,10 @@ nonisolated struct PresignedImageUploader: ImageUploader {
 
     init(transport: @escaping APIClient.Transport) {
         self.transport = transport
+    }
+
+    func prepare(_ image: UploadImage, maxFileSize: Int) async throws -> UploadImage {
+        try await ImageCompressor.compress(image, maxFileSize: maxFileSize)
     }
 
     func upload(_ image: UploadImage, to uploadURL: URL) async throws {

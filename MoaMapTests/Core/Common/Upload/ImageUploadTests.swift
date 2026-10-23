@@ -53,11 +53,10 @@ struct UploadImageTests {
         #expect(image == UploadImage(data: data, contentType: "image/png"))
     }
 
-    @Test func 허용되지_않은_형식은_JPEG_로_바꾼다() throws {
-        let image = try UploadImage(pickedData: try pngData(), type: .heic)
-        #expect(image.contentType == "image/jpeg")
-        let source = try #require(CGImageSourceCreateWithData(image.data as CFData, nil))
-        #expect(CGImageSourceGetType(source) as String? == UTType.jpeg.identifier)
+    @Test func 허용되지_않은_형식은_고를_때_바꾸지_않고_읽히는지만_본다() throws {
+        let data = try pngData()
+        let image = try UploadImage(pickedData: data, type: .heic)
+        #expect(image == UploadImage(data: data, contentType: "image/png"))
     }
 
     @Test func 이미지가_아니면_읽지_못했다고_알린다() {

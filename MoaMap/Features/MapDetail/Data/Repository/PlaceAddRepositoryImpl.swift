@@ -13,23 +13,26 @@ final class PlaceAddRepositoryImpl: PlaceAddRepository {
     /// 서버 400 을 받고 나면 어느 사진이 문제인지 알려줄 수 없어 형식·크기를 먼저 거른다.
     func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] {
         guard !photos.isEmpty else { return [] }
+        var prepared: [UploadImage] = []
         for photo in photos {
+            let photo = try await uploader.prepare(photo, maxFileSize: ImageUploadRules.maxPlacePhotoFileSize)
             try ImageUploadRules.validate(
                 contentType: photo.contentType, fileSize: photo.fileSize, maxFileSize: ImageUploadRules.maxPlacePhotoFileSize
             )
+            prepared.append(photo)
         }
         let body = PlacePhotoUploadURLRequest(
             mapId: mapID,
-            files: photos.map { .init(contentType: $0.contentType, fileSize: $0.fileSize) }
+            files: prepared.map { .init(contentType: $0.contentType, fileSize: $0.fileSize) }
         )
         let issued = try await client.send(
             APIRequest(path: ["api", "v1", "places", "photo-upload-url"], method: .post, jsonBody: try JSONEncoder().encode(body)),
             as: [PlacePhotoUploadURLResponse].self
         )
         // 발급 수가 다르면 어떤 사진이 빠졌는지 알 수 없다. 조용히 덜 올리지 않는다.
-        guard issued.count == photos.count else { throw NetworkError.invalidResponse }
+        guard issued.count == prepared.count else { throw NetworkError.invalidResponse }
         var fileURLs: [String] = []
-        for (photo, url) in zip(photos, issued) {
+        for (photo, url) in zip(prepared, issued) {
             guard let uploadURL = url.uploadUrl.flatMap(URL.init(string:)),
                   let fileURL = url.fileUrl, !fileURL.isEmpty else { throw NetworkError.invalidResponse }
             try await uploader.upload(photo, to: uploadURL)

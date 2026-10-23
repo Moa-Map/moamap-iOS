@@ -144,11 +144,11 @@ struct ProfileEditViewModelTests {
         #expect(repository.uploads.count == 2)
     }
 
-    @Test func 너무_큰_사진은_고를_때_막는다() async {
+    @Test func 한도보다_큰_사진도_고른다_올릴_때_줄인다() async {
         let sut = await loaded()
         sut.selectImage(data: Data(count: ImageUploadRules.maxImageFileSize + 1), type: .jpeg)
-        #expect(sut.uiState.pickedImage == nil)
-        #expect(sut.uiState.errorMessage == "사진 크기는 10MB 이하여야 해요")
+        #expect(sut.uiState.pickedImage != nil)
+        #expect(sut.uiState.errorMessage == nil)
     }
 
     @Test func 읽을_수_없는_사진은_안내한다() async {

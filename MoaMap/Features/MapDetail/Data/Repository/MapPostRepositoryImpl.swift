@@ -36,13 +36,16 @@ final class MapPostRepositoryImpl: MapPostRepository {
 
     /// 전부 먼저 살펴본 뒤에 올린다. 셋째 사진이 걸렸을 때 앞의 두 장이 이미 올라가 있으면 지울 방법이 없다.
     func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] {
+        var prepared: [UploadImage] = []
         for photo in photos {
+            let photo = try await uploader.prepare(photo, maxFileSize: ImageUploadRules.maxPostPhotoFileSize)
             try ImageUploadRules.validate(
                 contentType: photo.contentType, fileSize: photo.fileSize, maxFileSize: ImageUploadRules.maxPostPhotoFileSize
             )
+            prepared.append(photo)
         }
         var fileURLs: [String] = []
-        for photo in photos {
+        for photo in prepared {
             let body = MapPostPhotoUploadURLRequest(contentType: photo.contentType, fileSize: photo.fileSize)
             let issued = try await client.send(
                 APIRequest(
