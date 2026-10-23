@@ -26,7 +26,6 @@ final class EditMapViewModel {
         guard !uiState.saving else { return }
         do {
             let image = try UploadImage(pickedData: data, type: type)
-            try ImageUploadRules.validate(contentType: image.contentType, fileSize: image.fileSize)
             nextSelection += 1
             uiState.pickedImage = PickedCoverImage(selection: nextSelection, image: image)
         } catch {

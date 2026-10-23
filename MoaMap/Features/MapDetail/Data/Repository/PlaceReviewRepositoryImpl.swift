@@ -71,6 +71,7 @@ final class PlaceReviewRepositoryImpl: PlaceReviewRepository {
 
     /// 서버 400 을 받고 나면 이유를 알려줄 수 없어 형식·크기를 먼저 거른다.
     private func upload(_ image: UploadImage, placeID: Int64) async throws -> String {
+        let image = try await uploader.prepare(image, maxFileSize: ImageUploadRules.maxReviewPhotoFileSize)
         try ImageUploadRules.validate(
             contentType: image.contentType, fileSize: image.fileSize, maxFileSize: ImageUploadRules.maxReviewPhotoFileSize
         )

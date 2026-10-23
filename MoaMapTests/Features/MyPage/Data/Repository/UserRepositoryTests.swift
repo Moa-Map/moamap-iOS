@@ -7,6 +7,8 @@ private final class UploaderSpy: ImageUploader, @unchecked Sendable {
     private var calls: [(UploadImage, URL)] = []
     var uploads: [(UploadImage, URL)] { lock.withLock { calls } }
 
+    func prepare(_ image: UploadImage, maxFileSize: Int) async throws -> UploadImage { image }
+
     func upload(_ image: UploadImage, to uploadURL: URL) async throws {
         lock.withLock { calls.append((image, uploadURL)) }
     }

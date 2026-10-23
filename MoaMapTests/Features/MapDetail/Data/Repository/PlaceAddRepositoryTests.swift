@@ -16,6 +16,7 @@ struct PlaceAddRepositoryTests {
 
     private struct UploaderSpy: ImageUploader {
         let log: Log
+        func prepare(_ image: UploadImage, maxFileSize: Int) async throws -> UploadImage { image }
         func upload(_ image: UploadImage, to uploadURL: URL) async throws { log.upload(uploadURL) }
     }
 

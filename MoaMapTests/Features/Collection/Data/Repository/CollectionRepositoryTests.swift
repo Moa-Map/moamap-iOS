@@ -6,6 +6,15 @@ private final class UploaderSpy: ImageUploader, @unchecked Sendable {
     private let lock = NSLock()
     private var calls: [(UploadImage, URL)] = []
     var uploads: [(UploadImage, URL)] { lock.withLock { calls } }
+    /// 정해 두면 줄인 결과로 이것을 돌려준다.
+    var prepared: UploadImage?
+    private var limits: [Int] = []
+    var preparedLimits: [Int] { lock.withLock { limits } }
+
+    func prepare(_ image: UploadImage, maxFileSize: Int) async throws -> UploadImage {
+        lock.withLock { limits.append(maxFileSize) }
+        return prepared ?? image
+    }
 
     func upload(_ image: UploadImage, to uploadURL: URL) async throws {
         lock.withLock { calls.append((image, uploadURL)) }
@@ -203,6 +212,22 @@ struct CollectionRepositoryTests {
         #expect(try await sut.uploadCoverImage(image) == "https://cdn.example.com/cover.jpg")
         #expect(uploader.uploads.map(\.0) == [image])
         #expect(uploader.uploads.map(\.1) == [URL(string: "https://s3.example.com/put")])
+    }
+
+    @Test func 커버는_줄인_결과의_형식과_크기로_발급받아_올린다() async throws {
+        let uploader = UploaderSpy()
+        let compressed = UploadImage(data: Data([9, 9]), contentType: "image/jpeg")
+        uploader.prepared = compressed
+        let sut = try repository(
+            body: #"{"success":true,"data":{"uploadUrl":"https://s3.example.com/put","fileUrl":"https://cdn.example.com/cover.jpg"}}"#,
+            uploader: uploader
+        ) { request in
+            #expect(Self.json(request)?["contentType"] as? String == "image/jpeg")
+            #expect(Self.json(request)?["fileSize"] as? Int == 2)
+        }
+        _ = try await sut.uploadCoverImage(UploadImage(data: Data([1, 2, 3]), contentType: "image/png"))
+        #expect(uploader.preparedLimits == [ImageUploadRules.maxImageFileSize])
+        #expect(uploader.uploads.map(\.0) == [compressed])
     }
 
     @Test func 커버는_발급_전에_형식과_크기를_거른다() async throws {

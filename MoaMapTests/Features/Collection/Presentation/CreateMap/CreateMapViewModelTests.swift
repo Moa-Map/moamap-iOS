@@ -63,9 +63,9 @@ struct CreateMapViewModelTests {
 
     @Test func 허용되지_않는_사진은_고르지_않고_안내한다() {
         let sut = makeSUT()
-        sut.selectImage(data: Data(count: ImageUploadRules.maxImageFileSize + 1), type: .png)
+        sut.selectImage(data: Data("x".utf8), type: .heic)
         #expect(sut.uiState.pickedImage == nil)
-        #expect(sut.uiState.errorMessage == "사진 크기는 10MB 이하여야 해요")
+        #expect(sut.uiState.errorMessage == "사진을 불러오지 못했어요")
         sut.consumeError()
         sut.showImageLoadFailure()
         #expect(sut.uiState.errorMessage == "사진을 불러오지 못했어요")

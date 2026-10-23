@@ -15,8 +15,9 @@ final class UserRepositoryImpl: UserRepository {
         return try await client.send(request, as: MyProfileResponse.self).toDomain()
     }
 
-    /// 검증 → 발급 → 업로드 순으로 간다.
+    /// 줄임 → 검증 → 발급 → 업로드 순으로 간다.
     func uploadProfileImage(_ image: UploadImage) async throws -> String {
+        let image = try await uploader.prepare(image, maxFileSize: ImageUploadRules.maxImageFileSize)
         try ImageUploadRules.validate(contentType: image.contentType, fileSize: image.fileSize)
         let request = APIRequest(
             path: ["api", "v1", "users", "profile-upload-url"],

@@ -94,8 +94,6 @@ final class ProfileEditViewModel {
         guard !uiState.saving else { return }
         do {
             let image = try UploadImage(pickedData: data, type: type)
-            // 저장을 누르기 전에 알린다. 다른 사진을 고르면 되는 일이다.
-            try ImageUploadRules.validate(contentType: image.contentType, fileSize: image.fileSize)
             nextSelection += 1
             uiState.pickedImage = PickedProfileImage(selection: nextSelection, image: image)
         } catch {

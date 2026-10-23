@@ -38,7 +38,8 @@ struct CameraPicker: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
-            if let image = info[.originalImage] as? UIImage, let data = image.jpegData(compressionQuality: 0.9) {
+            // 화질은 올릴 때 한 번만 깎는다.
+            if let image = info[.originalImage] as? UIImage, let data = image.jpegData(compressionQuality: 1) {
                 parent.onCapture(data)
             }
             parent.dismiss()

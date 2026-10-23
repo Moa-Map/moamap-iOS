@@ -14,6 +14,7 @@ struct MapPostRepositoryTests {
     private let seoul = TimeZone(identifier: "Asia/Seoul")!
 
     private struct NoUploader: ImageUploader {
+        func prepare(_ image: UploadImage, maxFileSize: Int) async throws -> UploadImage { image }
         func upload(_ image: UploadImage, to uploadURL: URL) async throws {}
     }
 
