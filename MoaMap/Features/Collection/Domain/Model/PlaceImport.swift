@@ -76,7 +76,7 @@ nonisolated struct EditedPlace: Equatable, Sendable {
 /// 일괄 등록 결과. 서버가 건별로 부분 성공시키고, 여러 지도면 모두 합산한다.
 nonisolated struct PlaceSaveResult: Equatable, Sendable {
     let created: Int
-    /// 그 지도에 이미 있던 장소.
+    /// 그 지도에 이미 있어 건너뛴 장소.
     let duplicate: Int
     let failed: Int
 }

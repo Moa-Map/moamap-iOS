@@ -223,6 +223,15 @@ final class PlaceImportViewModel {
 
     // MARK: 안내
 
+    /// 저장이 끝나고 흐름 밖에서 띄우는 한 줄. 여러 지도에 넣었으면 지도마다 센 수를 더한다.
+    static func savedMessage(for result: PlaceSaveResult) -> String {
+        var notes: [String] = []
+        if result.duplicate > 0 { notes.append("이미 있던 \(result.duplicate)곳 제외") }
+        if result.failed > 0 { notes.append("\(result.failed)곳 실패") }
+        let base = "\(result.created)곳을 저장했어요"
+        return notes.isEmpty ? base : "\(base) (\(notes.joined(separator: ", ")))"
+    }
+
     /// 캡션을 못 읽은 이유와 서버가 준 거절 사유는 사용자가 조치할 수 있어 그대로 보여준다.
     private static func extractionMessage(for error: any Error) -> String {
         if let error = error as? PlaceExtractionError { return error.userMessage }

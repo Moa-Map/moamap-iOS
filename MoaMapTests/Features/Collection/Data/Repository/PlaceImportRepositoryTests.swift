@@ -106,7 +106,7 @@ struct PlaceImportRepositoryTests {
 
     // MARK: 등록
 
-    private let createdBody = #"{"success":true,"data":{"results":[{"status":"CREATED"},{"status":"DUPLICATE"},{"status":"FAILED"}]}}"#
+    private let createdBody = #"{"success":true,"data":{"requested":3,"created":1,"skipped":1,"results":[]}}"#
 
     @Test func 고른_지도마다_등록하고_결과를_합산한다() async throws {
         let sut = try repository(body: createdBody)
@@ -117,11 +117,18 @@ struct PlaceImportRepositoryTests {
         #expect(result == PlaceSaveResult(created: 2, duplicate: 2, failed: 2))
     }
 
-    @Test func 한_번에_보낼_수_있는_수를_넘으면_나눠_보낸다() async throws {
-        let sut = try repository(body: #"{"success":true,"data":{"results":[]}}"#)
-        let entries = (0..<101).map { EditedPlace(place: .fixture(id: "\($0)"), edit: PlaceEdit()) }
+    @Test func 장소가_많아도_지도마다_한_번에_보낸다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"requested":500,"created":500,"skipped":0}}"#)
+        let entries = (0..<500).map { EditedPlace(place: .fixture(id: "\($0)"), edit: PlaceEdit()) }
         _ = try await sut.savePlaces(mapIDs: [1], places: entries, photoURLs: [:])
-        #expect(log.bodies().map { ($0["places"] as? [Any])?.count } == [100, 1])
+        #expect(log.bodies().map { ($0["places"] as? [Any])?.count } == [500])
+    }
+
+    @Test func 요청_수가_없으면_보낸_수로_실패를_센다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"created":1,"skipped":1}}"#)
+        let entries = (0..<3).map { EditedPlace(place: .fixture(id: "\($0)"), edit: PlaceEdit()) }
+        let result = try await sut.savePlaces(mapIDs: [1], places: entries, photoURLs: [:])
+        #expect(result == PlaceSaveResult(created: 1, duplicate: 1, failed: 1))
     }
 
     @Test func 편집값을_담고_빈_값은_보내지_않는다() async throws {

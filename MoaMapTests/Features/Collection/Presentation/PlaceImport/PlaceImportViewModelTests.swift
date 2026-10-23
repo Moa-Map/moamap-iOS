@@ -203,6 +203,16 @@ struct PlaceImportViewModelTests {
         #expect(!sut.uiState.saving)
     }
 
+    @Test(arguments: [
+        (PlaceSaveResult(created: 457, duplicate: 0, failed: 0), "457곳을 저장했어요"),
+        (PlaceSaveResult(created: 450, duplicate: 7, failed: 0), "450곳을 저장했어요 (이미 있던 7곳 제외)"),
+        (PlaceSaveResult(created: 450, duplicate: 5, failed: 2), "450곳을 저장했어요 (이미 있던 5곳 제외, 2곳 실패)"),
+        (PlaceSaveResult(created: 450, duplicate: 0, failed: 2), "450곳을 저장했어요 (2곳 실패)")
+    ])
+    func 저장_결과를_한_줄로_알린다(result: PlaceSaveResult, message: String) {
+        #expect(PlaceImportViewModel.savedMessage(for: result) == message)
+    }
+
     @Test func 등록이_실패해_다시_누르면_올린_사진을_재사용하고_사진이_바뀌면_다시_올린다() async throws {
         let sut = try await extracted([.fixture(id: "1")], select: ["1"])
         sut.addEditPhoto("1", data: photo.data, type: .png)

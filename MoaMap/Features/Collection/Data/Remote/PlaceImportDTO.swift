@@ -53,9 +53,6 @@ nonisolated struct MapSharePlaceCandidateResponse: Decodable, Sendable {
 }
 
 nonisolated struct PlaceBulkCreateRequest: Encodable, Sendable {
-    /// 서버가 한 요청에 받는 장소 수.
-    static let maxPlaces = 100
-
     let mapId: Int64
     let places: [PlaceBulkItem]
 }
@@ -96,12 +93,10 @@ nonisolated struct PlaceBulkItem: Encodable, Sendable {
 }
 
 nonisolated struct PlaceBulkCreateResponse: Decodable, Sendable {
-    let results: [PlaceBulkResult]?
-}
-
-nonisolated struct PlaceBulkResult: Decodable, Sendable {
-    /// CREATED, DUPLICATE, FAILED
-    let status: String?
+    let requested: Int?
+    let created: Int?
+    /// 그 지도에 이미 있어 건너뛴 수.
+    let skipped: Int?
 }
 
 nonisolated extension PlaceCandidateResponse {
