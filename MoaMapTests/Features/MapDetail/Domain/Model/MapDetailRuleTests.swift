@@ -45,6 +45,12 @@ struct MapDetailRuleTests {
         #expect(!map(type: .official, role: .owner, joined: true).showsInfoMenu)
     }
 
+    @Test func 나만의_지도_메뉴에는_멤버_관리가_없다() {
+        #expect(map(type: .private, role: .owner, joined: true).showsMembersMenu)
+        #expect(map(type: .community, role: .member, joined: true).showsMembersMenu)
+        #expect(!map(type: .private, role: .owner, joined: true, personal: true).showsMembersMenu)
+    }
+
     @Test func 지도_삭제는_혼자_남은_프라이빗_방장만_한다() {
         #expect(map(type: .private, role: .owner, joined: true).leavingDeletesMap)
         #expect(!map(type: .private, role: .owner, joined: true, personal: true).leavingDeletesMap)

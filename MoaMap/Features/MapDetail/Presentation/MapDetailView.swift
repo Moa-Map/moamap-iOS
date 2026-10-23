@@ -366,6 +366,7 @@ struct MapDetailView: View {
                 .onTapGesture { menuVisible = false }
                 .accessibilityHidden(true)
             MapDetailMenu(
+                showsMembers: viewModel.uiState.showsMembersMenu,
                 showsInfo: viewModel.uiState.showsInfoMenu,
                 showsInviteCode: viewModel.uiState.inviteCode != nil,
                 canLeave: viewModel.uiState.canLeave,

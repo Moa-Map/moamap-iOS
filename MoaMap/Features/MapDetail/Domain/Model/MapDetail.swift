@@ -76,6 +76,9 @@ nonisolated extension MapDetail {
     /// 서버가 방장·관리자에게만 수정을 허용한다.
     var canEditInfo: Bool { joined && type != .official && (role == .owner || role == .admin) }
 
+    /// 함께 쓰는 사람이 없는 나만의 지도는 멤버 관리를 뺀다.
+    var showsMembersMenu: Bool { showsMenu && !personal }
+
     /// 메뉴의 지도 정보는 지도를 만든 방장에게만 보인다.
     var showsInfoMenu: Bool { showsMenu && !personal && role == .owner }
 
