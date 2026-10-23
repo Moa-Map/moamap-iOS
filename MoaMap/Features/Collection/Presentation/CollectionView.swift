@@ -9,7 +9,6 @@ struct CollectionView: View {
     var onCreateMap: () -> Void = {}
     var onImportPlaces: (PlaceImportSource) -> Void = { _ in }
     var onMapClick: (MyMap) -> Void = { _ in }
-    var onEditMap: (MapDetail) -> Void = { _ in }
     @State private var showsInviteDialog = false
     /// 끌고 있는 지도. 놓거나 다른 곳에 떨어뜨리면 비운다.
     @State private var draggingMapID: Int64?
@@ -51,11 +50,6 @@ struct CollectionView: View {
         .background { MoaMapPrimitiveColors.tabBackground.ignoresSafeArea() }
         .toolbar(.hidden, for: .navigationBar)
         .task { viewModel.refresh() }
-        .onChange(of: viewModel.uiState.mapToEdit) { _, map in
-            guard let map else { return }
-            viewModel.consumeMapToEdit()
-            onEditMap(map)
-        }
         .fullScreenCover(isPresented: $showsInviteDialog) {
             if case .editing(let editing) = viewModel.uiState.join {
                 JoinMapDialog(
@@ -181,7 +175,10 @@ struct CollectionView: View {
         }
         .moaTextStyle(typography.button1)
         .foregroundStyle(colors.textNormal)
-        .buttonStyle(.plain)
+        .buttonStyle(.noPressEffect)
+        // 편집과 완료 글자가 겹쳐 보이지 않게 바로 바꾼다.
+        .contentTransition(.identity)
+        .transaction { $0.animation = nil }
         .frame(minHeight: 44)
         .disabled(editing?.processing == true)
         // 위 탭과의 간격은 시안의 20 을 지키고, 커진 터치 영역만큼 목록 쪽으로 당긴다.
@@ -191,17 +188,19 @@ struct CollectionView: View {
     private func mapList(_ maps: [MyMap], showsMembers: Bool) -> some View {
         LazyVStack(spacing: Self.cardSpacing) {
             ForEach(maps) { map in
+                // 나만의 지도는 편집 중에도 고르거나 옮길 수 없어 평소 모양 그대로 둔다.
+                let editable = editing != nil && !map.personal
                 let card = Button {
-                    if editing == nil { onMapClick(map) } else { viewModel.toggleSelection(mapID: map.id) }
+                    if editing == nil { onMapClick(map) } else if editable { viewModel.toggleSelection(mapID: map.id) }
                 } label: {
                     CollectionMapCard(
                         map: map, showsMembers: showsMembers, showsRoleBadge: showsMembers,
-                        selected: editing.map { $0.selectedIDs.contains(map.id) },
-                        showsDragHandle: editing != nil
+                        selected: editable ? editing?.selectedIDs.contains(map.id) : nil,
+                        showsDragHandle: editable
                     )
                 }
                 .buttonStyle(.plain)
-                if editing == nil {
+                if !editable {
                     card
                 } else {
                     // 핸들은 누르자마자, 카드는 길게 눌러 끈다. 지나가는 자리마다 순서가 바뀌고 저장은 편집을 끝낼 때 한다.
@@ -280,17 +279,6 @@ struct CollectionView: View {
             Spacer(minLength: 0)
             if editing.processing {
                 ProgressView()
-            }
-            if editing.selectedIDs.count == 1 {
-                Button(action: viewModel.requestEditInfo) {
-                    Text("정보 수정")
-                        .moaTextStyle(typography.button2)
-                        .foregroundStyle(colors.textWhite)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(colors.primary, in: Capsule())
-                }
-                .disabled(!editing.canEditInfo)
             }
             Button(action: viewModel.requestLeave) {
                 Text("나가기")

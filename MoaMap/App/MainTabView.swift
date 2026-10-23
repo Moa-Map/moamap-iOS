@@ -9,7 +9,6 @@ private enum MainRoute: Hashable {
     case communityMaps
     case officialMaps
     case createMap
-    case editMap(MapDetail)
     case placeImport(PlaceImportStep)
     case mapIntro(mapID: Int64)
     case mapDetail(mapID: Int64, title: String)
@@ -35,7 +34,6 @@ struct MainTabView: View {
     private let makeTermDetailViewModel: (Int64) -> TermDetailViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCreateMapViewModel: () -> CreateMapViewModel
-    private let makeEditMapViewModel: (MapDetail) -> EditMapViewModel
     private let makePlaceImportViewModel: (PlaceImportSource, String) -> PlaceImportViewModel
     private let sharedLinkInbox: SharedLinkInbox
     @State private var collectionNotice: String?
@@ -63,7 +61,6 @@ struct MainTabView: View {
         makeTermDetailViewModel: @escaping (Int64) -> TermDetailViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCreateMapViewModel: @escaping () -> CreateMapViewModel,
-        makeEditMapViewModel: @escaping (MapDetail) -> EditMapViewModel,
         makePlaceImportViewModel: @escaping (PlaceImportSource, String) -> PlaceImportViewModel,
         makeCommunityMapListViewModel: @escaping () -> CommunityMapListViewModel,
         makeOfficialMapListViewModel: @escaping () -> OfficialMapListViewModel,
@@ -82,7 +79,6 @@ struct MainTabView: View {
         self.makeTermDetailViewModel = makeTermDetailViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCreateMapViewModel = makeCreateMapViewModel
-        self.makeEditMapViewModel = makeEditMapViewModel
         self.makePlaceImportViewModel = makePlaceImportViewModel
         self.makeCommunityMapListViewModel = makeCommunityMapListViewModel
         self.makeOfficialMapListViewModel = makeOfficialMapListViewModel
@@ -123,8 +119,7 @@ struct MainTabView: View {
                     onCreateMap: { collectionPath.append(.createMap) },
                     onImportPlaces: { startPlaceImport($0) },
                     // 모음에는 참여한 지도만 있어 소개를 건너뛴다.
-                    onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) },
-                    onEditMap: { collectionPath.append(.editMap($0)) }
+                    onMapClick: { collectionPath.append(.detail(id: $0.id, title: $0.title, official: $0.official)) }
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     // 편집 중에는 편집 바가 대신 뜬다.
@@ -270,15 +265,6 @@ struct MainTabView: View {
                     }
                 }
             )
-        case .editMap(let map):
-            EditMapView(
-                viewModel: makeEditMapViewModel(map),
-                onBack: { path.wrappedValue.removeLast() },
-                onSaved: {
-                    path.wrappedValue.removeLast()
-                    collectionViewModel.mapEdited()
-                }
-            )
         case .communityMaps:
             CommunityMapListView(viewModel: makeCommunityMapListViewModel()) { path.wrappedValue.append(.map($0)) }
         case .officialMaps:
@@ -388,7 +374,6 @@ private final class PreviewLocationProvider: LocationProvider {
         makeTermDetailViewModel: { TermDetailViewModel(termID: $0, repository: PreviewTermsRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository(), importRepository: PreviewPlaceImportRepository()) },
-        makeEditMapViewModel: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) },
         makePlaceImportViewModel: {
             PlaceImportViewModel(source: $0, url: $1, importRepository: PreviewPlaceImportRepository(), collectionRepository: PreviewCollectionRepository())
         },
