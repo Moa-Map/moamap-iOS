@@ -81,12 +81,27 @@ struct PlaceImportRepositoryTests {
           {"name":""}
         ],"unmatched":[{"name":"못 찾음"}]}}
         """#, caption: .blocked)
-        let places = try await sut.extractMapSharePlaces(url: " https://naver.me/abc ")
+        let places = try await sut.extractMapSharePlaces(url: " https://naver.me/abc ").places
         #expect(log.requests.first?.url?.path == "/api/v1/places/map-share-extractions")
         #expect(log.bodies().first as? [String: String] == ["url": "https://naver.me/abc"])
         #expect(places.map(\.id) == ["21", "candidate-1"])
         #expect(places.map(\.sourceType) == ["NAVER_MAP", "KAKAO_MAP"])
         #expect(places[0].description == "메모")
+    }
+
+    @Test func 공유_링크에서_다_가져오지_못한_내역을_읽는다() async throws {
+        let sut = try repository(body: #"""
+        {"success":true,"data":{"declaredCount":983,"extractedCount":500,"truncated":true,"matched":[],
+          "unmatched":[{"name":"못 찾음","reason":"NO_RESULT"},{"name":"  "},{"reason":"TOO_FAR"},{"name":"이름 다름","reason":"NAME_MISMATCH"}]}}
+        """#)
+        let report = try await sut.extractMapSharePlaces(url: "https://naver.me/abc").report
+        #expect(report == MapShareReport(declaredCount: 983, extractedCount: 500, truncated: true, missedNames: ["못 찾음", "이름 다름"]))
+    }
+
+    @Test func 공유_링크_내역이_비어도_기본값으로_읽는다() async throws {
+        let sut = try repository(body: #"{"success":true,"data":{"matched":[{"kakaoPlaceId":"1","name":"식당"}]}}"#)
+        let report = try await sut.extractMapSharePlaces(url: "https://naver.me/abc").report
+        #expect(report == MapShareReport(declaredCount: nil, extractedCount: 1, truncated: false, missedNames: []))
     }
 
     // MARK: 등록

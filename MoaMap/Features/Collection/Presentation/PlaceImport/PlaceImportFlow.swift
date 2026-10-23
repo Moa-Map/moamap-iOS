@@ -115,7 +115,12 @@ final class PreviewPlaceImportRepository: PlaceImportRepository {
     ]
 
     func extractInstagramPlaces(url: String) async throws -> [ImportedPlace] { places }
-    func extractMapSharePlaces(url: String) async throws -> [ImportedPlace] { places }
+    func extractMapSharePlaces(url: String) async throws -> MapShareExtraction {
+        MapShareExtraction(
+            places: places,
+            report: MapShareReport(declaredCount: 983, extractedCount: 500, truncated: true, missedNames: ["비터포레스트", "카페 몰레큘"])
+        )
+    }
     func uploadPhotos(mapID: Int64, places: [EditedPlace]) async throws -> [String: [String]] { [:] }
     func savePlaces(mapIDs: [Int64], places: [EditedPlace], photoURLs: [String: [String]]) async throws -> PlaceSaveResult {
         PlaceSaveResult(created: places.count, duplicate: 0, failed: 0)

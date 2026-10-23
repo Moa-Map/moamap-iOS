@@ -35,15 +35,24 @@ final class PlaceImportRepositoryImpl: PlaceImportRepository {
             .enumerated().map { $1.toDomain(index: $0) }
     }
 
-    func extractMapSharePlaces(url: String) async throws -> [ImportedPlace] {
+    func extractMapSharePlaces(url: String) async throws -> MapShareExtraction {
         let request = APIRequest(
             path: ["api", "v1", "places", "map-share-extractions"],
             method: .post,
             jsonBody: try JSONEncoder().encode(MapShareExtractRequest(url: url.trimmingCharacters(in: .whitespacesAndNewlines)))
         )
         let response = try await client.send(request, as: MapShareExtractResponse.self)
-        return (response.matched ?? []).filter { !($0.name ?? "").trimmingCharacters(in: .whitespaces).isEmpty }
+        let matched = response.matched ?? []
+        let unmatched = response.unmatched ?? []
+        let places = matched.filter { !($0.name ?? "").trimmingCharacters(in: .whitespaces).isEmpty }
             .enumerated().map { $1.toDomain(index: $0, fallbackSource: response.source) }
+        let report = MapShareReport(
+            declaredCount: response.declaredCount,
+            extractedCount: response.extractedCount ?? matched.count + unmatched.count,
+            truncated: response.truncated ?? false,
+            missedNames: unmatched.compactMap { $0.name?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        )
+        return MapShareExtraction(places: places, report: report)
     }
 
     /// 발급이 한 번에 5장까지라 장소별로 나눠 부른다. 사진이 없는 장소는 부르지 않는다.

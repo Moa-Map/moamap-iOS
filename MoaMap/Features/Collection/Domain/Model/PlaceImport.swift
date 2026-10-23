@@ -38,6 +38,24 @@ nonisolated struct ImportedPlace: Identifiable, Equatable, Sendable {
     }
 }
 
+/// 외부 지도 리스트를 얼마나 가져왔는지. 다 가져오지 못했으면 사용자에게 알린다.
+nonisolated struct MapShareReport: Equatable, Sendable {
+    /// 외부 지도 리스트에 담긴 장소 수. 서버가 읽지 못하면 없다.
+    var declaredCount: Int?
+    /// 서버가 실제로 읽은 수. 잘렸으면 한 번에 읽을 수 있는 최대치다.
+    var extractedCount = 0
+    /// 리스트가 길어 뒤쪽을 읽지 않았다.
+    var truncated = false
+    /// 카카오 장소와 맞추지 못해 등록할 수 없는 장소.
+    var missedNames: [String] = []
+}
+
+/// 지도 공유 링크에서 뽑은 후보와 그 내역.
+nonisolated struct MapShareExtraction: Equatable, Sendable {
+    let places: [ImportedPlace]
+    let report: MapShareReport
+}
+
 /// 등록 전에 장소마다 덧붙이는 값.
 nonisolated struct PlaceEdit: Equatable, Sendable {
     var tags: [String] = []

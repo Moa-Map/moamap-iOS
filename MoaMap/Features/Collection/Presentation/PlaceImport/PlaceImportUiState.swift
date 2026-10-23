@@ -15,6 +15,8 @@ nonisolated struct PlaceImportUiState: Equatable, Sendable {
     let source: PlaceImportSource
     var url: String
     var extraction: PlaceExtractionState = .idle
+    /// 외부 지도에서 다 가져오지 못한 내역. 인스타그램은 없다.
+    var mapShareReport: MapShareReport?
     var selectedPlaceIDs: Set<String> = []
     /// 한 번도 편집하지 않은 장소는 없다. `edit(of:)` 가 기본값을 만든다.
     var edits: [String: PlaceEdit] = [:]

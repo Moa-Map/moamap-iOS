@@ -41,12 +41,42 @@ struct PlaceImportViewModelTests {
     }
 
     @Test func 외부_지도는_등록할_수_있는_장소를_모두_고른_채로_시작한다() async throws {
-        repository.extractMapShare = { _ in [.fixture(id: "1"), .fixture(id: "2", savable: false)] }
+        repository.extractMapShare = { _ in
+            MapShareExtraction(places: [.fixture(id: "1"), .fixture(id: "2", savable: false)], report: MapShareReport())
+        }
         let sut = sut(.mapShare, url: "https://naver.me/x")
         sut.startExtraction()
         #expect(sut.uiState.extraction == .loading)
         try await sut.extractionTask?.value
         #expect(sut.uiState.selectedPlaceIDs == ["1"])
+    }
+
+    @Test func 외부_지도는_다_가져오지_못한_내역을_함께_남긴다() async throws {
+        let report = MapShareReport(declaredCount: 983, extractedCount: 500, truncated: true, missedNames: ["못 찾음"])
+        repository.extractMapShare = { _ in MapShareExtraction(places: [.fixture(id: "1")], report: report) }
+        let sut = sut(.mapShare, url: "https://naver.me/x")
+        sut.startExtraction()
+        try await sut.extractionTask?.value
+        #expect(sut.uiState.mapShareReport == report)
+    }
+
+    @Test func 외부_지도_재검색이_실패하면_보던_내역도_되돌린다() async throws {
+        let report = MapShareReport(declaredCount: 3, extractedCount: 3, missedNames: ["못 찾음"])
+        repository.extractMapShare = { _ in MapShareExtraction(places: [.fixture(id: "1")], report: report) }
+        let sut = sut(.mapShare, url: "https://naver.me/x")
+        sut.startExtraction()
+        try await sut.extractionTask?.value
+
+        repository.extractMapShare = { _ in throw NetworkError.http(statusCode: 500) }
+        sut.startExtraction()
+        #expect(sut.uiState.mapShareReport == nil)
+        try await sut.extractionTask?.value
+        #expect(sut.uiState.mapShareReport == report)
+    }
+
+    @Test func 인스타그램은_가져온_내역이_없다() async throws {
+        let sut = try await extracted([.fixture(id: "1")])
+        #expect(sut.uiState.mapShareReport == nil)
     }
 
     @Test func 등록할_수_없는_장소는_고를_수_없다() async throws {

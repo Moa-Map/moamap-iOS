@@ -135,6 +135,62 @@ struct PlaceImportLabels: View {
     }
 }
 
+/// 외부 지도에서 다 가져오지 못한 까닭. 리스트가 잘렸거나 위치를 못 찾은 곳이 있을 때만 보인다.
+struct MapShareReportNotice: View {
+    @Environment(\.moaColors) private var colors
+    @Environment(\.moaTypography) private var typography
+
+    let report: MapShareReport
+
+    @State private var showsMissed = false
+
+    var body: some View {
+        if report.truncated || !report.missedNames.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                if report.truncated {
+                    line(truncatedMessage)
+                }
+                if !report.missedNames.isEmpty {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        line("\(report.missedNames.count)곳은 위치를 찾지 못해 가져오지 못했어요")
+                        Spacer(minLength: 0)
+                        Button(showsMissed ? "접기" : "목록 보기") {
+                            withAnimation(.easeOut(duration: 0.2)) { showsMissed.toggle() }
+                        }
+                        .moaTextStyle(typography.caption0)
+                        .foregroundStyle(colors.textAlternative)
+                        .buttonStyle(.plain)
+                    }
+                    if showsMissed {
+                        Text(report.missedNames.joined(separator: ", "))
+                            .moaTextStyle(typography.caption0)
+                            .foregroundStyle(colors.textAssistive)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    /// 한 번에 읽는 수는 서버가 정해 응답의 읽은 수로 알린다.
+    private var truncatedMessage: String {
+        if let declared = report.declaredCount, declared > report.extractedCount {
+            return "한 번에 \(report.extractedCount)곳까지 불러올 수 있어 \(declared - report.extractedCount)곳은 가져오지 못했어요"
+        }
+        return "한 번에 \(report.extractedCount)곳까지 불러올 수 있어 나머지는 가져오지 못했어요"
+    }
+
+    private func line(_ text: String) -> some View {
+        Text(text)
+            .moaTextStyle(typography.body2)
+            .foregroundStyle(colors.textNormal)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
 /// 추출된 장소 후보. 여러 개 고를 수 있어 파란 테두리와 체크박스로 표시한다.
 struct ImportedPlaceCard: View {
     @Environment(\.moaColors) private var colors
