@@ -29,6 +29,8 @@ final class AppContainer {
     let mapPostCommentRepository: any MapPostCommentRepository
     let userRepository: any UserRepository
     let termsRepository: any TermsRepository
+    let noticeRepository: any NoticeRepository
+    let inquiryRepository: any InquiryRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
     let placeImportRepository: any PlaceImportRepository
@@ -91,6 +93,8 @@ final class AppContainer {
         )
         userRepository = UserRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
         termsRepository = TermsRepositoryImpl(client: apiClient)
+        noticeRepository = NoticeRepositoryImpl(client: apiClient)
+        inquiryRepository = InquiryRepositoryImpl(client: apiClient)
     }
 
     convenience init(bundle: Bundle) throws {
@@ -247,6 +251,18 @@ final class AppContainer {
 
     func makeSettingsViewModel() -> SettingsViewModel {
         SettingsViewModel(repository: authRepository, termsRepository: termsRepository)
+    }
+
+    func makeNoticeListViewModel() -> NoticeListViewModel {
+        NoticeListViewModel(repository: noticeRepository, timeZone: .current)
+    }
+
+    func makeNoticeDetailViewModel(noticeID: Int64) -> NoticeDetailViewModel {
+        NoticeDetailViewModel(noticeID: noticeID, repository: noticeRepository, timeZone: .current)
+    }
+
+    func makeInquiryViewModel() -> InquiryViewModel {
+        InquiryViewModel(repository: inquiryRepository, userRepository: userRepository)
     }
 
     func makeTermsGateViewModel() -> TermsGateViewModel {

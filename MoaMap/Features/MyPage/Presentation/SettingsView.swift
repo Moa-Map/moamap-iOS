@@ -8,18 +8,24 @@ struct SettingsView: View {
     @State private var logoutDialogVisible = false
     @State private var withdrawDialogVisible = false
 
+    let onOpenNotices: () -> Void
     let onOpenTerm: (Term) -> Void
+    let onOpenInquiry: () -> Void
     let onOpenMapAttribution: () -> Void
     let onLoggedOut: () -> Void
 
     init(
         viewModel: SettingsViewModel,
+        onOpenNotices: @escaping () -> Void,
         onOpenTerm: @escaping (Term) -> Void,
+        onOpenInquiry: @escaping () -> Void,
         onOpenMapAttribution: @escaping () -> Void,
         onLoggedOut: @escaping () -> Void
     ) {
         _viewModel = State(initialValue: viewModel)
+        self.onOpenNotices = onOpenNotices
         self.onOpenTerm = onOpenTerm
+        self.onOpenInquiry = onOpenInquiry
         self.onOpenMapAttribution = onOpenMapAttribution
         self.onLoggedOut = onLoggedOut
     }
@@ -33,14 +39,15 @@ struct SettingsView: View {
                         row("알림 on/off") { toggle }
                     }
                     section("정보") {
-                        navigationRow("공지사항")
+                        navigationRow("공지사항", action: onOpenNotices)
                         navigationRow("이용약관", showsDivider: true) {
                             viewModel.openTerm(code: TermCode.service, onFound: onOpenTerm)
                         }
                         navigationRow("개인정보처리방침", showsDivider: true) {
                             viewModel.openTerm(code: TermCode.policy, onFound: onOpenTerm)
                         }
-                        navigationRow("신고하기", showsDivider: true)
+                        // 시안의 「신고하기」 자리를 문의하기로 쓴다. 신고는 문의 유형으로 받는다.
+                        navigationRow("문의하기", showsDivider: true, action: onOpenInquiry)
                     }
                     section("앱 정보") {
                         row("버전 정보") {
@@ -231,7 +238,7 @@ final class PreviewTermsRepository: TermsRepository {
 #Preview {
     SettingsView(
         viewModel: SettingsViewModel(repository: PreviewAuthRepository(), termsRepository: PreviewTermsRepository()),
-        onOpenTerm: { _ in }, onOpenMapAttribution: {}, onLoggedOut: {}
+        onOpenNotices: {}, onOpenTerm: { _ in }, onOpenInquiry: {}, onOpenMapAttribution: {}, onLoggedOut: {}
     )
 }
 #endif
