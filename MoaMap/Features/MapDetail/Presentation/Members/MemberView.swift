@@ -35,7 +35,7 @@ struct MemberView: View {
                 MoaMapConfirmDialog(
                     title: target.name,
                     titleSuffix: "님을 관리자로 지정할까요?",
-                    message: "관리자는 장소 신청 관리하고,\n모든 장소를 수정·삭제할 수 있어요",
+                    message: "관리자는 장소 신청을 관리하고,\n모든 장소를 수정·삭제할 수 있어요",
                     dismissText: "닫기",
                     onConfirm: {
                         grantTarget = nil
