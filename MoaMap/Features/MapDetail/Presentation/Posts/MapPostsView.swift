@@ -27,6 +27,8 @@ struct MapPostsView: View {
                     onSortSelect: viewModel.selectSort
                 )
                     .padding(.bottom, 8)
+                    // 펼친 보기 방식 메뉴가 카드 위에 그려지게 한다.
+                    .zIndex(1)
                 content
             }
             .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
@@ -184,6 +186,7 @@ private struct MapPostViewModeChip: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
     @State private var expanded = false
+    @State private var collapsedHeight: CGFloat?
 
     let viewMode: MapPostViewMode
     let onSelect: (MapPostViewMode) -> Void
@@ -208,6 +211,7 @@ private struct MapPostViewModeChip: View {
             }
             .accessibilityLabel(viewMode.label)
             .accessibilityHint(expanded ? "보기 방식 닫기" : "보기 방식 펼치기")
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { collapsedHeight = $0 }
             if expanded {
                 ForEach(MapPostViewMode.allCases.filter { $0 != viewMode }, id: \.self) { mode in
                     Button {
@@ -227,6 +231,9 @@ private struct MapPostViewModeChip: View {
         .buttonStyle(.plain)
         .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 18))
         .overlay { RoundedRectangle(cornerRadius: 18).strokeBorder(MoaMapPrimitiveColors.gray300, lineWidth: 1) }
+        // 펼쳐도 자리는 접힌 높이만 차지해 아래 내용을 밀지 않고 위에 겹친다.
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(height: collapsedHeight, alignment: .top)
     }
 }
 

@@ -347,6 +347,10 @@ struct MapDetailView: View {
                 // 수락한 장소는 지도에 새로 떠야 한다.
                 viewModel.refresh()
             }
+            .onChange(of: selectedTab) { _, tab in
+                // 장소 상세는 장소 탭의 화면이라 로그로 넘어가면 닫는다.
+                if tab == .logs { selectedPlaceID = nil }
+            }
             .onChange(of: viewModel.uiState.showsLogTab) { _, shows in
                 if !shows { selectedTab = .places }
             }

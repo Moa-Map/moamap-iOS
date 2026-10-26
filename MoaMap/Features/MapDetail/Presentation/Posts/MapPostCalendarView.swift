@@ -13,22 +13,26 @@ struct MapPostCalendarView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            VStack(spacing: 12) {
+                // 펼친 보기 방식 메뉴가 달력 위에 그려지게 한다.
                 MapPostsToolbar(viewMode: .calendar, onViewModeSelect: onViewModeSelect)
-                if let month = viewModel.uiState.month {
-                    MonthHeader(
-                        month: month,
-                        onPrevious: viewModel.showPreviousMonth,
-                        onNext: viewModel.showNextMonth
-                    )
-                    MonthGrid(
-                        month: month,
-                        covers: viewModel.coverPhotos,
-                        selectedDay: viewModel.uiState.selectedDay,
-                        onDaySelect: viewModel.selectDay
-                    )
-                    .padding(.bottom, 20)
-                    dayContent
+                    .zIndex(1)
+                LazyVStack(spacing: 12) {
+                    if let month = viewModel.uiState.month {
+                        MonthHeader(
+                            month: month,
+                            onPrevious: viewModel.showPreviousMonth,
+                            onNext: viewModel.showNextMonth
+                        )
+                        MonthGrid(
+                            month: month,
+                            covers: viewModel.coverPhotos,
+                            selectedDay: viewModel.uiState.selectedDay,
+                            onDaySelect: viewModel.selectDay
+                        )
+                        .padding(.bottom, 20)
+                        dayContent
+                    }
                 }
             }
             .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)

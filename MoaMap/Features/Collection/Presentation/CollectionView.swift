@@ -356,6 +356,8 @@ struct CollectionView: View {
                 background: MoaMapPrimitiveColors.yellow50, titleColor: MoaMapPrimitiveColors.yellow800
             ) { onImportPlaces(.mapShare) }
         }
+        // 편집 중에는 지도 고르기만 받는다.
+        .disabled(editing != nil)
     }
 
     private func withoutAnimation(_ body: () -> Void) {

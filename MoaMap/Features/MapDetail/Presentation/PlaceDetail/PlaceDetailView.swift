@@ -38,6 +38,8 @@ struct PlaceDetailView: View {
     private static let peekBottomGap: CGFloat = 12
     private static let contentSpace = "placeDetailContent"
     private static let contentTopID = "placeDetailTop"
+    private static let scrollSpace = "placeDetailScroll"
+    private static let keyboardAnchorID = "placeDetailKeyboardAnchor"
 
     @State private var expanded = false
     /// 짧게 끌고 놓아 펼침이 그대로면 제자리로 부드럽게 돌아간다.
@@ -49,6 +51,12 @@ struct PlaceDetailView: View {
     @State private var collapsedHeightSettled = false
     @State private var controlsHeight: CGFloat = 0
     @State private var actionsBottom: CGFloat = 0
+    /// 키보드가 올라올 때 목록을 그만큼 올리는 데 쓴다.
+    @State private var scrollOffset: CGFloat = 0
+    @State private var listVisibleHeight: CGFloat?
+    @State private var keyboardAnchorY: CGFloat = 0
+    /// 댓글이 적어 목록이 짧아도 올릴 수 있게 키보드가 줄인 만큼 아래를 늘린다.
+    @State private var keyboardLift: CGFloat = 0
     @State private var dividerBottom: CGFloat = 0
     @State private var firstReviewHeight: CGFloat = 0
 
@@ -232,8 +240,28 @@ struct PlaceDetailView: View {
                             )
                         }
                     }
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 16 + keyboardLift)
                     .coordinateSpace(.named(Self.contentSpace))
+                    .background(alignment: .top) {
+                        Color.clear.frame(height: 1).padding(.top, keyboardAnchorY).id(Self.keyboardAnchorID)
+                    }
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.frame(in: .named(Self.scrollSpace)).minY
+                    } action: { scrollOffset = -$0 }
+                }
+                .coordinateSpace(.named(Self.scrollSpace))
+                // 키보드가 올라와 목록이 줄면 보던 아래 끝이 키보드 위에 남도록 줄어든 만큼 올린다.
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                    defer { listVisibleHeight = height }
+                    guard let old = listVisibleHeight else { return }
+                    guard composerFocused, height < old else {
+                        if height > old { keyboardLift = 0 }
+                        return
+                    }
+                    keyboardLift += old - height
+                    keyboardAnchorY = max(scrollOffset + old - 1, 0)
+                    // 표시를 옮긴 자리가 그려진 다음에 맞춘다.
+                    Task { withAnimation(.easeOut(duration: 0.25)) { scroll.scrollTo(Self.keyboardAnchorID, anchor: .bottom) } }
                 }
                 .scrollDismissesKeyboard(.interactively)
                 // 반만 올라온 동안은 목록 대신 시트가 끌려 올라온다.
