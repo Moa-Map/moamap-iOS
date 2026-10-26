@@ -50,6 +50,9 @@ nonisolated extension MapDetail {
     /// 멤버·장소 관리 메뉴. 공식지도는 메뉴 대신 나가기 글자를 둔다.
     var showsMenu: Bool { joined && type != .official }
 
+    /// 장소·로그 탭. 공식지도는 로그가 없고, 참여 전에는 장소만 본다.
+    var showsLogTab: Bool { joined && type != .official }
+
     /// 공식지도는 나가도 화면에 남아 참여하기로 돌아간다.
     var staysAfterLeaving: Bool { type == .official }
 
