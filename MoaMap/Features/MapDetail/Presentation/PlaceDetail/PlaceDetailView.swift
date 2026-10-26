@@ -279,15 +279,15 @@ struct PlaceDetailView: View {
                         .moaTextStyle(typography.subtitle1)
                         .foregroundStyle(colors.textNormal)
                         .lineLimit(1)
-                    // 주소는 태그 옆에 잇는다. 태그가 없으면 주소만 둔다.
-                    HStack(spacing: 4) {
-                        if !place.categoryLabel.isEmpty { categoryTag }
-                        if !place.address.isEmpty {
-                            Text(place.categoryLabel.isEmpty ? place.address : "· \(place.address)")
-                                .moaTextStyle(typography.body2)
-                                .foregroundStyle(colors.textAlternative)
-                                .lineLimit(1)
+                    // 시안: 이름 아래 태그 칩, 그 아래 위치 아이콘과 주소. 없는 줄은 자리를 두지 않는다.
+                    if !place.tags.isEmpty {
+                        FlowLayout(spacing: 4, lineSpacing: 4) {
+                            ForEach(Array(place.tags.enumerated()), id: \.offset) { _, tag in tagChip(tag) }
                         }
+                    }
+                    // 반만 올렸을 때는 숨기고 끝까지 올리면 보인다.
+                    if expanded, !place.address.isEmpty {
+                        addressRow.transition(.opacity)
                     }
                     if compact, showsReactions { likeButton }
                 }
@@ -354,8 +354,23 @@ struct PlaceDetailView: View {
         .accessibilityValue("\(place.likeCount)")
     }
 
-    private var categoryTag: some View {
-        Text(place.categoryLabel)
+    private var addressRow: some View {
+        HStack(spacing: 2) {
+            Image("Icons/location")
+                .renderingMode(.template)
+                .resizable()
+                .frame(width: 20, height: 20)
+                .foregroundStyle(colors.textAssistive)
+                .accessibilityHidden(true)
+            Text(place.address)
+                .moaTextStyle(typography.body2)
+                .foregroundStyle(colors.textAlternative)
+                .lineLimit(1)
+        }
+    }
+
+    private func tagChip(_ tag: String) -> some View {
+        Text(tag)
             .moaTextStyle(typography.caption0)
             .foregroundStyle(MoaMapPrimitiveColors.yellow900)
             .lineLimit(1)
@@ -549,6 +564,7 @@ private struct PlacePhotoPager: View {
             place: MapPlace(
                 id: 1, name: "커피나무", address: "서울 성동구 성수이로 12", latitude: 0, longitude: 0, photoURLs: [],
                 description: "따뜻한 분위기에서 스페셜티 커피를 즐길 수 있는 카페", category: "음식점 > 카페 > 커피전문점",
+                tags: ["데이트", "브런치"],
                 likeCount: 12, liked: true, instagramURL: URL(string: "https://www.instagram.com/p/abc")
             ),
             personalMapAction: PersonalMapAction(message: "나만의 지도에 추가했어요"),

@@ -14,6 +14,8 @@ nonisolated struct MapPlace: Identifiable, Equatable, Sendable {
     var description = ""
     /// 카카오 분류 경로. `"음식점 > 카페 > 커피전문점"` 처럼 온다.
     var category = ""
+    /// 등록할 때 붙인 태그. 장소 시트의 칩으로 보인다.
+    var tags: [String] = []
     var reviewCount = 0
     var kakaoPlaceID = ""
     var likeCount = 0
@@ -25,11 +27,6 @@ nonisolated struct MapPlace: Identifiable, Equatable, Sendable {
 nonisolated extension MapPlace {
     /// 목록 썸네일·마커에 쓰는 대표 사진. 첫 장이다.
     var photoURL: URL? { photoURLs.first }
-
-    /// 분류 경로의 마지막 토막. `"커피전문점"`
-    var categoryLabel: String {
-        category.split(separator: ">").last?.trimmingCharacters(in: .whitespaces) ?? ""
-    }
 }
 
 /// 하트를 누르거나 취소한 뒤 서버가 확정한 상태.
