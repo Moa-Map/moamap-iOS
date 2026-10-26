@@ -19,7 +19,7 @@ struct MapPostCreateView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            MoaMapTopBar(title: "새 게시물", onBack: onClose)
+            MoaMapTopBar(title: "새 로그", onBack: onClose)
             ScrollView {
                 VStack(spacing: 12) {
                     PhotoAttachmentRow(
@@ -92,7 +92,7 @@ struct MapPostCreateView: View {
                 "",
                 // 메서드를 그대로 넘기면 Swift 6.3 컴파일러가 IR 생성 중에 죽는다(CI).
                 text: Binding(get: { state.content }, set: { viewModel.updateContent($0) }),
-                prompt: Text("텍스트를 입력해주세요.").foregroundStyle(colors.textAssistive),
+                prompt: Text("이 장소에서의 이야기를 남겨보세요").foregroundStyle(colors.textAssistive),
                 axis: .vertical
             )
             .moaTextStyle(typography.body2)
@@ -225,7 +225,7 @@ private struct MapPostPlacePicker: View {
         // 받아 둔 목록을 이름으로 거른다. 지도 상세 검색과 같다.
         let visible = places.filtered(by: .all, query: query)
         VStack(spacing: 0) {
-            MoaMapTopBar(title: "새 게시물", onBack: onBack)
+            MoaMapTopBar(title: "장소 검색", onBack: onBack)
             searchField
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
                 .padding(.top, 18)

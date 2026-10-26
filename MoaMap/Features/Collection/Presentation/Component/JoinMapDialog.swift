@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Figma 참여 코드 모달.
+/// Figma 초대 코드 모달.
 struct JoinMapDialog: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
@@ -40,7 +40,7 @@ struct JoinMapDialog: View {
                 .accessibilityAddTraits(.isHeader)
             (
                 Text("친구에게 ") +
-                Text("참여 코드").foregroundColor(colors.primary) +
+                Text("초대 코드").foregroundColor(colors.primary) +
                 Text("를 받으세요")
             )
             .moaTextStyle(typography.subtitle2)
@@ -67,7 +67,7 @@ struct JoinMapDialog: View {
                         .overlay(alignment: .bottom) {
                             Rectangle().fill(MoaMapPrimitiveColors.black).frame(height: 2)
                         }
-                        .accessibilityLabel("참여 코드")
+                        .accessibilityLabel("초대 코드")
                 }
                 Button(action: onSubmit) {
                     ZStack {

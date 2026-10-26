@@ -12,6 +12,7 @@ struct MemberView: View {
 
     @State private var guideVisible = false
     @State private var grantError: String?
+    @State private var grantTarget: MapMember?
 
     private var state: MemberUiState { viewModel.uiState }
 
@@ -29,6 +30,21 @@ struct MemberView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(colors.backgroundSecondary)
+        .overlay {
+            if let target = grantTarget {
+                MoaMapConfirmDialog(
+                    title: target.name,
+                    titleSuffix: "님을 관리자로 지정할까요?",
+                    message: "관리자는 장소 신청을 관리하고,\n모든 장소를 수정·삭제할 수 있어요",
+                    dismissText: "닫기",
+                    onConfirm: {
+                        grantTarget = nil
+                        viewModel.grantAdmin(userID: target.id)
+                    },
+                    onDismiss: { grantTarget = nil }
+                )
+            }
+        }
         // 말풍선 밖을 누르면 닫는다.
         .contentShape(Rectangle())
         .onTapGesture { guideVisible = false }
@@ -115,7 +131,7 @@ struct MemberView: View {
             canGrant: canGrantRole && (member.role == .member || member.role == .none),
             // 오가는 중에는 다른 카드의 버튼도 잠근다.
             grantEnabled: !state.granting,
-            onGrant: { viewModel.grantAdmin(userID: member.id) }
+            onGrant: { grantTarget = member }
         )
     }
 
@@ -147,12 +163,12 @@ private struct MemberCard: View {
                     .overlay { Circle().strokeBorder(colors.lineAlternative, lineWidth: 1) }
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 4) {
                         Text(member.name)
                             .moaTextStyle(typography.subtitle2)
                             .foregroundStyle(colors.textNormal)
                             .lineLimit(1)
-                        if let tag { roleTag(tag) }
+                        if let tag { roleBadge(tag) }
                     }
                     // 태그가 없어도 줄 높이는 태그 높이에 맞춘다.
                     .frame(height: 24)
@@ -167,7 +183,7 @@ private struct MemberCard: View {
             .accessibilityElement(children: .combine)
             if canGrant {
                 Button(action: onGrant) {
-                    Text("권한 부여")
+                    Text("관리자 지정")
                         .moaTextStyle(typography.button2)
                         .foregroundStyle(colors.textWhite)
                         .padding(8)
@@ -175,7 +191,7 @@ private struct MemberCard: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!grantEnabled)
-                .accessibilityLabel("\(member.name) 관리자 권한 부여")
+                .accessibilityLabel("\(member.name) 관리자 지정")
             }
         }
         .padding(.horizontal, 16)
@@ -187,18 +203,14 @@ private struct MemberCard: View {
         .shadow(color: .black.opacity(0.04), radius: 4)
     }
 
-    /// 방장은 파란 태그, 관리자는 회색 태그.
-    private func roleTag(_ role: MapRole) -> some View {
+    /// 방장은 파란 왕관, 관리자는 노란 왕관. 테두리까지 담은 23 칸 그림이라 자리는 20 만 잡는다.
+    private func roleBadge(_ role: MapRole) -> some View {
         let owner = role == .owner
-        return Text(owner ? "방장" : "관리자")
-            .moaTextStyle(typography.caption0)
-            .foregroundStyle(owner ? MoaMapPrimitiveColors.blue900 : MoaMapPrimitiveColors.gray900)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(owner ? MoaMapPrimitiveColors.blue50 : MoaMapPrimitiveColors.gray50, in: Capsule())
-            .overlay {
-                Capsule().strokeBorder(owner ? MoaMapPrimitiveColors.blue500 : MoaMapPrimitiveColors.gray500, lineWidth: 1)
-            }
+        return Image(owner ? "Icons/role-badge-owner" : "Icons/role-badge-admin")
+            .resizable()
+            .frame(width: 23, height: 23)
+            .frame(width: 20, height: 20)
+            .accessibilityLabel(owner ? "방장" : "관리자")
     }
 }
 

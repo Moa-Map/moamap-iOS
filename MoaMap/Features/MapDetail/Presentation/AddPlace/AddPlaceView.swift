@@ -128,17 +128,20 @@ struct AddPlaceSearchContent: View {
             case .loading:
                 placeholder { ProgressView() }
             case .failed(let text):
-                placeholder {
-                    VStack(spacing: 12) {
-                        message(text)
-                        Button("다시 시도", action: onRetry)
+                searchStatus(title: text, description: "잠시 후 다시 시도해주세요") {
+                    Button(action: onRetry) {
+                        Text("다시 시도")
                             .moaTextStyle(typography.button2)
-                            .foregroundStyle(colors.textNormal)
-                            .buttonStyle(.plain)
+                            .foregroundStyle(colors.textWhite)
+                            .padding(.horizontal, 8)
+                            .frame(height: 36)
+                            .background(MoaMapPrimitiveColors.blue500, in: RoundedRectangle(cornerRadius: 8))
+                            .shadow(color: .black.opacity(0.1), radius: 5)
                     }
+                    .buttonStyle(.plain)
                 }
             case .loaded(let candidates) where candidates.isEmpty:
-                placeholder { message("검색 결과가 없어요") }
+                searchStatus(title: "검색 결과가 없어요", description: "장소명이나 주소를\n다시 확인해주세요")
             case .loaded(let candidates):
                 ScrollView {
                     resultList(candidates)
@@ -178,21 +181,55 @@ struct AddPlaceSearchContent: View {
         .shadow(color: .black.opacity(0.04), radius: 4)
     }
 
-    /// 검색어를 넣기 전에 어떻게 찾으면 되는지 알려 준다.
+    /// 검색어를 넣기 전에 어떻게 찾으면 되는지 알려 준다. 카카오 키워드 검색 기준이다.
     private var searchGuide: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text("이렇게 검색해보세요")
-                .foregroundStyle(colors.textAlternative)
-            Group {
+        searchStatus(title: "이렇게 검색해보세요") {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("- 장소 이름 (숭실대학교, 롯데월드타워)")
+                Text("- 지역 + 장소 이름 (성수 스타벅스)")
                 Text("- 도로명 + 건물번호 (위례성대로 2)")
-                Text("- 건물명 + 번지 (방이동 44-2)")
-                Text("- 건물명, 학교명 (반포 자이, 숭실대학교)")
             }
-            .foregroundStyle(colors.textAssistive)
+            .moaTextStyle(typography.body2)
+            .foregroundStyle(colors.textAlternative)
         }
-        .moaTextStyle(typography.body3)
-        .padding(.horizontal, MoaMapDimens.screenHorizontalPadding + 4)
-        .padding(.top, 86)
+    }
+
+    private func searchStatus(title: String, description: String) -> some View {
+        searchStatus(title: title) {
+            Text(description)
+                .moaTextStyle(typography.body2)
+                .foregroundStyle(colors.textAlternative)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private func searchStatus(title: String, description: String, @ViewBuilder action: () -> some View) -> some View {
+        VStack(spacing: 16) {
+            searchStatus(title: title, description: description)
+            action()
+        }
+    }
+
+    /// 안내·결과 없음·오류가 같은 자리에 심볼과 함께 뜬다.
+    private func searchStatus(title: String, @ViewBuilder detail: () -> some View) -> some View {
+        VStack(spacing: 16) {
+            // 에셋에 그림자 여백이 들어 있어 본체(75×62.6)보다 크게 그리고 자리는 본체만큼 잡는다.
+            Image("moa-symbol-large")
+                .resizable()
+                .frame(width: 83.125, height: 70.75)
+                .frame(width: 75, height: 62.627)
+                .opacity(0.6)
+                .accessibilityHidden(true)
+            VStack(spacing: 8) {
+                Text(title)
+                    .moaTextStyle(typography.subtitle4)
+                    .foregroundStyle(colors.textNormal)
+                detail()
+            }
+            .accessibilityElement(children: .combine)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 161)
     }
 
     /// 카카오 키워드 검색은 사진을 주지 않아 이름과 주소만 보인다.
@@ -226,12 +263,6 @@ struct AddPlaceSearchContent: View {
         .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 12))
         .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(colors.lineAlternative, lineWidth: 1) }
         .shadow(color: .black.opacity(0.04), radius: 2)
-    }
-
-    private func message(_ text: String) -> some View {
-        Text(text)
-            .moaTextStyle(typography.body2)
-            .foregroundStyle(colors.textAssistive)
     }
 
     private func placeholder(@ViewBuilder _ content: () -> some View) -> some View {
@@ -612,9 +643,9 @@ struct PhotoAttachmentRow: View {
                 Image("Icons/close")
                     .renderingMode(.template)
                     .resizable()
-                    .frame(width: 16, height: 16)
+                    .frame(width: 20, height: 20)
                     .foregroundStyle(MoaMapPrimitiveColors.white)
-                    .frame(width: 24, height: 24)
+                    .frame(width: 28, height: 28)
                     .background(MoaMapPrimitiveColors.transparentBlack, in: Circle())
             }
             .buttonStyle(.plain)

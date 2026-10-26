@@ -75,7 +75,7 @@ struct MapInviteCodeDialog: View {
                         .resizable()
                         .frame(width: 16, height: 16)
                         .accessibilityHidden(true)
-                    Text(copied ? "초대코드를 복사했어요" : "초대 코드 복사하기")
+                    Text(copied ? "초대 코드를 복사했어요" : "초대 코드 복사하기")
                         .moaTextStyle(typography.caption2)
                 }
                 .foregroundStyle(MoaMapPrimitiveColors.gray300)
