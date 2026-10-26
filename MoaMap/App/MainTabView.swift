@@ -6,6 +6,9 @@ private enum MainRoute: Hashable {
     case settings
     case termDetail(id: Int64, title: String)
     case mapAttribution
+    case notices
+    case noticeDetail(id: Int64)
+    case inquiry
     case communityMaps
     case officialMaps
     case createMap
@@ -32,6 +35,9 @@ struct MainTabView: View {
 
     private let makeSettingsViewModel: () -> SettingsViewModel
     private let makeTermDetailViewModel: (Int64) -> TermDetailViewModel
+    private let makeNoticeListViewModel: () -> NoticeListViewModel
+    private let makeNoticeDetailViewModel: (Int64) -> NoticeDetailViewModel
+    private let makeInquiryViewModel: () -> InquiryViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCreateMapViewModel: () -> CreateMapViewModel
     private let makePlaceImportViewModel: (PlaceImportSource, String) -> PlaceImportViewModel
@@ -59,6 +65,9 @@ struct MainTabView: View {
         collectionViewModel: CollectionViewModel,
         makeSettingsViewModel: @escaping () -> SettingsViewModel,
         makeTermDetailViewModel: @escaping (Int64) -> TermDetailViewModel,
+        makeNoticeListViewModel: @escaping () -> NoticeListViewModel,
+        makeNoticeDetailViewModel: @escaping (Int64) -> NoticeDetailViewModel,
+        makeInquiryViewModel: @escaping () -> InquiryViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCreateMapViewModel: @escaping () -> CreateMapViewModel,
         makePlaceImportViewModel: @escaping (PlaceImportSource, String) -> PlaceImportViewModel,
@@ -77,6 +86,9 @@ struct MainTabView: View {
         _exploreViewModel = State(initialValue: exploreViewModel)
         self.makeSettingsViewModel = makeSettingsViewModel
         self.makeTermDetailViewModel = makeTermDetailViewModel
+        self.makeNoticeListViewModel = makeNoticeListViewModel
+        self.makeNoticeDetailViewModel = makeNoticeDetailViewModel
+        self.makeInquiryViewModel = makeInquiryViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCreateMapViewModel = makeCreateMapViewModel
         self.makePlaceImportViewModel = makePlaceImportViewModel
@@ -234,7 +246,9 @@ struct MainTabView: View {
         case .settings:
             SettingsView(
                 viewModel: makeSettingsViewModel(),
+                onOpenNotices: { path.wrappedValue.append(.notices) },
                 onOpenTerm: { path.wrappedValue.append(.termDetail(id: $0.id, title: $0.title)) },
+                onOpenInquiry: { path.wrappedValue.append(.inquiry) },
                 onOpenMapAttribution: { path.wrappedValue.append(.mapAttribution) },
                 onLoggedOut: onLoggedOut
             )
@@ -242,6 +256,12 @@ struct MainTabView: View {
             TermDetailView(viewModel: makeTermDetailViewModel(id), title: title)
         case .mapAttribution:
             MapAttributionView()
+        case .notices:
+            NoticeListView(viewModel: makeNoticeListViewModel()) { path.wrappedValue.append(.noticeDetail(id: $0.id)) }
+        case .noticeDetail(let id):
+            NoticeDetailView(viewModel: makeNoticeDetailViewModel(id))
+        case .inquiry:
+            InquiryView(viewModel: makeInquiryViewModel())
         case .placeImport(let step):
             if let placeImportViewModel {
                 PlaceImportDestination(step: step, viewModel: placeImportViewModel, navigator: placeImportNavigator(path))
@@ -372,6 +392,9 @@ private final class PreviewLocationProvider: LocationProvider {
         collectionViewModel: CollectionViewModel(repository: PreviewCollectionRepository(), mapRepository: PreviewMapDetailRepository()),
         makeSettingsViewModel: { SettingsViewModel(repository: PreviewAuthRepository(), termsRepository: PreviewTermsRepository()) },
         makeTermDetailViewModel: { TermDetailViewModel(termID: $0, repository: PreviewTermsRepository()) },
+        makeNoticeListViewModel: { NoticeListViewModel(repository: PreviewNoticeRepository(), timeZone: .current) },
+        makeNoticeDetailViewModel: { NoticeDetailViewModel(noticeID: $0, repository: PreviewNoticeRepository(), timeZone: .current) },
+        makeInquiryViewModel: { InquiryViewModel(repository: PreviewInquiryRepository(), userRepository: PreviewUserRepository()) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository(), importRepository: PreviewPlaceImportRepository()) },
         makePlaceImportViewModel: {
