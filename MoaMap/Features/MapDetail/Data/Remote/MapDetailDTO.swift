@@ -37,6 +37,7 @@ nonisolated struct PlaceResponse: Decodable, Sendable {
     let photoUrls: [String]?
     let sourceType: String?
     let sourceUrl: String?
+    let tags: [String]?
 }
 
 nonisolated struct PlaceLikeResponse: Decodable, Sendable {
@@ -84,6 +85,7 @@ nonisolated extension PlaceResponse {
             photoURLs: (photoUrls ?? []).compactMap { $0.nonBlank.flatMap(URL.init(string:)) },
             description: description.nonBlank ?? "",
             category: category.nonBlank ?? "",
+            tags: (tags ?? []).compactMap(\.nonBlank),
             reviewCount: commentCount ?? 0,
             kakaoPlaceID: kakaoPlaceId?.trimmingCharacters(in: .whitespaces) ?? "",
             likeCount: likeCount ?? 0,
