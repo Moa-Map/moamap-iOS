@@ -10,7 +10,7 @@ nonisolated struct JoinMapEditing: Equatable, Sendable {
     var submitting = false
     var errorMessage: String?
 
-    /// 참여 코드는 항상 여섯 자리다.
+    /// 초대 코드는 항상 여섯 자리다.
     static let codeLength = 6
 
     var canSubmit: Bool { code.count == Self.codeLength && !submitting }

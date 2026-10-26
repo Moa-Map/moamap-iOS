@@ -11,7 +11,7 @@ struct MoaMapConfirmDialog: View {
     let title: String
     var titleSuffix = ""
     let message: String
-    var dismissText = "취소"
+    var dismissText = "닫기"
     /// 시안마다 다르다(나가기 확인 Gray200, 댓글 삭제 Gray100).
     var dismissColor = MoaMapPrimitiveColors.gray200
     var confirmText = "확인"

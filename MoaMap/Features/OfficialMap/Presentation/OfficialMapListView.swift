@@ -64,8 +64,8 @@ struct OfficialMapListView: View {
 
     private var guide: some View {
         MoaMapGuideRow(text: "공식지도가 궁금하신가요?", isPresented: $guideVisible, accessibilityHint: "공식지도 안내를 엽니다") {
-            MoaMapTooltip(tailInset: 14, fill: .solid(MoaMapPrimitiveColors.blue800)) {
-                Text("모아맵이 공공데이터로 만든 지도예요.\n참여하면 모음 탭에서 바로 볼 수 있어요.")
+            MoaMapTooltip(tailInset: 14) {
+                Text("모아맵이 직접 만들어 제공하는 지도예요\n핫플부터 핵심정보 지도들을 한 번에 담아 가세요")
                     .moaTextStyle(typography.caption0)
                     .foregroundStyle(colors.textWhite)
             }

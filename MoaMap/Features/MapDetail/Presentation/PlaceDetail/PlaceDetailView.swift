@@ -377,7 +377,7 @@ struct PlaceDetailView: View {
                 }
                 actionButton(
                     "지도 보기", icon: "map",
-                    background: MoaMapPrimitiveColors.gray200, foreground: MoaMapPrimitiveColors.white,
+                    background: MoaMapPrimitiveColors.yellow100, foreground: MoaMapPrimitiveColors.yellow900,
                     loading: false, action: onViewMap
                 )
             }

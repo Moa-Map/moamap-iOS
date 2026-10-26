@@ -287,7 +287,11 @@ struct CollectionView: View {
             Button(action: viewModel.requestLeave) {
                 Text("나가기")
                     .moaTextStyle(typography.button2)
-                    .foregroundStyle(editing.selectedIDs.isEmpty ? colors.textAssistive : colors.statusAlert)
+                    .foregroundStyle(colors.textWhite)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(editing.canLeave ? colors.statusAlert : MoaMapPrimitiveColors.gray200, in: Capsule())
+                    // 버튼은 34 지만 누르는 영역은 44 를 지킨다.
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
             }
@@ -295,7 +299,7 @@ struct CollectionView: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, MoaMapDimens.screenHorizontalPadding + 16)
-        .padding(.vertical, 11)
+        .padding(.vertical, 15.5)
         .frame(maxWidth: .infinity)
         .background {
             MoaMapPrimitiveColors.white
@@ -308,11 +312,13 @@ struct CollectionView: View {
         switch viewModel.uiState.editDialog {
         case .ownerCannotLeave:
             OwnerCannotLeaveNotice(onDismiss: viewModel.dismissEditDialog)
-        case .confirmLeave(let count, let outcome):
+        case .confirmLeave(let count, _):
             MoaMapConfirmDialog(
                 title: "\(count)개의 지도",
                 titleSuffix: "에서 나가시겠습니까?",
-                message: outcome.confirmMessage,
+                message: viewModel.uiState.selectedTab == .private
+                    ? "나가면 프라이빗 탭에서 지도가 사라집니다"
+                    : "나가면 커뮤니티 탭에서 지도가 사라집니다",
                 confirmText: "나가기",
                 onConfirm: viewModel.confirmLeave,
                 onDismiss: viewModel.dismissEditDialog

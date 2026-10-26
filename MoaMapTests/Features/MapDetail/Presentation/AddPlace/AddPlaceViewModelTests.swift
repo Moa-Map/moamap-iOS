@@ -43,7 +43,7 @@ struct AddPlaceViewModelTests {
         let sut = makeSUT(search: search)
         sut.updateQuery("카페")
         await sut.searchTask?.value
-        #expect(sut.uiState.search == .failed("장소를 검색하지 못했어요"))
+        #expect(sut.uiState.search == .failed("검색 결과를 불러오지 못했어요"))
         search.result = { _ in [] }
         sut.retrySearch()
         #expect(sut.uiState.search == .loading)

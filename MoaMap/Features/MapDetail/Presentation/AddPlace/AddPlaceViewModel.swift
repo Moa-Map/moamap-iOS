@@ -226,7 +226,7 @@ nonisolated extension MapDetail {
 }
 
 nonisolated enum AddPlaceMessage {
-    static let searchFailed = "장소를 검색하지 못했어요"
+    static let searchFailed = "검색 결과를 불러오지 못했어요"
     static let photoFailed = "사진을 올리지 못했어요"
     static let addFailed = "장소를 추가하지 못했어요"
     static let duplicate = "이미 이 지도에 있는 장소예요"

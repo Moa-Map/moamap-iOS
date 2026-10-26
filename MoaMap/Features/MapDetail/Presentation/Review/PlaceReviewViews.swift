@@ -326,9 +326,9 @@ struct PlaceReviewComposer: View {
                     Image("Icons/close")
                         .renderingMode(.template)
                         .resizable()
-                        .frame(width: 14, height: 14)
+                        .frame(width: 18, height: 18)
                         .foregroundStyle(MoaMapPrimitiveColors.white)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 24, height: 24)
                         .background(MoaMapPrimitiveColors.black.opacity(0.6), in: Circle())
                 }
                 .buttonStyle(.plain)
