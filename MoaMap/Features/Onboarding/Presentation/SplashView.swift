@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 피그마 「Splash/」(3552:18930). Android `SplashScreen` 과 같은 배치다.
+/// 피그마 「Splash/」(4925:20009).
 struct SplashView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
@@ -12,14 +12,13 @@ struct SplashView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            VStack(spacing: 20) {
-                MoaSymbolLogo(bodySize: CGSize(width: 108.5, height: 90.601))
+            VStack(spacing: 12) {
+                MoaSymbolLogo(bodySize: CGSize(width: 120, height: 100.203))
 
-                Text("취향을 담아,\n우리만의 지도로")
-                    .moaTextStyle(typography.display2)
-                    .multilineTextAlignment(.center)
+                Text("Moa Map")
+                    .moaTextStyle(typography.display1)
                     .foregroundStyle(colors.textNormal)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
             // 시안은 안전 영역이 아니라 화면 전체의 가운데에 둔다.

@@ -17,21 +17,25 @@ struct LoginView: View {
         GeometryReader { geometry in
             let screenHeight = geometry.size.height
                 + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom
-            // 화면 전체 기준 가운데를 지키면서 넘칠 때도 상태 바·홈 인디케이터를 피하도록 위아래를 같게 비운다.
-            let verticalInset = max(geometry.safeAreaInsets.top, geometry.safeAreaInsets.bottom) + 24
 
             ScrollView {
-                // 피그마 「Home/」(3258:12942). 로고·문구·버튼 묶음을 화면 전체의 세로 가운데에 둔다.
-                VStack(spacing: 40) {
-                    VStack(spacing: 20) {
-                        MoaSymbolLogo(bodySize: CGSize(width: 103.991, height: 83.588))
-
-                        Text("취향을 담아,\n우리만의 지도로")
-                            .moaTextStyle(typography.display2)
-                            .multilineTextAlignment(.center)
+                // 피그마 「Home/」(4925:19953). 문구 묶음은 화면 위에서 200, 버튼 묶음은 화면 아래에서 118 에 둔다.
+                VStack(spacing: 0) {
+                    VStack(spacing: 4) {
+                        Text("함께 모아, 더 특별해질 지도?")
+                            .moaTextStyle(typography.subtitle1)
                             .foregroundStyle(colors.textNormal)
-                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 12) {
+                            MoaSymbolLogo(bodySize: CGSize(width: 60, height: 50.102))
+                            Text("Moa Map")
+                                .moaTextStyle(typography.display2)
+                                .foregroundStyle(colors.textNormal)
+                                .accessibilityHidden(true)
+                        }
                     }
+                    .padding(.top, 200)
+
+                    Spacer(minLength: 40)
 
                     VStack(spacing: 12) {
                         SocialLoginButton(
@@ -51,9 +55,9 @@ struct LoginView: View {
                         )
                     }
                     .disabled(loadingProvider != nil || failureMessage != nil)
+                    .padding(.bottom, 118)
                 }
                 .padding(.horizontal, MoaMapDimens.screenHorizontalPadding)
-                .padding(.vertical, verticalInset)
                 .frame(maxWidth: 480)
                 .frame(minHeight: screenHeight)
                 .frame(maxWidth: .infinity)
