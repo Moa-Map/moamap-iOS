@@ -285,7 +285,10 @@ struct PlaceDetailView: View {
                             ForEach(Array(place.tags.enumerated()), id: \.offset) { _, tag in tagChip(tag) }
                         }
                     }
-                    if !place.address.isEmpty { addressRow }
+                    // 반만 올렸을 때는 숨기고 끝까지 올리면 보인다.
+                    if expanded, !place.address.isEmpty {
+                        addressRow.transition(.opacity)
+                    }
                     if compact, showsReactions { likeButton }
                 }
                 .padding(.horizontal, 2)
