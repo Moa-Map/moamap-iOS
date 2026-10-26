@@ -50,7 +50,8 @@ struct CommunityMapListView: View {
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.immediately)
         }
-        .background { colors.backgroundPrimary.ignoresSafeArea() }
+        // 시안 배경은 단색 Background/Primary(#E6F6FF)다. iOS 의 backgroundPrimary 토큰은 그라데이션이라 쓰지 않는다.
+        .background { MoaMapPrimitiveColors.blue50.ignoresSafeArea() }
         // 빈 곳을 누르면 키보드를 내린다. 카드·칩 같은 버튼은 그대로 눌린다.
         .contentShape(Rectangle())
         .onTapGesture { searchFocused = false }
