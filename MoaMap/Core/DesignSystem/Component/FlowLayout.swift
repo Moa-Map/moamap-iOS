@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 한 줄을 넘기면 다음 줄로 흘리는 가로 배치.
+/// 한 줄을 넘기면 다음 줄로 흘리는 가로 배치. 혼자서도 한 줄을 넘는 항목은 줄 너비에 맞춰 줄인다.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 4
     var lineSpacing: CGFloat = 4
@@ -17,7 +17,7 @@ struct FlowLayout: Layout {
         for row in rows(in: bounds.width, subviews: subviews) {
             var x = bounds.minX
             for index in row.indices {
-                let size = subviews[index].sizeThatFits(.unspecified)
+                let size = size(of: subviews[index], maxWidth: bounds.width)
                 subviews[index].place(at: CGPoint(x: x, y: y + (row.height - size.height) / 2), proposal: ProposedViewSize(size))
                 x += size.width + spacing
             }
@@ -35,7 +35,7 @@ struct FlowLayout: Layout {
         var rows: [Row] = []
         var current = Row()
         for (index, subview) in subviews.enumerated() {
-            let size = subview.sizeThatFits(.unspecified)
+            let size = size(of: subview, maxWidth: maxWidth)
             let needed = current.indices.isEmpty ? size.width : current.width + spacing + size.width
             if needed > maxWidth, !current.indices.isEmpty {
                 rows.append(current)
@@ -47,5 +47,12 @@ struct FlowLayout: Layout {
         }
         if !current.indices.isEmpty { rows.append(current) }
         return rows
+    }
+
+    /// 그대로 두면 화면 밖으로 나가는 긴 글자는 줄 너비를 제안해 말줄임되게 한다.
+    private func size(of subview: LayoutSubview, maxWidth: CGFloat) -> CGSize {
+        let ideal = subview.sizeThatFits(.unspecified)
+        guard maxWidth.isFinite, ideal.width > maxWidth else { return ideal }
+        return subview.sizeThatFits(ProposedViewSize(width: maxWidth, height: nil))
     }
 }

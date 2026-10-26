@@ -78,12 +78,12 @@ struct MapDetailRepositoryTests {
         ])
     }
 
-    @Test func 장소_태그는_빈_값을_빼고_순서대로_읽는다() async throws {
+    @Test func 장소_태그는_앞뒤_공백과_빈_값을_빼고_순서대로_읽는다() async throws {
         let sut = try repository { _ in
-            #"{"success":true,"data":{"content":[{"id":1,"name":"카페","lat":37.5,"lng":127.0,"tags":["데이트"," ","브런치"]},{"id":2,"name":"식당","lat":37.6,"lng":127.1}],"last":true}}"#
+            #"{"success":true,"data":{"content":[{"id":1,"name":"카페","lat":37.5,"lng":127.0,"tags":[" 데이트 "," ","브런치"]},{"id":2,"name":"식당","lat":37.6,"lng":127.1},{"id":3,"name":"빵집","lat":37.7,"lng":127.2,"tags":null}],"last":true}}"#
         }
         let places = try await sut.fetchPlaces(mapID: 7)
-        #expect(places.map(\.tags) == [["데이트", "브런치"], []])
+        #expect(places.map(\.tags) == [["데이트", "브런치"], [], []])
     }
 
     @Test func 빈_페이지가_오면_last_가_없어도_멈춘다() async throws {

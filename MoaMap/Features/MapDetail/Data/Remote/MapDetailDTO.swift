@@ -85,7 +85,7 @@ nonisolated extension PlaceResponse {
             photoURLs: (photoUrls ?? []).compactMap { $0.nonBlank.flatMap(URL.init(string:)) },
             description: description.nonBlank ?? "",
             category: category.nonBlank ?? "",
-            tags: (tags ?? []).compactMap(\.nonBlank),
+            tags: (tags ?? []).compactMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).nonBlank },
             reviewCount: commentCount ?? 0,
             kakaoPlaceID: kakaoPlaceId?.trimmingCharacters(in: .whitespaces) ?? "",
             likeCount: likeCount ?? 0,
