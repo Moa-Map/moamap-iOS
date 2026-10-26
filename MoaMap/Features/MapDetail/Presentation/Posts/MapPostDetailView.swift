@@ -14,6 +14,7 @@ struct MapPostDetailView: View {
 
     @State private var commentText = ""
     @FocusState private var commentFocused: Bool
+    @State private var visibleHeight: CGFloat?
 
     private static let closeButtonColor = Color(argb: 0xFF3E_3E3F)
     private static let bottomID = "bottom"
@@ -46,12 +47,14 @@ struct MapPostDetailView: View {
                 .onTapGesture {
                     if commentFocused { commentFocused = false } else { viewModel.close() }
                 }
-                .safeAreaInset(edge: .bottom, spacing: 0) { inputBar }
                 // 키보드가 올라오면 카드 아래 끝이 입력 줄 바로 위에 오도록 올린다. 그대로 두면 카드 사진이 키보드에 가린다.
-                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
-                    guard commentFocused else { return }
-                    withAnimation { proxy.scrollTo(Self.cardID, anchor: .bottom) }
+                // 키보드가 다 올라온 뒤에 옮기면 늦게 따라온다. 보이는 높이가 줄어드는 순간 같이 옮긴다.
+                .onGeometryChange(for: CGFloat.self) { $0.size.height - $0.safeAreaInsets.bottom } action: { height in
+                    defer { visibleHeight = height }
+                    guard commentFocused, let visibleHeight, height < visibleHeight else { return }
+                    withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(Self.cardID, anchor: .bottom) }
                 }
+                .safeAreaInset(edge: .bottom, spacing: 0) { inputBar }
                 .onChange(of: state.sentCount) {
                     // 남겼으면 입력칸을 비우고 내 댓글이 보이게 맨 아래로 내린다.
                     commentText = ""

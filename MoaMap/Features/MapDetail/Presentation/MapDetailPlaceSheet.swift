@@ -113,7 +113,7 @@ struct MapDetailPlaceSheet: View {
                     .padding(.top, 20)
                 if !searching {
                     chips
-                        .padding(.top, 16)
+                        .padding(.top, 14)
                 }
             }
         }
@@ -193,13 +193,13 @@ struct MapDetailPlaceSheet: View {
                         }
                     }
                     // 칩 줄과의 간격을 목록 안에 둬야 첫 카드 그림자가 잘리지 않는다.
-                    .padding(EdgeInsets(top: official ? 20 : 16, leading: 20, bottom: 20, trailing: 20))
+                    .padding(EdgeInsets(top: official ? 20 : 18, leading: 20, bottom: 20, trailing: 20))
                     .id(Self.listTopID)
                 }
                 // 스크롤한 카드가 칩 줄에 붙어 잘리지 않게 간격 중 그림자 몫을 뺀 만큼 위를 가린다.
                 // 패딩 대신 가려야 그 띠에서 시작한 스와이프도 목록을 움직인다.
                 .mask(alignment: .bottom) {
-                    Rectangle().padding(.top, (official ? 20 : 16) - PlaceListItem.shadowRadius)
+                    Rectangle().padding(.top, (official ? 20 : 18) - PlaceListItem.shadowRadius)
                 }
                 .scrollDismissesKeyboard(.immediately)
                 .ignoresSafeArea(.container, edges: .bottom)

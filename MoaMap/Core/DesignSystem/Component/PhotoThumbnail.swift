@@ -4,11 +4,12 @@ import SwiftUI
 struct PhotoThumbnail: View {
     let imageURL: URL?
     let size: CGFloat
+    var cornerRadius: CGFloat = 4
 
     var body: some View {
         PlacePhoto(url: imageURL)
             .frame(width: size, height: size)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .accessibilityHidden(true)
     }
 }

@@ -23,6 +23,7 @@ nonisolated struct MapDetailUiState: Equatable, Sendable {
     var inviteCode: String? { map.map?.shareableInviteCode }
     var canAddPlace: Bool { map.map?.canAddPlace ?? false }
     var isOfficial: Bool { map.map?.type == .official }
+    var showsLogTab: Bool { map.map?.showsLogTab ?? false }
 }
 
 @MainActor @Observable

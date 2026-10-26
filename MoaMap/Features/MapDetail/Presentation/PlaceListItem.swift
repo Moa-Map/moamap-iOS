@@ -26,32 +26,20 @@ struct PlaceListItem: View {
 
     private var card: some View {
         HStack(spacing: 12) {
-            PhotoThumbnail(imageURL: place.photoURL, size: 64)
-            // 설명은 이름 바로 아래에 붙고, 댓글 수만 12 떨어진다.
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 0) {
+            PhotoThumbnail(imageURL: place.photoURL, size: 68, cornerRadius: 8)
+                .overlay { RoundedRectangle(cornerRadius: 8).strokeBorder(colors.lineAlternative, lineWidth: 1) }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 0) {
                         Text(place.name)
                             .moaTextStyle(typography.subtitle2)
                             .lineLimit(1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        // 카드와 따로 받아 하트를 눌러도 상세로 넘어가지 않게 한다.
-                        Button(action: onLikeClick) {
-                            Image(place.liked ? "Icons/favorite-filled" : "Icons/favorite-outline")
-                                .renderingMode(.template)
-                                .resizable()
-                                .frame(width: 24, height: 24)
-                                .foregroundStyle(place.liked ? colors.statusAlert : MoaMapPrimitiveColors.gray100)
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .padding(-10)
-                        .accessibilityLabel(place.liked ? "하트 취소하기" : "하트 누르기")
+                        Text(place.description)
+                            .moaTextStyle(typography.caption0)
+                            .lineLimit(1)
                     }
-                    Text(place.description)
-                        .moaTextStyle(typography.caption0)
-                        .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    likeButton
                 }
                 HStack(spacing: 4) {
                     Image("Icons/comment")
@@ -66,12 +54,34 @@ struct PlaceListItem: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("댓글 수 \(place.reviewCount)")
             }
+            .padding(.vertical, 2)
             .foregroundStyle(colors.textNormal)
         }
         .padding(16)
         .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.04), radius: Self.shadowRadius)
         .contentShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// 카드와 따로 받아 하트를 눌러도 상세로 넘어가지 않게 한다.
+    private var likeButton: some View {
+        Button(action: onLikeClick) {
+            VStack(spacing: 0) {
+                Image(place.liked ? "Icons/favorite-filled" : "Icons/favorite-outline")
+                    .renderingMode(.template)
+                    .resizable()
+                    .frame(width: 24, height: 24)
+                    .foregroundStyle(place.liked ? colors.statusAlert : MoaMapPrimitiveColors.gray100)
+                Text("\(place.likeCount)")
+                    .moaTextStyle(typography.caption2)
+            }
+            .padding(10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(-10)
+        .accessibilityLabel(place.liked ? "하트 취소하기" : "하트 누르기")
+        .accessibilityValue("\(place.likeCount)")
     }
 }
 
@@ -80,7 +90,7 @@ struct PlaceListItem: View {
         PlaceListItem(
             place: MapPlace(
                 id: 1, name: "커피나무", address: "서울 성동구 성수이로 12", latitude: 0, longitude: 0, photoURLs: [],
-                description: "따뜻한 분위기에서 스페셜티 커피를 즐길 수 있는 카페", reviewCount: 124, liked: true
+                description: "따뜻한 분위기에서 스페셜티 커피를 즐길 수 있는 카페", reviewCount: 124, likeCount: 32, liked: true
             ),
             onClick: {}
         )

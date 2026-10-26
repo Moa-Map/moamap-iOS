@@ -187,7 +187,8 @@ struct SwipeRevealRow<Content: View>: View {
                 // 밑의 버튼이 비치지 않게 화면 배경으로 덮는다.
                 .background(colors.backgroundSecondary)
                 .offset(x: offset)
-                .background(alignment: .trailing) { buttons }
+                // 밀지 않았으면 버튼을 그리지 않는다. 시트가 커지는 동안 덮개 밖으로 비친다.
+                .background(alignment: .trailing) { if offset < 0 { buttons } }
                 .clipped()
                 .contentShape(Rectangle())
                 .onTapGesture { if open { open = false } }
