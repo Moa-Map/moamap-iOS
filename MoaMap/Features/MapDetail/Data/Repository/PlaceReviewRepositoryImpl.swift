@@ -37,7 +37,7 @@ final class PlaceReviewRepositoryImpl: PlaceReviewRepository {
         }
         guard !responses.isEmpty else { return [] }
         let profiles = try await AuthorProfiles.fetch(responses.compactMap(\.userId), client: client)
-        return responses.map { $0.toDomain(authorName: $0.userId.flatMap { profiles[$0]?.name }, timeZone: timeZone) }
+        return responses.map { $0.toDomain(author: $0.userId.flatMap { profiles[$0] }, timeZone: timeZone) }
     }
 
     func createReview(placeID: Int64, content: String, photo: UploadImage?) async throws {

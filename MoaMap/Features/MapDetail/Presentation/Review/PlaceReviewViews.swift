@@ -100,13 +100,20 @@ struct PlaceReviewRow: View {
     /// 꾹 눌러 메뉴를 띄운 줄. 구분선 대신 카드로 띄운다.
     var highlighted = false
 
+    /// 사진이 없는 사람은 시안의 빈 프로필 자리를 둔다.
+    @ViewBuilder
+    private var avatar: some View {
+        if let url = review.authorImageURL {
+            RemoteImage(url: url)
+        } else {
+            Image("photo-placeholder").resizable().scaledToFill()
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 12) {
-                // 프로필 사진은 아직 받지 않는다. 시안의 빈 프로필 자리를 둔다.
-                Image("photo-placeholder")
-                    .resizable()
-                    .scaledToFill()
+                avatar
                     .frame(width: 24, height: 24)
                     .clipShape(Circle())
                     .frame(width: 28, height: 28)

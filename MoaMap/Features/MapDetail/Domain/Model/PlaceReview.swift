@@ -6,6 +6,8 @@ nonisolated struct PlaceReview: Identifiable, Equatable, Sendable {
     let authorID: Int64
     /// 닉네임을 못 얻으면 nil 이다.
     let authorName: String?
+    /// 프로필 사진이 없거나 못 얻으면 nil 이다.
+    var authorImageURL: URL?
     let content: String
     /// 서버가 한 장까지만 받지만 목록으로 내려온다.
     var imageURLs: [URL] = []
