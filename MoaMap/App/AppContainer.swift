@@ -31,6 +31,8 @@ final class AppContainer {
     let termsRepository: any TermsRepository
     let noticeRepository: any NoticeRepository
     let inquiryRepository: any InquiryRepository
+    let reportRepository: any ReportRepository
+    let blockRepository: any BlockRepository
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
     let placeImportRepository: any PlaceImportRepository
@@ -95,6 +97,8 @@ final class AppContainer {
         termsRepository = TermsRepositoryImpl(client: apiClient)
         noticeRepository = NoticeRepositoryImpl(client: apiClient)
         inquiryRepository = InquiryRepositoryImpl(client: apiClient)
+        reportRepository = ReportRepositoryImpl(client: apiClient)
+        blockRepository = BlockRepositoryImpl(client: apiClient)
     }
 
     convenience init(bundle: Bundle) throws {
