@@ -41,7 +41,7 @@ struct MoaMapAlertDialog: View {
             .padding(.bottom, 20)
             .frame(width: 300)
             .background(colors.backgroundSecondary, in: RoundedRectangle(cornerRadius: 12))
-            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 2) }
+            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 1) }
             .accessibilityElement(children: .contain)
             .accessibilityAddTraits(.isModal)
             .accessibilityAction(.escape, onDismiss)

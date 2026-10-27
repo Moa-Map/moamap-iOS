@@ -106,7 +106,7 @@ struct JoinMapDialog: View {
         .frame(maxWidth: 353)
         .background(colors.textWhite, in: RoundedRectangle(cornerRadius: 16))
         .overlay {
-            RoundedRectangle(cornerRadius: 16).strokeBorder(colors.primary, lineWidth: 2)
+            RoundedRectangle(cornerRadius: 16).strokeBorder(colors.primary, lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.04), radius: 4)
         // 모달 안의 빈 곳을 누르면 키보드를 내린다.
