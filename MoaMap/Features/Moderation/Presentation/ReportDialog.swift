@@ -71,6 +71,8 @@ struct ReportDialog: View {
             .accessibilityElement(children: .contain)
             .accessibilityAddTraits(.isModal)
             .accessibilityAction(.escape, onDismiss)
+            // 기타 입력칸이 열리고 닫힐 때와 키보드를 피할 때 미끄러지지 않고 바로 자리를 잡는다.
+            .transaction { $0.animation = nil }
         }
         .onChange(of: reason) { _, reason in detailFocused = reason == .other }
     }

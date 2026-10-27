@@ -114,17 +114,25 @@ private struct LongPressMenuTrigger: ViewModifier {
 
     @State private var frame: CGRect = .zero
     @State private var pressed = 0
+    /// 손가락을 대고 있는 동안. 꾹 누르는 중이라는 걸 보이게 살짝 어둡게 한다.
+    @State private var pressing = false
 
     func body(content: Content) -> some View {
         if items.isEmpty || state == nil {
             content
         } else {
             content
+                // 배경이 비치는 줄은 밝기를 낮춰도 글씨·빈칸이 그대로라, 배경을 칠한 `preview` 를 대신 어둡게 그린다.
+                .opacity(pressing ? 0 : 1)
+                .overlay {
+                    if pressing { preview.brightness(-0.08).allowsHitTesting(false) }
+                }
+                .animation(.easeOut(duration: 0.15), value: pressing)
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(hostSpace)) } action: { frame = $0 }
                 .onLongPressGesture {
                     pressed += 1
                     state?.presented = .init(frame: frame, preview: preview, items: items, edge: edge)
-                }
+                } onPressingChanged: { pressing = $0 }
                 .sensoryFeedback(.impact, trigger: pressed)
                 // 꾹 누르기는 VoiceOver 에서 찾기 어렵다. 같은 일을 동작으로도 둔다.
                 .accessibilityActions {
