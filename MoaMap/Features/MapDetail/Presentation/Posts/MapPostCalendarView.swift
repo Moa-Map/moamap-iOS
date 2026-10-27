@@ -5,6 +5,7 @@ import SwiftUI
 struct MapPostCalendarView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
+    @Environment(\.blockedUserIDs) private var blockedUserIDs
 
     let viewModel: MapPostCalendarViewModel
     let onViewModeSelect: (MapPostViewMode) -> Void
@@ -26,7 +27,7 @@ struct MapPostCalendarView: View {
                         )
                         MonthGrid(
                             month: month,
-                            covers: viewModel.coverPhotos,
+                            covers: viewModel.coverPhotos(hiding: blockedUserIDs),
                             selectedDay: viewModel.uiState.selectedDay,
                             onDaySelect: viewModel.selectDay
                         )
@@ -60,7 +61,7 @@ struct MapPostCalendarView: View {
                     .foregroundStyle(colors.textNormal)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            let posts = viewModel.selectedDayPosts
+            let posts = viewModel.selectedDayPosts(hiding: blockedUserIDs)
             if posts.isEmpty {
                 Text("이 날은 게시물이 없어요")
                     .moaTextStyle(typography.body2)

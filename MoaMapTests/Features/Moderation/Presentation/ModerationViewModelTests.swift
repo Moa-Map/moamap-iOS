@@ -45,7 +45,6 @@ struct ModerationViewModelTests {
         await sut.task?.value
         #expect(blocks.blocked == [7])
         #expect(store.ids == [7])
-        #expect(sut.blockedUserIDs == [7])
         #expect(sut.prompt == nil)
         #expect(sut.toast == ToastMessage(text: "모아님을 차단했어요"))
     }

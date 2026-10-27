@@ -23,8 +23,6 @@ final class ModerationViewModel {
         self.blockedUsers = blockedUsers
     }
 
-    var blockedUserIDs: Set<Int64> { blockedUsers.ids }
-
     func askReport(_ target: ReportTarget, title: String) {
         guard !submitting else { return }
         prompt = .report(target, title: title)

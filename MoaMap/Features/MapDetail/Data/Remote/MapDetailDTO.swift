@@ -38,6 +38,7 @@ nonisolated struct PlaceResponse: Decodable, Sendable {
     let sourceType: String?
     let sourceUrl: String?
     let tags: [String]?
+    let createdBy: Int64?
 }
 
 nonisolated struct PlaceLikeResponse: Decodable, Sendable {
@@ -91,7 +92,8 @@ nonisolated extension PlaceResponse {
             likeCount: likeCount ?? 0,
             liked: likedByMe ?? false,
             // 인스타그램 게시물에서 가져온 장소만 원본으로 가는 버튼을 둔다.
-            instagramURL: sourceType == "INSTAGRAM" ? sourceUrl.nonBlank.flatMap(URL.init(string:)) : nil
+            instagramURL: sourceType == "INSTAGRAM" ? sourceUrl.nonBlank.flatMap(URL.init(string:)) : nil,
+            authorID: createdBy
         )
     }
 }

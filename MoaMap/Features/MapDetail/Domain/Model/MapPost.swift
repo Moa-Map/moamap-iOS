@@ -13,6 +13,13 @@ nonisolated struct MapPost: Identifiable, Equatable, Sendable {
     let createdAt: Date?
 }
 
+nonisolated extension [MapPost] {
+    /// 차단한 사람이 쓴 게시물을 뺀다.
+    func hiding(authors ids: Set<Int64>) -> [MapPost] {
+        ids.isEmpty ? self : filter { !ids.contains($0.authorID) }
+    }
+}
+
 nonisolated enum MapPostSort: Sendable {
     /// 서버 기본값이다.
     case latest

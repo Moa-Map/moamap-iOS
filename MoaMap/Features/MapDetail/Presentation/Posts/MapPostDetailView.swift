@@ -5,6 +5,7 @@ import SwiftUI
 struct MapPostDetailView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
+    @Environment(\.blockedUserIDs) private var blockedUserIDs
 
     let viewModel: MapPostDetailViewModel
     let moderation: ModerationViewModel
@@ -111,7 +112,7 @@ struct MapPostDetailView: View {
             }
         case .loaded(let comments):
             // 내가 차단한 사람의 댓글은 서버가 걸러 주기 전에도 바로 뺀다.
-            let visible = comments.filter { !moderation.blockedUserIDs.contains($0.authorID) }
+            let visible = comments.filter { !blockedUserIDs.contains($0.authorID) }
             if visible.isEmpty {
                 notice {
                     Text("아직 댓글이 없어요")

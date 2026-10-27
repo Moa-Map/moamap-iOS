@@ -277,6 +277,10 @@ final class AppContainer {
         InquiryViewModel(repository: inquiryRepository, userRepository: userRepository)
     }
 
+    func makeBlockListViewModel() -> BlockListViewModel {
+        BlockListViewModel(blockedUsers: blockedUserStore)
+    }
+
     func makeTermsGateViewModel() -> TermsGateViewModel {
         TermsGateViewModel(repository: termsRepository, authRepository: authRepository)
     }

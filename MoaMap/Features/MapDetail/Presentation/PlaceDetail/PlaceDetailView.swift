@@ -12,11 +12,12 @@ struct PersonalMapAction: Equatable {
 struct PlaceDetailView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
+    @Environment(\.blockedUserIDs) private var blockedUserIDs
 
     let place: MapPlace
     /// nil 이면 버튼을 띄우지 않는다. 나만의 지도를 보고 있을 때다.
     let personalMapAction: PersonalMapAction?
-    /// nil 이면 하트·신고하기·댓글을 뺀다. 공식지도다.
+    /// nil 이면 하트·장소 삭제 요청·댓글을 뺀다. 공식지도다.
     let reviews: PlaceReviewViewModel?
     let moderation: ModerationViewModel
     /// 참여 중인 지도에만 댓글을 남길 수 있다.
@@ -218,7 +219,7 @@ struct PlaceDetailView: View {
                                 } action: { dividerBottom = $0 }
                             PlaceReviewList(
                                 state: reviews.uiState,
-                                hiddenAuthorIDs: moderation.blockedUserIDs,
+                                hiddenAuthorIDs: blockedUserIDs,
                                 // 실패 안내가 입력창 아래에 뜬다. 입력창은 끝까지 올렸을 때만 있다.
                                 menuEnabled: expanded,
                                 relativeTime: reviews.relativeTime(of:),
@@ -289,7 +290,7 @@ struct PlaceDetailView: View {
         .onTapGesture { composerFocused = false }
     }
 
-    /// 사진 있는 장소를 반만 올렸을 때. 시안 1번처럼 설명·신고하기를 빼고 하트를 태그 아래에 붙인다.
+    /// 사진 있는 장소를 반만 올렸을 때. 시안 1번처럼 설명·장소 삭제 요청을 빼고 하트를 태그 아래에 붙인다.
     private var compact: Bool { !expanded && place.photoURL != nil }
 
     private var header: some View {
@@ -338,8 +339,8 @@ struct PlaceDetailView: View {
                         HStack {
                             likeButton
                             Spacer()
-                            // 신고는 아직 기능이 없다. 누를 수 있는 것처럼 보이지 않게 버튼으로 두지 않는다.
-                            Text("신고하기")
+                            // 삭제 요청은 아직 기능이 없다. 누를 수 있는 것처럼 보이지 않게 버튼으로 두지 않는다.
+                            Text("장소 삭제 요청")
                                 .moaTextStyle(typography.body2)
                                 .underline()
                                 .foregroundStyle(colors.textAlternative)

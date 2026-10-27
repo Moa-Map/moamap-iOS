@@ -74,15 +74,15 @@ final class MapPostCalendarViewModel {
         loadUntilCovered()
     }
 
-    /// 날짜별 칸 사진.
-    var coverPhotos: [Int: URL] {
+    /// 날짜별 칸 사진. 차단한 사람의 게시물은 뺀다.
+    func coverPhotos(hiding authors: Set<Int64> = []) -> [Int: URL] {
         guard let month = uiState.month else { return [:] }
-        return uiState.posts.coverPhotos(in: month, timeZone: timeZone)
+        return uiState.posts.hiding(authors: authors).coverPhotos(in: month, timeZone: timeZone)
     }
 
-    var selectedDayPosts: [MapPost] {
+    func selectedDayPosts(hiding authors: Set<Int64> = []) -> [MapPost] {
         guard let day = uiState.selectedDay else { return [] }
-        return uiState.posts.posts(on: day, timeZone: timeZone)
+        return uiState.posts.hiding(authors: authors).posts(on: day, timeZone: timeZone)
     }
 
     func dateLabel(of date: Date?) -> String? {
