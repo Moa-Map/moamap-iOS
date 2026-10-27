@@ -146,4 +146,44 @@ struct MapPostDetailViewModelTests {
         #expect(sut.uiState.post?.id == 4)
         #expect(sut.uiState.comments == .loaded([.fixture(id: 4)]))
     }
+
+    @Test func 내_댓글을_지우면_다시_읽지_않고_목록에서_뺀다() async {
+        let repository = MapPostCommentRepositoryStub()
+        repository.comments = { _ in [.fixture(id: 1, authorID: 1), .fixture(id: 2, authorID: 2)] }
+        let sut = viewModel(repository)
+        sut.open(post)
+        await sut.loadTask?.value
+        sut.delete(commentID: 1)
+        await sut.deleteTask?.value
+        #expect(repository.deleted == [1])
+        #expect(repository.fetchCalls == [3])
+        #expect(sut.uiState.comments == .loaded([.fixture(id: 2, authorID: 2)]))
+        #expect(sut.uiState.deletedCount == 1)
+        #expect(!sut.uiState.deleting)
+    }
+
+    @Test func 남의_댓글은_지우지_않는다() async {
+        let repository = MapPostCommentRepositoryStub()
+        repository.comments = { _ in [.fixture(id: 2, authorID: 2)] }
+        let sut = viewModel(repository)
+        sut.open(post)
+        await sut.loadTask?.value
+        sut.delete(commentID: 2)
+        #expect(sut.deleteTask == nil)
+        #expect(repository.deleted.isEmpty)
+    }
+
+    @Test func 지우지_못하면_댓글을_두고_안내한다() async {
+        let repository = MapPostCommentRepositoryStub()
+        repository.comments = { _ in [.fixture(id: 1, authorID: 1)] }
+        repository.delete = { _ in throw NetworkError.http(statusCode: 500) }
+        let sut = viewModel(repository)
+        sut.open(post)
+        await sut.loadTask?.value
+        sut.delete(commentID: 1)
+        await sut.deleteTask?.value
+        #expect(sut.uiState.comments == .loaded([.fixture(id: 1, authorID: 1)]))
+        #expect(sut.uiState.deleteErrorMessage == "댓글을 삭제하지 못했어요")
+        #expect(sut.uiState.deletedCount == 0)
+    }
 }

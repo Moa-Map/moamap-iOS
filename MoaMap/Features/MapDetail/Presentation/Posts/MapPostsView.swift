@@ -4,6 +4,7 @@ import SwiftUI
 struct MapPostsView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
+    @Environment(\.blockedUserIDs) private var blockedUserIDs
 
     let viewModel: MapPostListViewModel
     let onViewModeSelect: (MapPostViewMode) -> Void
@@ -49,27 +50,35 @@ struct MapPostsView: View {
             CommunityMapsPlaceholder {
                 CommunityMapsError(message: message) { viewModel.retry() }
             }
-        case .loaded(let posts) where posts.isEmpty:
-            CommunityMapsPlaceholder {
-                Text("아직 게시물이 없어요")
-                    .moaTextStyle(typography.body2)
-                    .foregroundStyle(colors.textAssistive)
+        case .loaded(let loaded):
+            // 차단한 사람의 게시물은 서버가 걸러 주기 전에도 바로 뺀다.
+            let posts = loaded.hiding(authors: blockedUserIDs)
+            if posts.isEmpty {
+                CommunityMapsPlaceholder {
+                    Text("아직 게시물이 없어요")
+                        .moaTextStyle(typography.body2)
+                        .foregroundStyle(colors.textAssistive)
+                }
+            } else {
+                postColumns(posts)
+                paging
             }
-        case .loaded(let posts):
-            HStack(alignment: .top, spacing: Self.cardGap) {
-                ForEach(Array(MapPostColumns.split(posts).enumerated()), id: \.offset) { _, column in
-                    LazyVStack(spacing: Self.cardGap) {
-                        ForEach(column, id: \.post.id) { item in
-                            Button { onPostClick(item.post) } label: { MapPostCard(post: item.post) }
-                                .buttonStyle(.plain)
-                                .onAppear {
-                                    if item.index >= posts.count - Self.loadMoreThreshold { viewModel.loadMore() }
-                                }
-                        }
+        }
+    }
+
+    private func postColumns(_ posts: [MapPost]) -> some View {
+        HStack(alignment: .top, spacing: Self.cardGap) {
+            ForEach(Array(MapPostColumns.split(posts).enumerated()), id: \.offset) { _, column in
+                LazyVStack(spacing: Self.cardGap) {
+                    ForEach(column, id: \.post.id) { item in
+                        Button { onPostClick(item.post) } label: { MapPostCard(post: item.post) }
+                            .buttonStyle(.plain)
+                            .onAppear {
+                                if item.index >= posts.count - Self.loadMoreThreshold { viewModel.loadMore() }
+                            }
                     }
                 }
             }
-            paging
         }
     }
 

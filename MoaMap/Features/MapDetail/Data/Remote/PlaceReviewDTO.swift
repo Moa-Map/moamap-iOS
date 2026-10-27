@@ -34,12 +34,13 @@ nonisolated struct PlaceReviewPhotoUploadURLResponse: Decodable, Sendable {
 }
 
 nonisolated extension PlaceReviewResponse {
-    func toDomain(authorName: String?, timeZone: TimeZone) -> PlaceReview {
-        let name = authorName?.trimmingCharacters(in: .whitespacesAndNewlines)
+    func toDomain(author: AuthorProfile?, timeZone: TimeZone) -> PlaceReview {
+        let name = author?.name?.trimmingCharacters(in: .whitespacesAndNewlines)
         return PlaceReview(
             id: id,
             authorID: userId ?? 0,
             authorName: name?.isEmpty == false ? name : nil,
+            authorImageURL: author?.imageURL,
             content: content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
             imageURLs: (imageUrls ?? []).compactMap { url in
                 url.trimmingCharacters(in: .whitespaces).isEmpty ? nil : URL(string: url)

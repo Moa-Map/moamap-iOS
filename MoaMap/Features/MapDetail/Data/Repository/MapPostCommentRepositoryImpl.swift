@@ -45,6 +45,11 @@ final class MapPostCommentRepositoryImpl: MapPostCommentRepository {
         return try await client.send(request, as: MapPostCommentResponse.self).toDomain(author: nil, timeZone: timeZone)
     }
 
+    func deleteComment(mapID: Int64, postID: Int64, commentID: Int64) async throws {
+        let request = APIRequest(path: path(mapID: mapID, postID: postID) + [String(commentID)], method: .delete)
+        try await client.sendWithoutResponse(request)
+    }
+
     private func path(mapID: Int64, postID: Int64) -> [String] {
         ["api", "v1", "maps", String(mapID), "posts", String(postID), "comments"]
     }

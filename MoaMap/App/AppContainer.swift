@@ -31,6 +31,9 @@ final class AppContainer {
     let termsRepository: any TermsRepository
     let noticeRepository: any NoticeRepository
     let inquiryRepository: any InquiryRepository
+    let reportRepository: any ReportRepository
+    let blockRepository: any BlockRepository
+    let blockedUserStore: BlockedUserStore
     let locationProvider: any LocationProvider = DeviceLocationProvider()
     let collectionRepository: any CollectionRepository
     let placeImportRepository: any PlaceImportRepository
@@ -95,6 +98,9 @@ final class AppContainer {
         termsRepository = TermsRepositoryImpl(client: apiClient)
         noticeRepository = NoticeRepositoryImpl(client: apiClient)
         inquiryRepository = InquiryRepositoryImpl(client: apiClient)
+        reportRepository = ReportRepositoryImpl(client: apiClient)
+        blockRepository = BlockRepositoryImpl(client: apiClient)
+        blockedUserStore = BlockedUserStore(repository: blockRepository)
     }
 
     convenience init(bundle: Bundle) throws {
@@ -225,8 +231,14 @@ final class AppContainer {
             postDetail: MapPostDetailViewModel(
                 mapID: mapID, repository: mapPostCommentRepository, currentUserStore: currentUserStore
             ),
+            reviewModeration: makeModerationViewModel(),
+            postModeration: makeModerationViewModel(),
             makeEditMap: makeEditMapViewModel(map:)
         )
+    }
+
+    func makeModerationViewModel() -> ModerationViewModel {
+        ModerationViewModel(reportRepository: reportRepository, blockedUsers: blockedUserStore)
     }
 
     func makeCollectionViewModel() -> CollectionViewModel {
@@ -263,6 +275,10 @@ final class AppContainer {
 
     func makeInquiryViewModel() -> InquiryViewModel {
         InquiryViewModel(repository: inquiryRepository, userRepository: userRepository)
+    }
+
+    func makeBlockListViewModel() -> BlockListViewModel {
+        BlockListViewModel(blockedUsers: blockedUserStore)
     }
 
     func makeTermsGateViewModel() -> TermsGateViewModel {

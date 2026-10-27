@@ -11,6 +11,7 @@ struct SettingsView: View {
     let onOpenNotices: () -> Void
     let onOpenTerm: (Term) -> Void
     let onOpenInquiry: () -> Void
+    let onOpenBlockList: () -> Void
     let onOpenMapAttribution: () -> Void
     let onLoggedOut: () -> Void
 
@@ -19,6 +20,7 @@ struct SettingsView: View {
         onOpenNotices: @escaping () -> Void,
         onOpenTerm: @escaping (Term) -> Void,
         onOpenInquiry: @escaping () -> Void,
+        onOpenBlockList: @escaping () -> Void,
         onOpenMapAttribution: @escaping () -> Void,
         onLoggedOut: @escaping () -> Void
     ) {
@@ -26,6 +28,7 @@ struct SettingsView: View {
         self.onOpenNotices = onOpenNotices
         self.onOpenTerm = onOpenTerm
         self.onOpenInquiry = onOpenInquiry
+        self.onOpenBlockList = onOpenBlockList
         self.onOpenMapAttribution = onOpenMapAttribution
         self.onLoggedOut = onLoggedOut
     }
@@ -48,6 +51,7 @@ struct SettingsView: View {
                         }
                         // 시안의 「신고하기」 자리를 문의하기로 쓴다. 신고는 문의 유형으로 받는다.
                         navigationRow("문의하기", showsDivider: true, action: onOpenInquiry)
+                        navigationRow("차단 관리", showsDivider: true, action: onOpenBlockList)
                     }
                     section("앱 정보") {
                         row("버전 정보") {
@@ -238,7 +242,7 @@ final class PreviewTermsRepository: TermsRepository {
 #Preview {
     SettingsView(
         viewModel: SettingsViewModel(repository: PreviewAuthRepository(), termsRepository: PreviewTermsRepository()),
-        onOpenNotices: {}, onOpenTerm: { _ in }, onOpenInquiry: {}, onOpenMapAttribution: {}, onLoggedOut: {}
+        onOpenNotices: {}, onOpenTerm: { _ in }, onOpenInquiry: {}, onOpenBlockList: {}, onOpenMapAttribution: {}, onLoggedOut: {}
     )
 }
 #endif

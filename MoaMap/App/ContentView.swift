@@ -49,6 +49,10 @@ struct ContentView: View {
 
     private var isAuthenticated: Bool { loginViewModel.uiState == .authenticated }
 
+    private var isMain: Bool {
+        if case .main = screen { true } else { false }
+    }
+
     private func logoutFromTermsCheck() {
         termsGateViewModel.logout { loginViewModel.returnToLogin() }
     }
@@ -78,6 +82,7 @@ struct ContentView: View {
                     makeNoticeListViewModel: container.makeNoticeListViewModel,
                     makeNoticeDetailViewModel: container.makeNoticeDetailViewModel(noticeID:),
                     makeInquiryViewModel: container.makeInquiryViewModel,
+                    makeBlockListViewModel: container.makeBlockListViewModel,
                     makeProfileEditViewModel: container.makeProfileEditViewModel,
                     makeCreateMapViewModel: container.makeCreateMapViewModel,
                     makePlaceImportViewModel: container.makePlaceImportViewModel(source:url:),
@@ -103,6 +108,11 @@ struct ContentView: View {
                     onLogout: logoutFromTermsCheck
                 )
             }
+        }
+        .environment(\.blockedUserIDs, container.blockedUserStore.ids)
+        // 홈에 들어오면 차단 목록을 받아 둔다. 못 받아도 서버가 목록에서 걸러 주니 막지 않는다.
+        .task(id: isMain) {
+            if isMain { try? await container.blockedUserStore.reload() } else { container.blockedUserStore.clear() }
         }
         .onChange(of: isAuthenticated, initial: true) { _, authenticated in
             if authenticated { termsGateViewModel.check() } else { termsGateViewModel.reset() }

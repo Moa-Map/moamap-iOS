@@ -86,6 +86,14 @@ struct MapDetailRepositoryTests {
         #expect(places.map(\.tags) == [["데이트", "브런치"], [], []])
     }
 
+    @Test func 장소를_등록한_사람을_읽는다() async throws {
+        let sut = try repository { _ in
+            #"{"success":true,"data":{"content":[{"id":1,"name":"카페","lat":37.5,"lng":127.0,"createdBy":9},{"id":2,"name":"식당","lat":37.6,"lng":127.1}],"last":true}}"#
+        }
+        let places = try await sut.fetchPlaces(mapID: 7)
+        #expect(places.map(\.authorID) == [9, nil])
+    }
+
     @Test func 빈_페이지가_오면_last_가_없어도_멈춘다() async throws {
         let pages = RequestCounter()
         let sut = try repository { _ in

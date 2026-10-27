@@ -22,6 +22,15 @@ nonisolated struct MapPlace: Identifiable, Equatable, Sendable {
     var liked = false
     /// 장소를 가져온 인스타그램 게시물.
     var instagramURL: URL?
+    /// 등록한 사람. 차단한 사람의 장소를 거르는 데 쓴다.
+    var authorID: Int64?
+}
+
+nonisolated extension [MapPlace] {
+    /// 차단한 사람이 등록한 장소를 뺀다.
+    func hiding(authors ids: Set<Int64>) -> [MapPlace] {
+        ids.isEmpty ? self : filter { $0.authorID.map { !ids.contains($0) } ?? true }
+    }
 }
 
 nonisolated extension MapPlace {

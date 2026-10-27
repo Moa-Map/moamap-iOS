@@ -9,6 +9,7 @@ private enum MainRoute: Hashable {
     case notices
     case noticeDetail(id: Int64)
     case inquiry
+    case blockList
     case communityMaps
     case officialMaps
     case createMap
@@ -38,6 +39,7 @@ struct MainTabView: View {
     private let makeNoticeListViewModel: () -> NoticeListViewModel
     private let makeNoticeDetailViewModel: (Int64) -> NoticeDetailViewModel
     private let makeInquiryViewModel: () -> InquiryViewModel
+    private let makeBlockListViewModel: () -> BlockListViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
     private let makeCreateMapViewModel: () -> CreateMapViewModel
     private let makePlaceImportViewModel: (PlaceImportSource, String) -> PlaceImportViewModel
@@ -68,6 +70,7 @@ struct MainTabView: View {
         makeNoticeListViewModel: @escaping () -> NoticeListViewModel,
         makeNoticeDetailViewModel: @escaping (Int64) -> NoticeDetailViewModel,
         makeInquiryViewModel: @escaping () -> InquiryViewModel,
+        makeBlockListViewModel: @escaping () -> BlockListViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
         makeCreateMapViewModel: @escaping () -> CreateMapViewModel,
         makePlaceImportViewModel: @escaping (PlaceImportSource, String) -> PlaceImportViewModel,
@@ -89,6 +92,7 @@ struct MainTabView: View {
         self.makeNoticeListViewModel = makeNoticeListViewModel
         self.makeNoticeDetailViewModel = makeNoticeDetailViewModel
         self.makeInquiryViewModel = makeInquiryViewModel
+        self.makeBlockListViewModel = makeBlockListViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
         self.makeCreateMapViewModel = makeCreateMapViewModel
         self.makePlaceImportViewModel = makePlaceImportViewModel
@@ -249,6 +253,7 @@ struct MainTabView: View {
                 onOpenNotices: { path.wrappedValue.append(.notices) },
                 onOpenTerm: { path.wrappedValue.append(.termDetail(id: $0.id, title: $0.title)) },
                 onOpenInquiry: { path.wrappedValue.append(.inquiry) },
+                onOpenBlockList: { path.wrappedValue.append(.blockList) },
                 onOpenMapAttribution: { path.wrappedValue.append(.mapAttribution) },
                 onLoggedOut: onLoggedOut
             )
@@ -262,6 +267,8 @@ struct MainTabView: View {
             NoticeDetailView(viewModel: makeNoticeDetailViewModel(id))
         case .inquiry:
             InquiryView(viewModel: makeInquiryViewModel())
+        case .blockList:
+            BlockListView(viewModel: makeBlockListViewModel())
         case .placeImport(let step):
             if let placeImportViewModel {
                 PlaceImportDestination(step: step, viewModel: placeImportViewModel, navigator: placeImportNavigator(path))
@@ -395,6 +402,7 @@ private final class PreviewLocationProvider: LocationProvider {
         makeNoticeListViewModel: { NoticeListViewModel(repository: PreviewNoticeRepository(), timeZone: .current) },
         makeNoticeDetailViewModel: { NoticeDetailViewModel(noticeID: $0, repository: PreviewNoticeRepository(), timeZone: .current) },
         makeInquiryViewModel: { InquiryViewModel(repository: PreviewInquiryRepository(), userRepository: PreviewUserRepository()) },
+        makeBlockListViewModel: { BlockListViewModel(blockedUsers: BlockedUserStore(repository: PreviewBlockRepository())) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },
         makeCreateMapViewModel: { CreateMapViewModel(repository: PreviewCollectionRepository(), importRepository: PreviewPlaceImportRepository()) },
         makePlaceImportViewModel: {

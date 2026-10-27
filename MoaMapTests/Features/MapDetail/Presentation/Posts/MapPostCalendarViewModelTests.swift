@@ -112,12 +112,12 @@ struct MapPostCalendarViewModelTests {
         ], isLast: true)])
         sut.open()
         await sut.loadTask?.value
-        #expect(sut.selectedDayPosts.map(\.id) == [3])
-        #expect(sut.coverPhotos == [20: URL(string: "https://cdn/20.jpg")!])
+        #expect(sut.selectedDayPosts().map(\.id) == [3])
+        #expect(sut.coverPhotos() == [20: URL(string: "https://cdn/20.jpg")!])
 
         sut.selectDay(CalendarDay(year: 2026, month: 8, day: 3))
         #expect(sut.uiState.selectedDay == CalendarDay(year: 2026, month: 8, day: 3))
-        #expect(sut.selectedDayPosts.map(\.id) == [2])
+        #expect(sut.selectedDayPosts().map(\.id) == [2])
     }
 
     @Test func 못_받으면_안내를_남기고_재시도하면_이어_받는다() async {

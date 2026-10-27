@@ -14,6 +14,9 @@ struct MapDetailViewModels {
     let postCalendar: MapPostCalendarViewModel
     let postCreate: MapPostCreateViewModel
     let postDetail: MapPostDetailViewModel
+    /// 장소 댓글과 로그 댓글은 토스트 자리가 달라 따로 둔다.
+    let reviewModeration: ModerationViewModel
+    let postModeration: ModerationViewModel
     /// 지도 정보 수정은 열 때마다 그 순간의 지도로 새로 시작한다.
     let makeEditMap: (MapDetail) -> EditMapViewModel
 }
@@ -111,6 +114,19 @@ final class PreviewMapPostCommentRepository: MapPostCommentRepository {
     func createComment(mapID: Int64, postID: Int64, content: String) async throws -> MapPostComment {
         MapPostComment(id: 3, authorID: 1, authorName: nil, authorImageURL: nil, content: content, createdAt: nil)
     }
+    func deleteComment(mapID: Int64, postID: Int64, commentID: Int64) async throws {}
+}
+
+@MainActor
+final class PreviewReportRepository: ReportRepository {
+    func report(_ target: ReportTarget, reason: ReportReason, detail: String?) async throws {}
+}
+
+@MainActor
+final class PreviewBlockRepository: BlockRepository {
+    func fetchBlockedUsers() async throws -> [BlockedUser] { [] }
+    func block(userID: Int64) async throws {}
+    func unblock(userID: Int64) async throws {}
 }
 
 nonisolated struct PreviewCurrentUserStore: CurrentUserStore {
@@ -121,7 +137,8 @@ nonisolated struct PreviewCurrentUserStore: CurrentUserStore {
 
 extension MapDetailViewModels {
     static func preview(mapID: Int64) -> MapDetailViewModels {
-        MapDetailViewModels(
+        let blockedUsers = BlockedUserStore(repository: PreviewBlockRepository())
+        return MapDetailViewModels(
             main: MapDetailViewModel(mapID: mapID, repository: PreviewMapDetailRepository()),
             personalMap: PersonalMapAddViewModel(repository: PreviewPersonalMapRepository()),
             review: PlaceReviewViewModel(
@@ -142,6 +159,8 @@ extension MapDetailViewModels {
             postDetail: MapPostDetailViewModel(
                 mapID: mapID, repository: PreviewMapPostCommentRepository(), currentUserStore: PreviewCurrentUserStore()
             ),
+            reviewModeration: ModerationViewModel(reportRepository: PreviewReportRepository(), blockedUsers: blockedUsers),
+            postModeration: ModerationViewModel(reportRepository: PreviewReportRepository(), blockedUsers: blockedUsers),
             makeEditMap: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) }
         )
     }

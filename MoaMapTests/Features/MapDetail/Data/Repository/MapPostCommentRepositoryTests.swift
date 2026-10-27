@@ -96,4 +96,13 @@ struct MapPostCommentRepositoryTests {
         let body = try #require(request.httpBody)
         #expect(try JSONSerialization.jsonObject(with: body) as? [String: String] == ["content": "반가워요"])
     }
+
+    @Test func 댓글은_DELETE_로_지운다() async throws {
+        let log = Log()
+        let sut = try repository(log) { _ in #"{"success":true,"data":null}"# }
+        try await sut.deleteComment(mapID: 10, postID: 3, commentID: 5)
+        let request = try #require(log.requests.first)
+        #expect(request.httpMethod == "DELETE")
+        #expect(request.url?.path == "/api/v1/maps/10/posts/3/comments/5")
+    }
 }

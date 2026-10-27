@@ -45,13 +45,14 @@ struct PlaceReviewRepositoryTests {
                 {"id":2,"userId":8,"content":null,"createdAt":"bad"},{"id":3,"userId":7}],"last":true}}
                 """#
             case "/api/v1/users/profiles":
-                return #"{"success":true,"data":[{"id":7,"nickname":"모아"},{"id":8,"nickname":" "}]}"#
+                return #"{"success":true,"data":[{"id":7,"nickname":"모아","profileImageUrl":"https://p/7.jpg"},{"id":8,"nickname":" ","profileImageUrl":" "}]}"#
             default:
                 return nil
             }
         }
         let reviews = try await sut.fetchReviews(placeID: 3)
         #expect(reviews.map(\.authorName) == ["모아", nil, "모아"])
+        #expect(reviews.map(\.authorImageURL) == [URL(string: "https://p/7.jpg"), nil, URL(string: "https://p/7.jpg")])
         #expect(reviews[0].content == "좋아요")
         #expect(reviews[0].imageURLs == [URL(string: "https://p")!])
         #expect(reviews[0].createdAt == Date(timeIntervalSince1970: 1_785_347_652))

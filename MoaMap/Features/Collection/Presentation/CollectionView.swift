@@ -421,7 +421,7 @@ private struct OwnerCannotLeaveNotice: View {
             .padding(.vertical, 32)
             .frame(width: 300)
             .background(colors.backgroundSecondary, in: RoundedRectangle(cornerRadius: 12))
-            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 2) }
+            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MoaMapPrimitiveColors.blue500, lineWidth: 1) }
             .shadow(color: .black.opacity(0.08), radius: 30, y: 4)
             .onTapGesture(perform: onDismiss)
             .accessibilityElement(children: .combine)

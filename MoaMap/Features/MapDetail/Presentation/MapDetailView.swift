@@ -5,6 +5,7 @@ import SwiftUI
 struct MapDetailView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.openURL) private var openURL
+    @Environment(\.blockedUserIDs) private var blockedUserIDs
 
     @State private var viewModel: MapDetailViewModel
     @State private var personalMapViewModel: PersonalMapAddViewModel
@@ -17,6 +18,8 @@ struct MapDetailView: View {
     @State private var postCalendarViewModel: MapPostCalendarViewModel
     @State private var postCreateViewModel: MapPostCreateViewModel
     @State private var postDetailViewModel: MapPostDetailViewModel
+    @State private var reviewModeration: ModerationViewModel
+    @State private var postModeration: ModerationViewModel
     private let makeEditMap: (MapDetail) -> EditMapViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
@@ -41,6 +44,8 @@ struct MapDetailView: View {
         _postCalendarViewModel = State(initialValue: viewModels.postCalendar)
         _postCreateViewModel = State(initialValue: viewModels.postCreate)
         _postDetailViewModel = State(initialValue: viewModels.postDetail)
+        _reviewModeration = State(initialValue: viewModels.reviewModeration)
+        _postModeration = State(initialValue: viewModels.postModeration)
         makeEditMap = viewModels.makeEditMap
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
@@ -240,7 +245,7 @@ struct MapDetailView: View {
     private var overlays: some View {
         ZStack {
             // 검색으로 목록에서 빠진 장소라도, 마커로 눌러 열어 둔 상세는 닫히면 안 된다.
-            let selectedPlace = viewModel.uiState.places.first(where: { $0.id == selectedPlaceID })
+            let selectedPlace = places.first(where: { $0.id == selectedPlaceID })
 
             // 펼치면 상단바까지 덮는다. 장소 상세가 떠 있는 동안은 감춘다. 두 시트가 겹쳐 보이면 안 된다.
             // 빼지 않고 감춰야 돌아왔을 때 보던 목록 위치가 남는다.
@@ -259,7 +264,7 @@ struct MapDetailView: View {
             if postCreateVisible {
                 MapPostCreateView(
                     viewModel: postCreateViewModel,
-                    places: viewModel.uiState.places,
+                    places: places,
                     onClose: { postCreateVisible = false }
                 )
             }
@@ -267,6 +272,7 @@ struct MapDetailView: View {
             if let post = postDetailViewModel.uiState.post {
                 MapPostDetailView(
                     viewModel: postDetailViewModel,
+                    moderation: postModeration,
                     post: post,
                     dateLabel: postCalendarViewModel.dateLabel(of: post.createdAt),
                     // 게시물을 쓸 수 있는 사람과 같은 기준이다. 서버도 멤버만 받는다.
@@ -407,7 +413,7 @@ struct MapDetailView: View {
                 places: visiblePlaces,
                 placeCount: viewModel.uiState.map.map?.placeCount,
                 official: viewModel.uiState.isOfficial,
-                categoryFilters: PlaceCategoryFilter.available(in: viewModel.uiState.places),
+                categoryFilters: PlaceCategoryFilter.available(in: places),
                 selectedCategory: selectedCategory,
                 searchQuery: $searchQuery,
                 expanded: $sheetExpanded,
@@ -438,6 +444,7 @@ struct MapDetailView: View {
             place: place,
             personalMapAction: personalAction,
             reviews: viewModel.uiState.isOfficial ? nil : reviewViewModel,
+            moderation: reviewModeration,
             // 서버도 같은 기준으로 막는다.
             canWriteReview: viewModel.uiState.canAddPlace,
             onBack: { selectedPlaceID = nil },
@@ -449,6 +456,11 @@ struct MapDetailView: View {
             // 시트 높이가 정해진 뒤에야 장소를 가리지 않는 자리를 안다.
             onCollapsedHeightSettle: { height in moveCamera(to: place, bottomPadding: height) }
         )
+    }
+
+    /// 차단한 사람이 등록한 장소는 지도와 목록에서 뺀다.
+    private var places: [MapPlace] {
+        viewModel.uiState.places.hiding(authors: blockedUserIDs)
     }
 
     /// 묶음 목록에서 골랐으면 그 목록은 닫는다.
@@ -494,7 +506,7 @@ struct MapDetailView: View {
     }
 
     private var visiblePlaces: [MapPlace] {
-        viewModel.uiState.places.filtered(by: selectedCategory, query: searchQuery)
+        places.filtered(by: selectedCategory, query: searchQuery)
     }
 
     /// 묶인 장소가 보이는 칸에 꽉 차게 확대한다. 끝까지 확대해도 안 갈라지면 목록으로 연다.
@@ -517,7 +529,7 @@ struct MapDetailView: View {
     }
 
     private var expandedClusterPlaces: [MapPlace] {
-        let byID = Dictionary(viewModel.uiState.places.map { ($0.id, $0) }) { first, _ in first }
+        let byID = Dictionary(places.map { ($0.id, $0) }) { first, _ in first }
         return expandedClusterIDs.compactMap { byID[$0] }
     }
 
@@ -579,7 +591,7 @@ struct MapDetailView: View {
     /// 장소를 현재 위치보다 앞에 둔다. 장소가 없을 때만 권한 답을 기다려 현재 위치를 쓴다.
     private func settleCamera() {
         guard !cameraSettled, viewModel.uiState.map != .loading else { return }
-        let places = viewModel.uiState.places
+        let places = self.places
         guard !places.isEmpty || permissionAnswered else { return }
         let location = places.isEmpty ? locationProvider.lastKnownLocation : nil
         viewport = .initial(InitialCamera(places: places, deviceLocation: location), padding: fitPadding)

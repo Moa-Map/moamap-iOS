@@ -5,6 +5,7 @@ struct MapIntroView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.blockedUserIDs) private var blockedUserIDs
 
     @State private var viewModel: MapIntroViewModel
     /// 지도 이름과 공식지도인지를 넘긴다. 특수 공식지도는 지도 상세가 아니라 전용 화면으로 가야 해서 받는 쪽이 고른다.
@@ -134,7 +135,7 @@ struct MapIntroView: View {
             restroomPreview()
         } else {
             PlaceMarkerMap(
-                places: viewModel.uiState.places,
+                places: viewModel.uiState.places.hiding(authors: blockedUserIDs),
                 viewport: $viewport,
                 allowsRotation: false,
                 showsMyLocation: locationProvider?.authorization == .granted
@@ -143,7 +144,7 @@ struct MapIntroView: View {
     }
 
     private func settleCamera() {
-        let places = viewModel.uiState.places
+        let places = viewModel.uiState.places.hiding(authors: blockedUserIDs)
         guard !cameraSettled, !places.isEmpty else { return }
         viewport = .initial(InitialCamera(places: places, deviceLocation: nil), padding: .init(top: 32, leading: 32, bottom: 32, trailing: 32))
         cameraSettled = true

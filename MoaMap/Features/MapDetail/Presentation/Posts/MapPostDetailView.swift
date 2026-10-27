@@ -5,8 +5,10 @@ import SwiftUI
 struct MapPostDetailView: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
+    @Environment(\.blockedUserIDs) private var blockedUserIDs
 
     let viewModel: MapPostDetailViewModel
+    let moderation: ModerationViewModel
     let post: MapPost
     let dateLabel: String?
     /// 지도 멤버. 아니면 입력칸을 막고 참여 안내를 띄운다.
@@ -15,6 +17,7 @@ struct MapPostDetailView: View {
     @State private var commentText = ""
     @FocusState private var commentFocused: Bool
     @State private var visibleHeight: CGFloat?
+    @State private var deleteTargetID: Int64?
 
     private static let closeButtonColor = Color(argb: 0xFF3E_3E3F)
     private static let bottomID = "bottom"
@@ -65,6 +68,28 @@ struct MapPostDetailView: View {
                 .padding(.leading, 14)
                 .padding(.top, 3)
         }
+        // 입력 줄 바로 위. 입력 줄은 아래 여백 30, 높이 44 다.
+        .moderationToast(moderation, bottomInset: 82)
+        .longPressMenuHost()
+        .overlay {
+            if let id = deleteTargetID {
+                MoaMapConfirmDialog(
+                    title: "댓글을 삭제할까요?",
+                    message: "삭제한 댓글은 복구할 수 없어요",
+                    dismissText: "취소",
+                    confirmText: "삭제하기",
+                    onConfirm: {
+                        deleteTargetID = nil
+                        viewModel.delete(commentID: id)
+                    },
+                    onDismiss: { deleteTargetID = nil }
+                )
+            }
+        }
+        .moderationPrompts(moderation)
+        .onChange(of: state.deletedCount) { old, new in
+            if new > old { moderation.notify(ToastMessage(text: "댓글을 삭제했어요")) }
+        }
     }
 
     @ViewBuilder
@@ -85,17 +110,43 @@ struct MapPostDetailView: View {
                         .buttonStyle(.plain)
                 }
             }
-        case .loaded(let comments) where comments.isEmpty:
-            notice {
-                Text("아직 댓글이 없어요")
-                    .moaTextStyle(typography.body2)
-                    .foregroundStyle(colors.textWhite)
-            }
         case .loaded(let comments):
-            ForEach(comments) { comment in
-                MapPostCommentRow(comment: comment, mine: comment.authorID == state.myUserID) { commentFocused = false }
+            // 내가 차단한 사람의 댓글은 서버가 걸러 주기 전에도 바로 뺀다.
+            let visible = comments.filter { !blockedUserIDs.contains($0.authorID) }
+            if visible.isEmpty {
+                notice {
+                    Text("아직 댓글이 없어요")
+                        .moaTextStyle(typography.body2)
+                        .foregroundStyle(colors.textWhite)
+                }
+            } else {
+                ForEach(visible) { comment in
+                    MapPostCommentRow(
+                        comment: comment,
+                        mine: comment.authorID == state.myUserID,
+                        menuItems: menuItems(for: comment)
+                    ) { commentFocused = false }
+                }
             }
         }
+    }
+
+    /// 내 댓글은 삭제, 남의 댓글은 차단·신고. 누가 썼는지 모르면 띄우지 않는다.
+    private func menuItems(for comment: MapPostComment) -> [ActionMenuItem] {
+        guard let myUserID = state.myUserID else { return [] }
+        if comment.authorID == myUserID {
+            return [ActionMenuItem(icon: "trash", label: "삭제하기") { deleteTargetID = comment.id }]
+        }
+        return [
+            ActionMenuItem(icon: "block", label: "차단하기") {
+                moderation.askBlock(userID: comment.authorID, nickname: comment.authorName)
+            },
+            ActionMenuItem(icon: "report", label: "신고하기", isDestructive: true) {
+                moderation.askReport(
+                    .mapPostComment(mapID: viewModel.mapID, postID: post.id, commentID: comment.id), title: "댓글 신고하기"
+                )
+            }
+        ]
     }
 
     private func notice(@ViewBuilder _ content: () -> some View) -> some View {
@@ -119,7 +170,7 @@ struct MapPostDetailView: View {
                 sending: state.sending,
                 onSend: { viewModel.send(commentText) }
             )
-            if let message = state.sendErrorMessage {
+            if let message = state.sendErrorMessage ?? state.deleteErrorMessage {
                 Text(message)
                     .moaTextStyle(typography.caption0)
                     .foregroundStyle(colors.statusAlert)
@@ -167,6 +218,8 @@ private struct MapPostCommentRow: View {
 
     let comment: MapPostComment
     let mine: Bool
+    /// 말풍선을 꾹 누르면 띄운다.
+    let menuItems: [ActionMenuItem]
     /// 말풍선을 누르면 닫지 않고 이것만 한다.
     let onTap: () -> Void
 
@@ -186,17 +239,23 @@ private struct MapPostCommentRow: View {
                         .foregroundStyle(colors.textWhite)
                 }
             }
-            // 여백 12 와 줄 높이 21 로 한 줄 말풍선이 45 다.
-            Text(comment.content)
-                .moaTextStyle(typography.body2)
-                .foregroundStyle(colors.textNormal)
-                .padding(12)
-                .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 16))
+            bubble
                 .onTapGesture(perform: onTap)
+                // 시안처럼 메뉴는 말풍선 아래에 띄운다.
+                .longPressMenu(items: menuItems, edge: .bottom) { bubble }
                 .frame(maxWidth: Self.bubbleMaxWidth, alignment: mine ? .trailing : .leading)
         }
         .frame(maxWidth: .infinity, alignment: mine ? .trailing : .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    /// 여백 12 와 줄 높이 21 로 한 줄 말풍선이 45 다.
+    private var bubble: some View {
+        Text(comment.content)
+            .moaTextStyle(typography.body2)
+            .foregroundStyle(colors.textNormal)
+            .padding(12)
+            .background(MoaMapPrimitiveColors.white, in: RoundedRectangle(cornerRadius: 16))
     }
 }
 
@@ -204,7 +263,10 @@ private struct MapPostCommentRow: View {
 #Preview {
     let viewModels = MapDetailViewModels.preview(mapID: 1)
     let post = MapPost(id: 1, authorID: 2, content: "성수 카페 다녀왔어요", imageURLs: [], placeNames: ["블루보틀"], createdAt: nil)
-    MapPostDetailView(viewModel: viewModels.postDetail, post: post, dateLabel: "2026. 10. 15.", canComment: true)
+    MapPostDetailView(
+        viewModel: viewModels.postDetail, moderation: viewModels.postModeration,
+        post: post, dateLabel: "2026. 10. 15.", canComment: true
+    )
         .task { viewModels.postDetail.open(post) }
 }
 #endif

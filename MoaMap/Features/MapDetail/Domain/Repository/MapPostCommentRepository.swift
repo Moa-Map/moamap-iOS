@@ -5,4 +5,6 @@ protocol MapPostCommentRepository {
     func fetchComments(mapID: Int64, postID: Int64) async throws -> [MapPostComment]
     /// 남긴 댓글을 돌려준다. 내 댓글이라 작성자 이름·사진은 채우지 않는다.
     func createComment(mapID: Int64, postID: Int64, content: String) async throws -> MapPostComment
+    /// 작성자와 지도의 방장·관리자가 지울 수 있다.
+    func deleteComment(mapID: Int64, postID: Int64, commentID: Int64) async throws
 }
