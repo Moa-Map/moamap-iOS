@@ -6,19 +6,26 @@ struct PlaceReviewList: View {
     @Environment(\.moaTypography) private var typography
 
     let state: PlaceReviewUiState
-    /// 수정·삭제·신고는 지도 멤버만 할 수 있다. false 면 밀리지 않는다.
-    let swipeEnabled: Bool
+    /// 내가 차단한 사람. 서버가 걸러 주기 전에도 바로 뺀다.
+    let hiddenAuthorIDs: Set<Int64>
+    /// false 면 꾹 눌러도 메뉴가 뜨지 않는다.
+    let menuEnabled: Bool
     let relativeTime: (PlaceReview) -> String
-    @Binding var openReviewID: Int64?
     let onRetry: () -> Void
-    let onEdit: (Int64) -> Void
-    let onDelete: (Int64) -> Void
+    let onDelete: (PlaceReview) -> Void
+    let onBlock: (PlaceReview) -> Void
+    let onReport: (PlaceReview) -> Void
     /// 첫 댓글(없으면 로딩·오류·빈 안내) 높이. 장소 상세가 반만 올라올 때 이만큼 보여 준다.
     var onFirstItemHeightChange: (CGFloat) -> Void = { _ in }
 
     private static let placeholderHeight: CGFloat = 140
 
+    private var reviews: [PlaceReview] {
+        state.reviews.filter { !hiddenAuthorIDs.contains($0.authorID) }
+    }
+
     var body: some View {
+        let reviews = reviews
         if state.loading {
             placeholder { ProgressView() }
         } else if let message = state.loadErrorMessage {
@@ -38,7 +45,7 @@ struct PlaceReviewList: View {
                     .buttonStyle(.plain)
                 }
             }
-        } else if state.reviews.isEmpty {
+        } else if reviews.isEmpty {
             placeholder {
                 Text("아직 댓글이 없어요")
                     .moaTextStyle(typography.body2)
@@ -46,40 +53,34 @@ struct PlaceReviewList: View {
             }
         } else {
             LazyVStack(spacing: 0) {
-                ForEach(state.reviews) { review in
-                    SwipeRevealRow(
-                        actions: actions(for: review),
-                        open: Binding(
-                            get: { openReviewID == review.id },
-                            set: { open in
-                                if open { openReviewID = review.id } else if openReviewID == review.id { openReviewID = nil }
-                            }
-                        )
-                    ) {
-                        PlaceReviewRow(review: review, relativeTime: relativeTime(review))
-                    }
-                    .background {
-                        // 맨 앞 댓글이 지워지면 다음 줄이 새로 재도록 맨 앞 줄에만 단다.
-                        if review.id == state.reviews.first?.id {
-                            Color.clear
-                                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onFirstItemHeightChange($0) }
+                ForEach(reviews) { review in
+                    PlaceReviewRow(review: review, relativeTime: relativeTime(review))
+                        // 시안처럼 메뉴는 댓글 위에 띄운다.
+                        .longPressMenu(items: menuItems(for: review), edge: .top) {
+                            PlaceReviewRow(review: review, relativeTime: relativeTime(review), highlighted: true)
                         }
-                    }
+                        .background {
+                            // 맨 앞 댓글이 지워지면 다음 줄이 새로 재도록 맨 앞 줄에만 단다.
+                            if review.id == reviews.first?.id {
+                                Color.clear
+                                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onFirstItemHeightChange($0) }
+                            }
+                        }
                 }
             }
         }
     }
 
-    /// 내 댓글은 수정·삭제, 남의 댓글은 신고. 신고는 사유를 정하기 전이라 아직 누를 수 없다.
-    private func actions(for review: PlaceReview) -> [SwipeAction] {
-        guard swipeEnabled else { return [] }
+    /// 내 댓글은 삭제, 남의 댓글은 차단·신고. 누가 썼는지 모르면 띄우지 않는다.
+    private func menuItems(for review: PlaceReview) -> [ActionMenuItem] {
+        guard menuEnabled, state.myUserID != nil else { return [] }
         if review.isMine(state.myUserID) {
-            return [
-                SwipeAction(label: "수정", color: MoaMapPrimitiveColors.gray200) { onEdit(review.id) },
-                SwipeAction(label: "삭제", color: SwipeAction.dangerColor) { onDelete(review.id) }
-            ]
+            return [ActionMenuItem(icon: "trash", label: "삭제하기") { onDelete(review) }]
         }
-        return [SwipeAction(label: "신고", color: SwipeAction.dangerColor, action: nil)]
+        return [
+            ActionMenuItem(icon: "block", label: "차단하기") { onBlock(review) },
+            ActionMenuItem(icon: "report", label: "신고하기", isDestructive: true) { onReport(review) }
+        ]
     }
 
     private func placeholder(@ViewBuilder _ content: () -> some View) -> some View {
@@ -96,6 +97,8 @@ struct PlaceReviewRow: View {
 
     let review: PlaceReview
     let relativeTime: String
+    /// 꾹 눌러 메뉴를 띄운 줄. 구분선 대신 카드로 띄운다.
+    var highlighted = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -143,94 +146,15 @@ struct PlaceReviewRow: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 16)
-            Rectangle()
-                .fill(colors.lineAlternative)
-                .frame(height: 1)
-        }
-        .padding(.horizontal, 20)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// 밀었을 때 드러나는 버튼. `action` 이 nil 이면 보이기만 하고 눌리지 않는다.
-struct SwipeAction: Identifiable {
-    /// 시안의 삭제·신고 빨강. 디자인 토큰에 없는 색이다.
-    static let dangerColor = Color(red: 0xD9 / 255, green: 0x40 / 255, blue: 0x2F / 255)
-
-    let label: String
-    let color: Color
-    let action: (() -> Void)?
-
-    var id: String { label }
-}
-
-/// 왼쪽으로 밀면 오른쪽에 버튼이 드러나는 줄. 절반 넘게 밀고 놓으면 열린다.
-struct SwipeRevealRow<Content: View>: View {
-    @Environment(\.moaColors) private var colors
-    @Environment(\.moaTypography) private var typography
-
-    let actions: [SwipeAction]
-    @Binding var open: Bool
-    @ViewBuilder let content: () -> Content
-
-    private var actionWidth: CGFloat { 72 }
-    @GestureState private var dragOffset: CGFloat = 0
-
-    var body: some View {
-        if actions.isEmpty {
-            content()
-        } else {
-            let reveal = actionWidth * CGFloat(actions.count)
-            let offset = min(max((open ? -reveal : 0) + dragOffset, -reveal), 0)
-            content()
-                .frame(maxWidth: .infinity)
-                // 밑의 버튼이 비치지 않게 화면 배경으로 덮는다.
-                .background(colors.backgroundSecondary)
-                .offset(x: offset)
-                // 밀지 않았으면 버튼을 그리지 않는다. 시트가 커지는 동안 덮개 밖으로 비친다.
-                .background(alignment: .trailing) { if offset < 0 { buttons } }
-                .clipped()
-                .contentShape(Rectangle())
-                .onTapGesture { if open { open = false } }
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 20)
-                        .updating($dragOffset) { value, state, _ in
-                            // 세로 스크롤과 겹치지 않게 가로로 민 것만 받는다.
-                            if abs(value.translation.width) > abs(value.translation.height) { state = value.translation.width }
-                        }
-                        .onEnded { value in
-                            guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                            let end = (open ? -reveal : 0) + value.translation.width
-                            open = end < -reveal / 2
-                        }
-                )
-                .animation(.easeOut(duration: 0.2), value: open)
-                .accessibilityActions {
-                    ForEach(actions) { action in
-                        if let handler = action.action { Button(action.label, action: handler) }
-                    }
-                }
-        }
-    }
-
-    private var buttons: some View {
-        HStack(spacing: 0) {
-            ForEach(actions) { action in
-                Button {
-                    action.action?()
-                } label: {
-                    Text(action.label)
-                        .moaTextStyle(typography.body2)
-                        .foregroundStyle(colors.textWhite)
-                        .frame(width: actionWidth)
-                        .frame(maxHeight: .infinity)
-                        .background(action.color)
-                }
-                .buttonStyle(.plain)
-                .disabled(action.action == nil)
+            if !highlighted {
+                Rectangle()
+                    .fill(colors.lineAlternative)
+                    .frame(height: 1)
             }
         }
-        .accessibilityHidden(true)
+        .background { if highlighted { RoundedRectangle(cornerRadius: 8).fill(colors.backgroundSecondary) } }
+        .padding(.horizontal, 20)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -248,32 +172,15 @@ struct PlaceReviewComposer: View {
     let onAddPhoto: () -> Void
     let onRemovePhoto: () -> Void
     let onSubmit: () -> Void
-    let onCancelEdit: () -> Void
 
     private var inputEnabled: Bool { canWrite && !state.submitting }
-    private var editing: PlaceReview? { state.editingReview }
-    private var canAddPhoto: Bool { inputEnabled && photo == nil && editing == nil }
-    /// 사진이 있는 댓글은 글을 비워도 고칠 수 있다.
+    private var canAddPhoto: Bool { inputEnabled && photo == nil }
     private var canSend: Bool {
-        inputEnabled && (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || photo != nil
-            || editing?.imageURLs.isEmpty == false)
+        inputEnabled && (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || photo != nil)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if editing != nil {
-                HStack {
-                    Text("댓글 수정 중")
-                        .moaTextStyle(typography.caption0)
-                        .foregroundStyle(colors.textAlternative)
-                    Spacer()
-                    Button("취소", action: onCancelEdit)
-                        .moaTextStyle(typography.caption0)
-                        .foregroundStyle(colors.textNormal)
-                        .buttonStyle(.plain)
-                        .disabled(state.submitting)
-                }
-            }
             if let photo { draftPhoto(photo) }
             CommentInputRow(
                 text: $text,

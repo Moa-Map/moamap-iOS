@@ -11,18 +11,12 @@ nonisolated struct PlaceReviewUiState: Equatable, Sendable {
     var loadErrorMessage: String?
     var submitting = false
     var submitErrorMessage: String?
-    /// 서버가 받아들인 작성·수정 수. 늘어나면 입력창을 비운다.
+    /// 서버가 받아들인 작성 수. 늘어나면 입력창을 비운다.
     var submittedCount = 0
     var myUserID: Int64?
-    /// 입력창에서 고치고 있는 내 댓글.
-    var editingReviewID: Int64?
     var deleting = false
     /// 지운 댓글 수. 입력창은 비우지 않고 장소의 댓글 수만 다시 읽는다.
     var deletedCount = 0
-
-    var editingReview: PlaceReview? {
-        editingReviewID.flatMap { id in reviews.first { $0.id == id } }
-    }
 }
 
 @MainActor @Observable
@@ -67,7 +61,6 @@ final class PlaceReviewViewModel {
     @discardableResult
     func submit(content: String, photo: UploadImage?) -> Bool {
         guard let placeID = uiState.placeID, !uiState.submitting else { return false }
-        if let editing = uiState.editingReview { return update(placeID: placeID, editing: editing, content: content) }
         let text = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty || photo != nil else {
             uiState.submitErrorMessage = PlaceReviewMessage.empty
@@ -92,20 +85,6 @@ final class PlaceReviewViewModel {
         }
     }
 
-    /// 남의 댓글이면 무시한다. 서버가 작성자만 받는다.
-    func startEdit(reviewID: Int64) {
-        guard !uiState.submitting,
-              uiState.reviews.first(where: { $0.id == reviewID })?.isMine(uiState.myUserID) == true else { return }
-        uiState.editingReviewID = reviewID
-        uiState.submitErrorMessage = nil
-    }
-
-    func cancelEdit() {
-        guard !uiState.submitting else { return }
-        uiState.editingReviewID = nil
-        uiState.submitErrorMessage = nil
-    }
-
     /// 확인은 화면이 먼저 받는다.
     func delete(reviewID: Int64) {
         guard let placeID = uiState.placeID, !uiState.deleting,
@@ -118,8 +97,6 @@ final class PlaceReviewViewModel {
                 guard let self, self.uiState.placeID == placeID else { return }
                 self.uiState.deleting = false
                 self.uiState.deletedCount += 1
-                // 고치던 댓글을 지웠으면 고치기도 끝난다.
-                if self.uiState.editingReviewID == reviewID { self.uiState.editingReviewID = nil }
                 self.load(placeID)
                 await self.loadTask?.value
             } catch {
@@ -135,20 +112,6 @@ final class PlaceReviewViewModel {
         review.createdAt.map { RelativeTimeLabel.text(from: $0, now: now()) } ?? ""
     }
 
-    /// 사진은 건드리지 않는다. 사진이 있는 댓글은 글을 비워도 된다.
-    private func update(placeID: Int64, editing: PlaceReview, content: String) -> Bool {
-        let text = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty || !editing.imageURLs.isEmpty else {
-            uiState.submitErrorMessage = PlaceReviewMessage.empty
-            return false
-        }
-        run(placeID: placeID, failure: { MapDetailMessage.userMessage(for: $0, fallback: PlaceReviewMessage.updateFailed) }) {
-            [repository] in
-            try await repository.updateReview(placeID: placeID, reviewID: editing.id, content: text)
-        }
-        return true
-    }
-
     private func run(placeID: Int64, failure: @escaping (any Error) -> String, _ body: @escaping () async throws -> Void) {
         uiState.submitting = true
         uiState.submitErrorMessage = nil
@@ -159,7 +122,6 @@ final class PlaceReviewViewModel {
                 try Task.checkCancellation()
                 guard let self else { return }
                 self.uiState.submitting = false
-                self.uiState.editingReviewID = nil
                 self.uiState.submittedCount += 1
                 // 방금 쓴 글이 서버가 매긴 순서와 닉네임 그대로 보여야 한다.
                 self.load(placeID)
@@ -197,7 +159,6 @@ nonisolated enum PlaceReviewMessage {
     static let submitFailed = "댓글을 남기지 못했어요"
     static let notMember = "지도에 참여해야 댓글을 남길 수 있어요"
     static let empty = "내용이나 사진을 남겨주세요"
-    static let updateFailed = "댓글을 수정하지 못했어요"
     static let deleteFailed = "댓글을 삭제하지 못했어요"
 
     /// 멤버가 아닌 경우와 사진 문제는 따로 알린다. 뭉뚱그리면 같은 글을 계속 다시 보내게 된다.

@@ -86,8 +86,11 @@ private struct LongPressMenuHost: ViewModifier {
         return ActionMenu(items: items, dark: true, style: .command)
     }
 
+    /// 오른쪽에 붙은 줄(내 말풍선)은 메뉴도 오른쪽 끝에 맞춘다.
     private func menuX(_ frame: CGRect, width: CGFloat) -> CGFloat {
-        max(0, min(frame.minX, width - ActionMenu.width))
+        let trailing = frame.minX - (width - frame.maxX) > 1
+        let x = trailing ? frame.maxX - ActionMenu.width : frame.minX
+        return max(0, min(x, width - ActionMenu.width))
     }
 
     private func menuY(_ frame: CGRect, edge: VerticalEdge, height: CGFloat) -> CGFloat {

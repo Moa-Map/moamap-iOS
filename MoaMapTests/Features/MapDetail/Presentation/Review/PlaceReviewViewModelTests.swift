@@ -96,44 +96,14 @@ struct PlaceReviewViewModelTests {
         #expect(sut.uiState.submitErrorMessage == message)
     }
 
-    @Test func 내_댓글만_고칠_수_있고_고치면_수정으로_보낸다() async {
-        let repository = PlaceReviewRepositoryStub()
-        repository.reviews = { _ in [.fixture(id: 1, authorID: 1), .fixture(id: 2, authorID: 2)] }
-        let sut = await opened(repository)
-        sut.startEdit(reviewID: 2)
-        #expect(sut.uiState.editingReviewID == nil)
-        sut.startEdit(reviewID: 1)
-        #expect(sut.uiState.editingReview?.id == 1)
-        sut.submit(content: "고친 글", photo: nil)
-        await sut.submitTask?.value
-        #expect(repository.lastUpdate?.reviewID == 1)
-        #expect(repository.lastUpdate?.content == "고친 글")
-        #expect(repository.createCalls == 0)
-        #expect(sut.uiState.editingReviewID == nil)
-    }
-
-    @Test func 사진이_있는_댓글은_글을_비워도_고칠_수_있다() async throws {
-        let repository = PlaceReviewRepositoryStub()
-        let photo = try #require(URL(string: "https://p"))
-        repository.reviews = { _ in [.fixture(id: 1, imageURLs: [photo]), .fixture(id: 2)] }
-        let sut = await opened(repository)
-        sut.startEdit(reviewID: 1)
-        #expect(sut.submit(content: "", photo: nil))
-        await sut.submitTask?.value
-        sut.startEdit(reviewID: 2)
-        #expect(!sut.submit(content: " ", photo: nil))
-    }
-
-    @Test func 지우면_다시_읽고_고치던_댓글이면_고치기도_끝낸다() async {
+    @Test func 지우면_다시_읽는다() async {
         let repository = PlaceReviewRepositoryStub()
         repository.reviews = { _ in [.fixture(id: 1)] }
         let sut = await opened(repository)
-        sut.startEdit(reviewID: 1)
         repository.reviews = { _ in [] }
         sut.delete(reviewID: 1)
         await sut.deleteTask?.value
         #expect(sut.uiState.deletedCount == 1)
-        #expect(sut.uiState.editingReviewID == nil)
         #expect(sut.uiState.reviews.isEmpty)
         #expect(sut.uiState.submittedCount == 0)
     }

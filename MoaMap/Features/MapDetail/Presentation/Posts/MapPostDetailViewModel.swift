@@ -21,6 +21,10 @@ nonisolated struct MapPostDetailUiState: Equatable, Sendable {
     var sendErrorMessage: String?
     /// 남긴 댓글 수. 늘면 화면이 입력칸을 비우고 맨 아래로 내린다.
     var sentCount = 0
+    var deleting = false
+    /// 지운 댓글 수. 늘면 화면이 토스트를 띄운다.
+    var deletedCount = 0
+    var deleteErrorMessage: String?
 
     /// 댓글을 다 읽기 전에는 보내지 않는다. 먼저 보낸 댓글을 늦게 온 목록이 덮는다.
     var commentsReady: Bool {
@@ -33,11 +37,13 @@ nonisolated struct MapPostDetailUiState: Equatable, Sendable {
 final class MapPostDetailViewModel {
     nonisolated static let loadFailedMessage = "댓글을 불러오지 못했어요"
     nonisolated static let sendFailedMessage = "댓글을 남기지 못했어요"
+    nonisolated static let deleteFailedMessage = "댓글을 삭제하지 못했어요"
 
     let mapID: Int64
     private(set) var uiState = MapPostDetailUiState()
     private(set) var loadTask: Task<Void, Never>?
     private(set) var sendTask: Task<Void, Never>?
+    private(set) var deleteTask: Task<Void, Never>?
 
     private let repository: any MapPostCommentRepository
     private let currentUserStore: any CurrentUserStore
@@ -91,6 +97,29 @@ final class MapPostDetailViewModel {
         }
     }
 
+    /// 내 댓글만 지운다. 확인은 화면이 먼저 받는다. 지우면 다시 읽지 않고 목록에서 뺀다.
+    func delete(commentID: Int64) {
+        let state = uiState
+        guard let post = state.post, case .loaded(let comments) = state.comments, !state.deleting,
+              let myUserID = state.myUserID, comments.first(where: { $0.id == commentID })?.authorID == myUserID else { return }
+        uiState.deleting = true
+        uiState.deleteErrorMessage = nil
+        deleteTask = Task { [weak self, repository, mapID] in
+            do {
+                try await repository.deleteComment(mapID: mapID, postID: post.id, commentID: commentID)
+                try Task.checkCancellation()
+                guard let self, case .loaded(let current) = self.uiState.comments else { return }
+                self.uiState.comments = .loaded(current.filter { $0.id != commentID })
+                self.uiState.deleting = false
+                self.uiState.deletedCount += 1
+            } catch {
+                guard !Task.isCancelled, !(error is CancellationError) else { return }
+                self?.uiState.deleting = false
+                self?.uiState.deleteErrorMessage = MapDetailMessage.userMessage(for: error, fallback: Self.deleteFailedMessage)
+            }
+        }
+    }
+
     private func load(_ post: MapPost) {
         loadTask?.cancel()
         loadTask = Task { [weak self, repository, mapID, currentUserStore] in
@@ -109,5 +138,6 @@ final class MapPostDetailViewModel {
     private func cancelTasks() {
         loadTask?.cancel()
         sendTask?.cancel()
+        deleteTask?.cancel()
     }
 }

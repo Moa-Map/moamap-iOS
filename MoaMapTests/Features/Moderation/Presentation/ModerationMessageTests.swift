@@ -23,11 +23,11 @@ struct ModerationMessageTests {
         #expect(ModerationMessage.reportFailure(error) == message)
     }
 
-    @Test func 연결이_끊기면_네트워크를_확인하게_한다() {
+    @Test func 연결이_끊기면_네트워크_안내를_띄운다() {
         let error = NetworkError.connection(.notConnectedToInternet)
-        #expect(ModerationMessage.reportFailure(error) == "네트워크 연결을 확인해주세요")
-        #expect(ModerationMessage.blockFailure(error) == "네트워크 연결을 확인해주세요")
-        #expect(ModerationMessage.unblockFailure(error) == "네트워크 연결을 확인해주세요")
+        #expect(ModerationMessage.reportFailure(error) == "네트워크에 연결할 수 없어요")
+        #expect(ModerationMessage.blockFailure(error) == "네트워크에 연결할 수 없어요")
+        #expect(ModerationMessage.unblockFailure(error) == "네트워크에 연결할 수 없어요")
     }
 
     @Test func 차단_실패는_코드에_맞는_문구로_바꾼다() {

@@ -18,6 +18,7 @@ struct PlaceDetailView: View {
     let personalMapAction: PersonalMapAction?
     /// nil 이면 하트·신고하기·댓글을 뺀다. 공식지도다.
     let reviews: PlaceReviewViewModel?
+    let moderation: ModerationViewModel
     /// 참여 중인 지도에만 댓글을 남길 수 있다.
     let canWriteReview: Bool
     let onBack: () -> Void
@@ -62,8 +63,6 @@ struct PlaceDetailView: View {
 
     @State private var reviewText = ""
     @State private var reviewPhoto: UploadImage?
-    /// 밀어 버튼이 드러난 댓글. 한 번에 한 줄만 연다.
-    @State private var openReviewID: Int64?
     @State private var deleteTargetID: Int64?
     @State private var showsPhotoPicker = false
     @FocusState private var composerFocused: Bool
@@ -121,14 +120,15 @@ struct PlaceDetailView: View {
                 }
             )
         }
+        // 꾹 눌러 띄운 메뉴는 지도까지 덮는다. 팝업은 그 위에 뜬다.
+        .longPressMenuHost()
         .overlay {
             if let id = deleteTargetID, let reviews {
                 MoaMapConfirmDialog(
-                    title: "댓글을 삭제하시겠습니까?",
-                    message: "삭제한 댓글은 되돌릴 수 없습니다",
-                    dismissText: "취소하기",
-                    dismissColor: MoaMapPrimitiveColors.gray100,
-                    confirmText: "삭제",
+                    title: "댓글을 삭제할까요?",
+                    message: "삭제한 댓글은 복구할 수 없어요",
+                    dismissText: "취소",
+                    confirmText: "삭제하기",
                     onConfirm: {
                         deleteTargetID = nil
                         reviews.delete(reviewID: id)
@@ -137,19 +137,14 @@ struct PlaceDetailView: View {
                 )
             }
         }
-        .onChange(of: reviews?.uiState.editingReviewID) { _, editingID in
-            // 고치기 시작하면 원래 글을 채우고 고른 사진은 뺀다. 사진은 고치지 않는다.
-            if let editing = reviews?.uiState.editingReview, editing.id == editingID {
-                reviewText = editing.content
-                reviewPhoto = nil
-                composerFocused = true
-            } else {
-                reviewText = ""
-            }
-        }
+        .moderationPrompts(moderation)
         .onChange(of: reviews?.uiState.submittedCount) {
             reviewText = ""
             reviewPhoto = nil
+        }
+        .onChange(of: reviews?.uiState.deletedCount) { old, new in
+            // 다른 장소를 열어 0 으로 돌아갈 때는 띄우지 않는다.
+            if (new ?? 0) > (old ?? 0) { moderation.notify(ToastMessage(text: "댓글을 삭제했어요")) }
         }
     }
 
@@ -223,18 +218,15 @@ struct PlaceDetailView: View {
                                 } action: { dividerBottom = $0 }
                             PlaceReviewList(
                                 state: reviews.uiState,
-                                // 반만 올라온 동안의 끌기는 시트를 올리는 데 쓴다.
-                                swipeEnabled: canWriteReview && expanded,
+                                hiddenAuthorIDs: moderation.blockedUserIDs,
+                                // 실패 안내가 입력창 아래에 뜬다. 입력창은 끝까지 올렸을 때만 있다.
+                                menuEnabled: expanded,
                                 relativeTime: reviews.relativeTime(of:),
-                                openReviewID: $openReviewID,
                                 onRetry: reviews.retry,
-                                onEdit: { id in
-                                    openReviewID = nil
-                                    reviews.startEdit(reviewID: id)
-                                },
-                                onDelete: { id in
-                                    openReviewID = nil
-                                    deleteTargetID = id
+                                onDelete: { deleteTargetID = $0.id },
+                                onBlock: { moderation.askBlock(userID: $0.authorID, nickname: $0.authorName) },
+                                onReport: { review in
+                                    moderation.askReport(.placeComment(placeID: place.id, commentID: review.id), title: "댓글 신고하기")
                                 },
                                 onFirstItemHeightChange: { firstReviewHeight = $0 }
                             )
@@ -272,6 +264,8 @@ struct PlaceDetailView: View {
                     if !isExpanded { scroll.scrollTo(Self.contentTopID, anchor: .top) }
                 }
             }
+            // 입력창 바로 위에 띄운다.
+            .moderationToast(moderation, bottomInset: 8)
             if expanded, let reviews {
                 PlaceReviewComposer(
                     state: reviews.uiState,
@@ -285,8 +279,7 @@ struct PlaceDetailView: View {
                     },
                     onRemovePhoto: { reviewPhoto = nil },
                     // 입력은 여기서 비우지 않는다. 서버가 받아들였는지는 아직 모른다.
-                    onSubmit: { reviews.submit(content: reviewText, photo: reviewPhoto) },
-                    onCancelEdit: reviews.cancelEdit
+                    onSubmit: { reviews.submit(content: reviewText, photo: reviewPhoto) }
                 )
             }
         }
@@ -585,6 +578,7 @@ private struct PlacePhotoPager: View {
     }
 }
 
+#if DEBUG
 #Preview {
     ZStack {
         MoaMapPrimitiveColors.blue50.ignoresSafeArea()
@@ -597,8 +591,10 @@ private struct PlacePhotoPager: View {
             ),
             personalMapAction: PersonalMapAction(message: "나만의 지도에 추가했어요"),
             reviews: nil,
+            moderation: MapDetailViewModels.preview(mapID: 1).reviewModeration,
             canWriteReview: true,
             onBack: {}, onClose: {}, onInstagram: {}, onViewMap: {}, onAddToPersonalMap: {}, onLike: {}
         )
     }
 }
+#endif

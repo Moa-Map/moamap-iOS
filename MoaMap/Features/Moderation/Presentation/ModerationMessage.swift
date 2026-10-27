@@ -26,7 +26,7 @@ nonisolated enum ModerationMessage {
         case .server(_, statusCode: 404, _):
             return "이미 삭제된 콘텐츠예요"
         case .connection:
-            return "네트워크 연결을 확인해주세요"
+            return "네트워크에 연결할 수 없어요"
         default:
             return reportFallback
         }
@@ -36,13 +36,13 @@ nonisolated enum ModerationMessage {
         switch error as? NetworkError {
         case .server(code: "USER_026", _, _): "나 자신은 차단할 수 없어요"
         case .server(_, statusCode: 404, _): "탈퇴했거나 없는 사용자예요"
-        case .connection: "네트워크 연결을 확인해주세요"
+        case .connection: "네트워크에 연결할 수 없어요"
         default: "차단하지 못했어요. 잠시 후 다시 시도해주세요"
         }
     }
 
     static func unblockFailure(_ error: any Error) -> String {
-        if case .connection = error as? NetworkError { return "네트워크 연결을 확인해주세요" }
+        if case .connection = error as? NetworkError { return "네트워크에 연결할 수 없어요" }
         return "차단을 해제하지 못했어요. 잠시 후 다시 시도해주세요"
     }
 

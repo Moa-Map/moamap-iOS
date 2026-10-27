@@ -17,6 +17,8 @@ struct MapDetailView: View {
     @State private var postCalendarViewModel: MapPostCalendarViewModel
     @State private var postCreateViewModel: MapPostCreateViewModel
     @State private var postDetailViewModel: MapPostDetailViewModel
+    @State private var reviewModeration: ModerationViewModel
+    @State private var postModeration: ModerationViewModel
     private let makeEditMap: (MapDetail) -> EditMapViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
@@ -41,6 +43,8 @@ struct MapDetailView: View {
         _postCalendarViewModel = State(initialValue: viewModels.postCalendar)
         _postCreateViewModel = State(initialValue: viewModels.postCreate)
         _postDetailViewModel = State(initialValue: viewModels.postDetail)
+        _reviewModeration = State(initialValue: viewModels.reviewModeration)
+        _postModeration = State(initialValue: viewModels.postModeration)
         makeEditMap = viewModels.makeEditMap
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
@@ -267,6 +271,7 @@ struct MapDetailView: View {
             if let post = postDetailViewModel.uiState.post {
                 MapPostDetailView(
                     viewModel: postDetailViewModel,
+                    moderation: postModeration,
                     post: post,
                     dateLabel: postCalendarViewModel.dateLabel(of: post.createdAt),
                     // 게시물을 쓸 수 있는 사람과 같은 기준이다. 서버도 멤버만 받는다.
@@ -438,6 +443,7 @@ struct MapDetailView: View {
             place: place,
             personalMapAction: personalAction,
             reviews: viewModel.uiState.isOfficial ? nil : reviewViewModel,
+            moderation: reviewModeration,
             // 서버도 같은 기준으로 막는다.
             canWriteReview: viewModel.uiState.canAddPlace,
             onBack: { selectedPlaceID = nil },
