@@ -19,6 +19,8 @@ struct MapDetailViewModels {
     let postModeration: ModerationViewModel
     /// 지도 정보 수정은 열 때마다 그 순간의 지도로 새로 시작한다.
     let makeEditMap: (MapDetail) -> EditMapViewModel
+    /// 장소 수정도 열 때마다 그 순간의 장소로 새로 시작한다.
+    let makeEditPlace: (MapPlace) -> PlaceEditViewModel
 }
 
 #if DEBUG
@@ -139,7 +141,7 @@ extension MapDetailViewModels {
     static func preview(mapID: Int64) -> MapDetailViewModels {
         let blockedUsers = BlockedUserStore(repository: PreviewBlockRepository())
         return MapDetailViewModels(
-            main: MapDetailViewModel(mapID: mapID, repository: PreviewMapDetailRepository()),
+            main: MapDetailViewModel(mapID: mapID, repository: PreviewMapDetailRepository(), currentUserStore: PreviewCurrentUserStore()),
             personalMap: PersonalMapAddViewModel(repository: PreviewPersonalMapRepository()),
             review: PlaceReviewViewModel(
                 repository: PreviewPlaceReviewRepository(), currentUserStore: PreviewCurrentUserStore(), now: Date.init
@@ -161,7 +163,12 @@ extension MapDetailViewModels {
             ),
             reviewModeration: ModerationViewModel(reportRepository: PreviewReportRepository(), blockedUsers: blockedUsers),
             postModeration: ModerationViewModel(reportRepository: PreviewReportRepository(), blockedUsers: blockedUsers),
-            makeEditMap: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) }
+            makeEditMap: { EditMapViewModel(map: $0, repository: PreviewCollectionRepository()) },
+            makeEditPlace: {
+                PlaceEditViewModel(
+                    place: $0, mapID: mapID, repository: PreviewMapDetailRepository(), photoRepository: PreviewPlaceAddRepository()
+                )
+            }
         )
     }
 }

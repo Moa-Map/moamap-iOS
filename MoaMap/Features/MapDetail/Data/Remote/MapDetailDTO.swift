@@ -41,6 +41,13 @@ nonisolated struct PlaceResponse: Decodable, Sendable {
     let createdBy: Int64?
 }
 
+/// 보내지 않은 필드는 서버가 그대로 둔다. 태그와 사진은 보낸 목록으로 통째로 바꾼다.
+nonisolated struct PlaceUpdateRequest: Encodable, Sendable {
+    let tags: [String]
+    let description: String
+    let photoUrls: [String]
+}
+
 nonisolated struct PlaceLikeResponse: Decodable, Sendable {
     let likeCount: Int?
     let liked: Bool?

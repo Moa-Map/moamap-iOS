@@ -60,6 +60,17 @@ final class MapDetailRepositoryImpl: MapDetailRepository {
         return PlaceLike(liked: response.liked ?? liked, likeCount: response.likeCount ?? 0)
     }
 
+    func updatePlace(placeID: Int64, tags: [String], description: String, photoURLs: [String]) async throws {
+        let body = try JSONEncoder().encode(PlaceUpdateRequest(tags: tags, description: description, photoUrls: photoURLs))
+        let request = APIRequest(path: ["api", "v1", "places", String(placeID)], method: .patch, jsonBody: body)
+        try await client.sendWithoutResponse(request)
+    }
+
+    func deletePlace(placeID: Int64) async throws {
+        let request = APIRequest(path: ["api", "v1", "places", String(placeID)], method: .delete)
+        try await client.sendWithoutResponse(request)
+    }
+
     /// 곁들이는 정보라 실패를 삼킨다. 이름 한 줄 때문에 지도를 못 여는 게 더 나쁘다.
     private func fetchOwnerName(_ ownerID: Int64?) async throws -> String? {
         guard let ownerID, ownerID > 0 else { return nil }

@@ -215,7 +215,7 @@ final class AppContainer {
 
     func makeMapDetailViewModels(mapID: Int64) -> MapDetailViewModels {
         MapDetailViewModels(
-            main: MapDetailViewModel(mapID: mapID, repository: mapDetailRepository),
+            main: MapDetailViewModel(mapID: mapID, repository: mapDetailRepository, currentUserStore: currentUserStore),
             personalMap: PersonalMapAddViewModel(repository: personalMapRepository),
             review: PlaceReviewViewModel(repository: placeReviewRepository, currentUserStore: currentUserStore, now: Date.init),
             addPlace: AddPlaceViewModel(
@@ -233,7 +233,10 @@ final class AppContainer {
             ),
             reviewModeration: makeModerationViewModel(),
             postModeration: makeModerationViewModel(),
-            makeEditMap: makeEditMapViewModel(map:)
+            makeEditMap: makeEditMapViewModel(map:),
+            makeEditPlace: { [mapDetailRepository, placeAddRepository] place in
+                PlaceEditViewModel(place: place, mapID: mapID, repository: mapDetailRepository, photoRepository: placeAddRepository)
+            }
         )
     }
 

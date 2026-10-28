@@ -94,6 +94,28 @@ struct MapDetailRepositoryTests {
         #expect(places.map(\.authorID) == [9, nil])
     }
 
+    @Test func 장소_수정은_태그_메모_사진을_PATCH_로_보낸다() async throws {
+        let sut = try repository(responses: { _ in #"{"success":true}"# }) { request in
+            #expect(request.httpMethod == "PATCH")
+            #expect(request.url?.path == "/api/v1/places/3")
+            let body = try? JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any]
+            #expect(body?["tags"] as? [String] == ["카페", "데이트"])
+            #expect(body?["description"] as? String == "")
+            // 사진을 모두 지우면 빈 목록을 보내야 서버가 지운다. 빼면 그대로 둔다.
+            #expect(body?["photoUrls"] as? [String] == [])
+            #expect(body?.keys.count == 3)
+        }
+        try await sut.updatePlace(placeID: 3, tags: ["카페", "데이트"], description: "", photoURLs: [])
+    }
+
+    @Test func 장소_삭제는_DELETE_로_요청한다() async throws {
+        let sut = try repository(responses: { _ in #"{"success":true}"# }) { request in
+            #expect(request.httpMethod == "DELETE")
+            #expect(request.url?.path == "/api/v1/places/3")
+        }
+        try await sut.deletePlace(placeID: 3)
+    }
+
     @Test func 빈_페이지가_오면_last_가_없어도_멈춘다() async throws {
         let pages = RequestCounter()
         let sut = try repository { _ in

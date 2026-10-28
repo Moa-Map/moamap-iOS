@@ -9,12 +9,16 @@ final class MapDetailRepositoryStub: MapDetailRepository {
     var leave: (Int64) async throws -> Void = { _ in }
     var delete: (Int64) async throws -> Void = { _ in }
     var like: (Int64, Bool) async throws -> PlaceLike = { _, liked in PlaceLike(liked: liked, likeCount: liked ? 1 : 0) }
+    var removePlace: (Int64) async throws -> Void = { _ in }
+    var editPlace: (Int64, [String], String, [String]) async throws -> Void = { _, _, _, _ in }
     private(set) var detailCalls = 0
     private(set) var placeCalls = 0
     private(set) var joinCalls = 0
     private(set) var leaveCalls = 0
     private(set) var deleteCalls = 0
     private(set) var likeCalls = 0
+    private(set) var deletedPlaceIDs: [Int64] = []
+    private(set) var updatedPlaces: [(tags: [String], description: String, photoURLs: [String])] = []
 
     func fetchMapDetail(mapID: Int64) async throws -> MapDetail {
         detailCalls += 1
@@ -45,6 +49,16 @@ final class MapDetailRepositoryStub: MapDetailRepository {
         likeCalls += 1
         return try await like(placeID, liked)
     }
+
+    func updatePlace(placeID: Int64, tags: [String], description: String, photoURLs: [String]) async throws {
+        updatedPlaces.append((tags, description, photoURLs))
+        try await editPlace(placeID, tags, description, photoURLs)
+    }
+
+    func deletePlace(placeID: Int64) async throws {
+        deletedPlaceIDs.append(placeID)
+        try await removePlace(placeID)
+    }
 }
 
 extension MapDetail {
@@ -59,7 +73,7 @@ extension MapDetail {
 }
 
 extension MapPlace {
-    static func fixture(id: Int64) -> MapPlace {
-        MapPlace(id: id, name: "장소 \(id)", address: "", latitude: 37.5, longitude: 127.0, photoURLs: [])
+    static func fixture(id: Int64, authorID: Int64? = nil) -> MapPlace {
+        MapPlace(id: id, name: "장소 \(id)", address: "", latitude: 37.5, longitude: 127.0, photoURLs: [], authorID: authorID)
     }
 }

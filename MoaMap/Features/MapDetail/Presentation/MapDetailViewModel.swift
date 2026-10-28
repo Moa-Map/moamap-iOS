@@ -13,6 +13,8 @@ nonisolated struct MapDetailUiState: Equatable, Sendable {
     var left = false
     /// 이 화면에서 참여했는지. 뒤로 갈 때 미리보기 화면을 건너뛰는 데 쓴다.
     var joinedHere = false
+    /// 로그인한 사용자. 내가 등록한 장소를 가리는 데 쓴다.
+    var myUserID: Int64?
 
     var canJoin: Bool { map.map?.canJoin ?? false }
     var showsMenu: Bool { map.map?.showsMenu ?? false }
@@ -24,6 +26,14 @@ nonisolated struct MapDetailUiState: Equatable, Sendable {
     var canAddPlace: Bool { map.map?.canAddPlace ?? false }
     var isOfficial: Bool { map.map?.type == .official }
     var showsLogTab: Bool { map.map?.showsLogTab ?? false }
+
+    /// 서버와 같은 기준이다. 멤버여야 하고, 방장·관리자와 프라이빗 지도 멤버는 누구 장소든,
+    /// 그 밖에는 등록한 본인만 고치고 지울 수 있다.
+    func canModify(_ place: MapPlace) -> Bool {
+        guard let map = map.map, map.role != .none else { return false }
+        if map.type == .private || map.role == .owner || map.role == .admin { return true }
+        return myUserID != nil && place.authorID == myUserID
+    }
 }
 
 @MainActor @Observable
@@ -37,10 +47,13 @@ final class MapDetailViewModel {
     private var likesInFlight: Set<Int64> = []
 
     private let repository: any MapDetailRepository
+    /// nil 이면 내 장소를 가리지 않는다. 참여·나가기만 하는 화면이다.
+    private let currentUserStore: (any CurrentUserStore)?
 
-    init(mapID: Int64, repository: any MapDetailRepository) {
+    init(mapID: Int64, repository: any MapDetailRepository, currentUserStore: (any CurrentUserStore)? = nil) {
         self.mapID = mapID
         self.repository = repository
+        self.currentUserStore = currentUserStore
     }
 
     /// 처음이거나 오류에서 다시 읽는다.
@@ -127,6 +140,22 @@ final class MapDetailViewModel {
         }
     }
 
+    /// 수정 화면에서 저장한 장소를 다시 읽지 않고 바로 반영한다.
+    func replacePlace(_ place: MapPlace) {
+        updatePlace(place.id) { $0 = place }
+    }
+
+    /// 지운 장소는 바로 지도에서 뺀다. 지도의 장소 수도 바뀌어 상세를 다시 읽는다.
+    func deletePlace(placeID: Int64) {
+        runAction(failure: MapDetailMessage.placeDeleteFailed) { [weak self, repository] in
+            try await repository.deletePlace(placeID: placeID)
+            try Task.checkCancellation()
+            self?.uiState.actionInProgress = false
+            self?.uiState.places.removeAll { $0.id == placeID }
+            self?.refresh()
+        }
+    }
+
     private func updatePlace(_ placeID: Int64, _ change: (inout MapPlace) -> Void) {
         guard let index = uiState.places.firstIndex(where: { $0.id == placeID }) else { return }
         change(&uiState.places[index])
@@ -166,5 +195,6 @@ final class MapDetailViewModel {
         guard !Task.isCancelled else { return }
         uiState.map = map
         if let places { uiState.places = places }
+        if let currentUserStore { uiState.myUserID = try? currentUserStore.load() }
     }
 }
