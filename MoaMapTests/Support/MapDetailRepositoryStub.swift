@@ -10,7 +10,7 @@ final class MapDetailRepositoryStub: MapDetailRepository {
     var delete: (Int64) async throws -> Void = { _ in }
     var like: (Int64, Bool) async throws -> PlaceLike = { _, liked in PlaceLike(liked: liked, likeCount: liked ? 1 : 0) }
     var removePlace: (Int64) async throws -> Void = { _ in }
-    var editPlace: (Int64, [String], String, [String]) async throws -> Void = { _, _, _, _ in }
+    var editPlace: (Int64, [String]?, String?, [String]?) async throws -> Void = { _, _, _, _ in }
     private(set) var detailCalls = 0
     private(set) var placeCalls = 0
     private(set) var joinCalls = 0
@@ -18,7 +18,7 @@ final class MapDetailRepositoryStub: MapDetailRepository {
     private(set) var deleteCalls = 0
     private(set) var likeCalls = 0
     private(set) var deletedPlaceIDs: [Int64] = []
-    private(set) var updatedPlaces: [(tags: [String], description: String, photoURLs: [String])] = []
+    private(set) var updatedPlaces: [(tags: [String]?, description: String?, photoURLs: [String]?)] = []
 
     func fetchMapDetail(mapID: Int64) async throws -> MapDetail {
         detailCalls += 1
@@ -50,7 +50,7 @@ final class MapDetailRepositoryStub: MapDetailRepository {
         return try await like(placeID, liked)
     }
 
-    func updatePlace(placeID: Int64, tags: [String], description: String, photoURLs: [String]) async throws {
+    func updatePlace(placeID: Int64, tags: [String]?, description: String?, photoURLs: [String]?) async throws {
         updatedPlaces.append((tags, description, photoURLs))
         try await editPlace(placeID, tags, description, photoURLs)
     }

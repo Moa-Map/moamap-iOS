@@ -95,6 +95,7 @@ final class PlaceEditViewModel {
     }
 
     /// 새 사진을 먼저 올리고, 남길 사진까지 모두 담아 보낸다. 서버는 받은 목록으로 사진을 통째로 바꾼다.
+    /// 바꾸지 않은 값은 보내지 않는다. 앱이 읽다 걸러 낸 사진이나 태그를 저장하면서 지우면 안 된다.
     func save() {
         guard uiState.changed, !uiState.saving else { return }
         uiState.saving = true
@@ -104,16 +105,20 @@ final class PlaceEditViewModel {
             do {
                 if !uiState.newPhotos.isEmpty {
                     let uploaded = try await photoRepository.uploadPhotos(mapID: mapID, photos: uiState.newPhotos)
+                    let urls = uploaded.compactMap(URL.init(string:))
+                    // 하나라도 읽지 못하면 고른 사진이 말없이 빠진다. 고른 채로 두고 실패로 알린다.
+                    guard urls.count == uploaded.count else { throw URLError(.badURL) }
                     // 올린 사진은 이제 서버 사진이다. 저장만 실패해 다시 눌러도 또 올리지 않는다.
-                    uiState.photoURLs += uploaded.compactMap(URL.init(string:))
+                    uiState.photoURLs += urls
                     uiState.newPhotos = []
                 }
                 let state = uiState
+                let original = state.original
                 try await repository.updatePlace(
-                    placeID: state.original.id,
-                    tags: state.tags,
-                    description: state.memo,
-                    photoURLs: state.photoURLs.map(\.absoluteString)
+                    placeID: original.id,
+                    tags: state.tags == original.tags ? nil : state.tags,
+                    description: state.memo == original.description ? nil : state.memo,
+                    photoURLs: state.photoURLs == original.photoURLs ? nil : state.photoURLs.map(\.absoluteString)
                 )
                 try Task.checkCancellation()
                 var place = state.original

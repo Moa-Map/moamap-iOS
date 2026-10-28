@@ -140,9 +140,14 @@ final class MapDetailViewModel {
         }
     }
 
-    /// 수정 화면에서 저장한 장소를 다시 읽지 않고 바로 반영한다.
-    func replacePlace(_ place: MapPlace) {
-        updatePlace(place.id) { $0 = place }
+    /// 수정 화면에서 저장한 값만 다시 읽지 않고 바로 반영한다.
+    /// 장소를 통째로 바꾸면 수정 화면을 연 뒤에 바뀐 하트 같은 값이 옛 값으로 돌아간다.
+    func applyEdit(_ edited: MapPlace) {
+        updatePlace(edited.id) { place in
+            place.photoURLs = edited.photoURLs
+            place.tags = edited.tags
+            place.description = edited.description
+        }
     }
 
     /// 지운 장소는 바로 지도에서 뺀다. 지도의 장소 수도 바뀌어 상세를 다시 읽는다.

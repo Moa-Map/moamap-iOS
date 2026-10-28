@@ -60,7 +60,7 @@ final class MapDetailRepositoryImpl: MapDetailRepository {
         return PlaceLike(liked: response.liked ?? liked, likeCount: response.likeCount ?? 0)
     }
 
-    func updatePlace(placeID: Int64, tags: [String], description: String, photoURLs: [String]) async throws {
+    func updatePlace(placeID: Int64, tags: [String]?, description: String?, photoURLs: [String]?) async throws {
         let body = try JSONEncoder().encode(PlaceUpdateRequest(tags: tags, description: description, photoUrls: photoURLs))
         let request = APIRequest(path: ["api", "v1", "places", String(placeID)], method: .patch, jsonBody: body)
         try await client.sendWithoutResponse(request)

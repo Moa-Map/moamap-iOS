@@ -330,13 +330,16 @@ struct MapDetailView: View {
             }
             .onChange(of: placeEditViewModel?.uiState.saved) { _, saved in
                 guard let saved else { return }
-                viewModel.replacePlace(saved)
+                viewModel.applyEdit(saved)
                 placeEditViewModel = nil
                 notice = MapDetailMessage.placeUpdated
             }
             .onChange(of: viewModel.uiState.places) { _, places in
-                // 지운 장소의 상세는 닫는다. 나만의 지도 추가 안내와 댓글도 함께 정리된다.
+                // 지운 장소의 상세와 수정 화면은 닫는다. 나만의 지도 추가 안내와 댓글도 함께 정리된다.
                 if let selectedPlaceID, !places.contains(where: { $0.id == selectedPlaceID }) { self.selectedPlaceID = nil }
+                if let editing = placeEditViewModel?.uiState.original.id, !places.contains(where: { $0.id == editing }) {
+                    placeEditViewModel = nil
+                }
             }
             .onChange(of: selectedPlaceID) { _, placeID in
                 // 나만의 지도 추가 안내와 댓글은 장소마다 새로 시작한다. 공식지도에는 댓글이 없다.

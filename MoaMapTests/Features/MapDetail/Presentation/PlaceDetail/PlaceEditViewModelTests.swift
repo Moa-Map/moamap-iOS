@@ -33,6 +33,9 @@ struct PlaceEditViewModelTests {
         await sut.saveTask?.value
         #expect(photos.uploadCalls == 1)
         #expect(repository.updatedPlaces.map(\.photoURLs) == [["https://file/b", "https://file/0"]])
+        // 손대지 않은 태그와 메모는 보내지 않는다.
+        #expect(repository.updatedPlaces.map(\.tags) == [nil])
+        #expect(repository.updatedPlaces.map(\.description) == [nil])
         #expect(sut.uiState.saved?.photoURLs == [b, URL(string: "https://file/0")!])
     }
 
@@ -70,6 +73,8 @@ struct PlaceEditViewModelTests {
         await sut.saveTask?.value
         #expect(repository.updatedPlaces.map(\.tags) == [["데이트"]])
         #expect(repository.updatedPlaces.map(\.description) == [""])
+        // 사진은 그대로라 보내지 않는다. 앱이 읽지 못해 걸러 낸 서버 사진이 지워지면 안 된다.
+        #expect(repository.updatedPlaces.map(\.photoURLs) == [nil])
         #expect(sut.uiState.saved?.tags == ["데이트"])
         #expect(sut.uiState.saved?.description == "")
         #expect(!sut.uiState.saving)
@@ -90,6 +95,18 @@ struct PlaceEditViewModelTests {
         await sut.saveTask?.value
         #expect(photos.uploadCalls == 1)
         #expect(repository.updatedPlaces.last?.photoURLs == ["https://file/a", "https://file/b", "https://file/0"])
+    }
+
+    @Test func 올린_사진_주소를_읽지_못하면_고른_사진을_남기고_실패로_알린다() async {
+        let (sut, repository, photos) = makeSUT()
+        photos.upload = { _ in [""] }
+        sut.addPhoto(data: png, type: .png)
+        sut.save()
+        await sut.saveTask?.value
+        #expect(repository.updatedPlaces.isEmpty)
+        #expect(sut.uiState.newPhotos.count == 1)
+        #expect(sut.uiState.photoURLs == [a, b])
+        #expect(sut.uiState.errorMessage == "장소 정보를 수정하지 못했어요")
     }
 
     @Test func 사진을_올리지_못하면_장소는_고치지_않는다() async {

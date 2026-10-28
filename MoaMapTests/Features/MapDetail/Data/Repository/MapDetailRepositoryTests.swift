@@ -108,6 +108,14 @@ struct MapDetailRepositoryTests {
         try await sut.updatePlace(placeID: 3, tags: ["카페", "데이트"], description: "", photoURLs: [])
     }
 
+    @Test func 장소_수정에서_nil_로_둔_값은_보내지_않는다() async throws {
+        let sut = try repository(responses: { _ in #"{"success":true}"# }) { request in
+            let body = try? JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any]
+            #expect(body?.keys.sorted() == ["description"])
+        }
+        try await sut.updatePlace(placeID: 3, tags: nil, description: "메모", photoURLs: nil)
+    }
+
     @Test func 장소_삭제는_DELETE_로_요청한다() async throws {
         let sut = try repository(responses: { _ in #"{"success":true}"# }) { request in
             #expect(request.httpMethod == "DELETE")

@@ -246,14 +246,21 @@ struct MapDetailViewModelTests {
         #expect(sut.uiState.places.map(sut.uiState.canModify) == [false, false])
     }
 
-    @Test func 수정한_장소는_다시_읽지_않고_바로_바꾼다() async {
+    @Test func 수정한_값만_반영하고_그사이_바뀐_하트는_남긴다() async {
         let repository = MapDetailRepositoryStub()
         repository.places = { _ in [MapPlace.fixture(id: 1), MapPlace.fixture(id: 2)] }
         let sut = await loaded(repository)
         var edited = MapPlace.fixture(id: 2)
         edited.tags = ["카페"]
-        sut.replacePlace(edited)
-        #expect(sut.uiState.places == [MapPlace.fixture(id: 1), edited])
+        edited.description = "메모"
+        edited.photoURLs = [URL(string: "https://file/a")!]
+        edited.liked = true
+        edited.likeCount = 3
+        sut.applyEdit(edited)
+        let place = sut.uiState.places[1]
+        #expect(place.tags == ["카페"] && place.description == "메모" && place.photoURLs == edited.photoURLs)
+        #expect(!place.liked && place.likeCount == 0)
+        #expect(sut.uiState.places[0] == MapPlace.fixture(id: 1))
     }
 
     @Test func 장소를_지우면_목록에서_빼고_지도를_다시_읽는다() async {
