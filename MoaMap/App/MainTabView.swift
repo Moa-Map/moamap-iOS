@@ -16,7 +16,8 @@ private enum MainRoute: Hashable {
     case createMap
     case placeImport(PlaceImportStep)
     case mapIntro(mapID: Int64)
-    case mapDetail(mapID: Int64, title: String)
+    /// `postID` 는 열자마자 띄울 게시물이다. 알림에서 게시글 댓글을 눌렀을 때다.
+    case mapDetail(mapID: Int64, title: String, postID: Int64? = nil)
     /// 장소 대신 전용 지도를 보여 주는 공식지도.
     case densityMap(mapID: Int64, title: String)
     case restroomMap(mapID: Int64, title: String)
@@ -274,8 +275,10 @@ struct MainTabView: View {
             // 알림이 가리키는 지도는 참여한 지도라 소개를 건너뛴다. 장소가 없는 특수 공식지도로 갈 일은 없다.
             NotificationView(viewModel: makeNotificationListViewModel()) { destination in
                 switch destination {
-                case .map(let mapID), .post(let mapID, _):
+                case .map(let mapID):
                     path.wrappedValue.append(.mapDetail(mapID: mapID, title: ""))
+                case .post(let mapID, let postID):
+                    path.wrappedValue.append(.mapDetail(mapID: mapID, title: "", postID: postID))
                 }
             }
         case .inquiry:
@@ -326,11 +329,12 @@ struct MainTabView: View {
                 },
                 locationProvider: locationProvider
             )
-        case .mapDetail(let mapID, let title):
+        case .mapDetail(let mapID, let title, let postID):
             MapDetailView(
                 viewModels: makeMapDetailViewModels(mapID),
                 locationProvider: locationProvider,
                 initialTitle: title,
+                initialPostID: postID,
                 onBack: { back(from: mapID, joinedHere: $0, path: path) }
             )
         case .densityMap(let mapID, let title):

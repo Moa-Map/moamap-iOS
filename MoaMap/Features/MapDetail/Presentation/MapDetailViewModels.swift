@@ -101,6 +101,9 @@ final class PreviewMapPostRepository: MapPostRepository {
             MapPost(id: 4, authorID: 4, content: "장소 태그 없이 남긴 글", imageURLs: [], placeNames: [], createdAt: nil)
         ], isLast: true)
     }
+    func fetchPost(mapID: Int64, postID: Int64) async throws -> MapPost {
+        try await fetchPosts(mapID: mapID, page: 0, sort: .latest).posts[0]
+    }
     func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] { [] }
     func createPost(mapID: Int64, post: NewMapPost) async throws {}
 }
@@ -159,7 +162,8 @@ extension MapDetailViewModels {
             ),
             postCreate: MapPostCreateViewModel(mapID: mapID, repository: PreviewMapPostRepository()),
             postDetail: MapPostDetailViewModel(
-                mapID: mapID, repository: PreviewMapPostCommentRepository(), currentUserStore: PreviewCurrentUserStore()
+                mapID: mapID, repository: PreviewMapPostCommentRepository(), postRepository: PreviewMapPostRepository(),
+                currentUserStore: PreviewCurrentUserStore()
             ),
             reviewModeration: ModerationViewModel(reportRepository: PreviewReportRepository(), blockedUsers: blockedUsers),
             postModeration: ModerationViewModel(reportRepository: PreviewReportRepository(), blockedUsers: blockedUsers),

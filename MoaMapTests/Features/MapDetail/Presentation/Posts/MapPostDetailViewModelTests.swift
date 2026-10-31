@@ -7,9 +7,34 @@ struct MapPostDetailViewModelTests {
     private let post = MapPost.fixture(id: 3)
 
     private func viewModel(
-        _ repository: MapPostCommentRepositoryStub = MapPostCommentRepositoryStub(), myID: Int64? = 1
+        _ repository: MapPostCommentRepositoryStub = MapPostCommentRepositoryStub(), myID: Int64? = 1,
+        postRepository: MapPostRepositoryStub = MapPostRepositoryStub()
     ) -> MapPostDetailViewModel {
-        MapPostDetailViewModel(mapID: 10, repository: repository, currentUserStore: MemoryCurrentUserStore(myID))
+        MapPostDetailViewModel(
+            mapID: 10, repository: repository, postRepository: postRepository, currentUserStore: MemoryCurrentUserStore(myID)
+        )
+    }
+
+    @Test func 게시물_번호로_열면_게시물을_읽어_열고_댓글을_읽는다() async {
+        let repository = MapPostCommentRepositoryStub()
+        let postRepository = MapPostRepositoryStub()
+        let sut = viewModel(repository, postRepository: postRepository)
+        sut.open(postID: 3)
+        #expect(sut.uiState.post == nil)
+        await sut.postTask?.value
+        #expect(postRepository.postRequests == [3])
+        #expect(sut.uiState.post == post)
+        await sut.loadTask?.value
+        #expect(repository.fetchCalls == [3])
+    }
+
+    @Test func 게시물이_지워졌으면_열지_않는다() async {
+        let postRepository = MapPostRepositoryStub()
+        postRepository.post = { _ in throw NetworkError.server(code: "MAP_POST_001", statusCode: 404, message: "없음") }
+        let sut = viewModel(postRepository: postRepository)
+        sut.open(postID: 3)
+        await sut.postTask?.value
+        #expect(sut.uiState.post == nil)
     }
 
     @Test func 열기_전에는_닫혀_있고_아무것도_읽지_않는다() {

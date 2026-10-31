@@ -34,6 +34,11 @@ final class MapPostRepositoryImpl: MapPostRepository {
         )
     }
 
+    func fetchPost(mapID: Int64, postID: Int64) async throws -> MapPost {
+        let request = APIRequest(path: ["api", "v1", "maps", String(mapID), "posts", String(postID)])
+        return try await client.send(request, as: MapPostResponse.self).toDomain(timeZone: timeZone)
+    }
+
     /// 전부 먼저 살펴본 뒤에 올린다. 셋째 사진이 걸렸을 때 앞의 두 장이 이미 올라가 있으면 지울 방법이 없다.
     func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] {
         var prepared: [UploadImage] = []

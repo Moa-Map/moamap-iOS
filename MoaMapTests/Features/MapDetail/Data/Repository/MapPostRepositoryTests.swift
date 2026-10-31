@@ -42,6 +42,15 @@ struct MapPostRepositoryTests {
         #expect(query(log.requests.first) == ["page": "2", "size": "20", "sort": "createdAt,desc"])
     }
 
+    @Test func 게시물_하나를_받는다() async throws {
+        let log = Log()
+        let sut = try repository(log, body: #"{"success":true,"data":{"id":9,"userId":2,"content":"글","imageUrls":[],"placeTags":[]}}"#)
+        let post = try await sut.fetchPost(mapID: 7, postID: 9)
+        #expect(post == MapPost(id: 9, authorID: 2, content: "글", imageURLs: [], placeNames: [], createdAt: nil))
+        #expect(log.requests.first?.url?.path == "/api/v1/maps/7/posts/9")
+        #expect(log.requests.first?.httpMethod == "GET")
+    }
+
     @Test func 등록순은_오름차순으로_보낸다() async throws {
         let log = Log()
         let sut = try repository(log, body: #"{"success":true,"data":{"content":[],"last":true}}"#)

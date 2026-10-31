@@ -17,6 +17,8 @@ final class MapPostRepositoryStub: MapPostRepository {
     private(set) var requests: [Request] = []
     var upload: ([UploadImage]) async throws -> [String] = { photos in photos.indices.map { "https://cdn/\($0).jpg" } }
     var create: (NewMapPost) async throws -> Void = { _ in }
+    var post: (Int64) async throws -> MapPost = { .fixture(id: $0) }
+    private(set) var postRequests: [Int64] = []
     private(set) var uploadCalls: [[UploadImage]] = []
     private(set) var created: [NewMapPost] = []
 
@@ -26,6 +28,11 @@ final class MapPostRepositoryStub: MapPostRepository {
         if page == failingPage { throw NetworkError.http(statusCode: 500) }
         let sortPages = pages[sort] ?? []
         return page < sortPages.count ? sortPages[page] : MapPostPage(posts: [], isLast: true)
+    }
+
+    func fetchPost(mapID: Int64, postID: Int64) async throws -> MapPost {
+        postRequests.append(postID)
+        return try await post(postID)
     }
 
     func uploadPhotos(mapID: Int64, photos: [UploadImage]) async throws -> [String] {

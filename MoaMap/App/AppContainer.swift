@@ -231,7 +231,8 @@ final class AppContainer {
             postCalendar: MapPostCalendarViewModel(mapID: mapID, repository: mapPostRepository, timeZone: .current, now: Date.init),
             postCreate: MapPostCreateViewModel(mapID: mapID, repository: mapPostRepository),
             postDetail: MapPostDetailViewModel(
-                mapID: mapID, repository: mapPostCommentRepository, currentUserStore: currentUserStore
+                mapID: mapID, repository: mapPostCommentRepository, postRepository: mapPostRepository,
+                currentUserStore: currentUserStore
             ),
             reviewModeration: makeModerationViewModel(),
             postModeration: makeModerationViewModel(),
