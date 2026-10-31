@@ -17,6 +17,8 @@ nonisolated enum MapDetailMessage {
     static let leaveFailed = "지도에서 나가지 못했어요"
     static let likeFailed = "하트를 반영하지 못했어요"
     static let likeNeedsJoin = "지도에 참여하면 하트를 누를 수 있어요"
+    static let placeDeleteFailed = "장소를 삭제하지 못했어요"
+    static let placeUpdated = "장소 정보가 수정됐어요"
 
     /// 서버 원문은 내보내지 않는다. 연결 실패만 따로 안내한다.
     static func userMessage(for error: any Error, fallback: String) -> String {

@@ -259,6 +259,8 @@ final class PreviewMapDetailRepository: MapDetailRepository {
     func setPlaceLiked(placeID: Int64, liked: Bool) async throws -> PlaceLike {
         PlaceLike(liked: liked, likeCount: liked ? 1 : 0)
     }
+    func updatePlace(placeID: Int64, tags: [String]?, description: String?, photoURLs: [String]?) async throws {}
+    func deletePlace(placeID: Int64) async throws {}
 }
 
 #Preview {

@@ -12,4 +12,7 @@ protocol MapDetailRepository {
     func deleteMap(mapID: Int64) async throws
     /// 서버가 확정한 상태를 돌려준다.
     func setPlaceLiked(placeID: Int64, liked: Bool) async throws -> PlaceLike
+    /// nil 로 둔 값은 서버가 그대로 둔다. 태그와 사진은 보낸 목록으로 통째로 바뀌어 남길 사진도 모두 담아야 한다.
+    func updatePlace(placeID: Int64, tags: [String]?, description: String?, photoURLs: [String]?) async throws
+    func deletePlace(placeID: Int64) async throws
 }

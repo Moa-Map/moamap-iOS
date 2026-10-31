@@ -219,8 +219,84 @@ struct MapDetailViewModelTests {
         #expect(sut.uiState.errorMessage == "지도에 참여하면 하트를 누를 수 있어요")
     }
 
-    private func loaded(_ repository: MapDetailRepositoryStub) async -> MapDetailViewModel {
-        let sut = MapDetailViewModel(mapID: 7, repository: repository)
+    @Test(arguments: [
+        // 커뮤니티 멤버는 내가 등록한 장소만
+        (MapType.community, MapRole.member, [true, false, false]),
+        // 방장·관리자는 누구 장소든
+        (MapType.community, MapRole.owner, [true, true, true]),
+        (MapType.community, MapRole.admin, [true, true, true]),
+        // 프라이빗 지도는 멤버 누구나
+        (MapType.private, MapRole.member, [true, true, true]),
+        // 멤버가 아니면 내 장소도 못 고친다
+        (MapType.community, MapRole.none, [false, false, false])
+    ])
+    func 장소를_고치고_지울_수_있는지는_서버와_같은_기준으로_가린다(type: MapType, role: MapRole, expected: [Bool]) async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: role != .none, type: type, role: role) }
+        repository.places = { _ in [MapPlace.fixture(id: 1, authorID: 42), MapPlace.fixture(id: 2, authorID: 9), MapPlace.fixture(id: 3)] }
+        let sut = await loaded(repository, myUserID: 42)
+        #expect(sut.uiState.places.map(sut.uiState.canModify) == expected)
+    }
+
+    @Test func 로그인한_사용자를_모르면_멤버는_어느_장소도_고칠_수_없다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.detail = { MapDetail.fixture(id: $0, joined: true, role: .member) }
+        repository.places = { _ in [MapPlace.fixture(id: 1), MapPlace.fixture(id: 2, authorID: 42)] }
+        let sut = await loaded(repository)
+        #expect(sut.uiState.places.map(sut.uiState.canModify) == [false, false])
+    }
+
+    @Test func 수정한_값만_반영하고_그사이_바뀐_하트는_남긴다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.places = { _ in [MapPlace.fixture(id: 1), MapPlace.fixture(id: 2)] }
+        let sut = await loaded(repository)
+        var edited = MapPlace.fixture(id: 2)
+        edited.tags = ["카페"]
+        edited.description = "메모"
+        edited.photoURLs = [URL(string: "https://file/a")!]
+        edited.liked = true
+        edited.likeCount = 3
+        sut.applyEdit(edited)
+        let place = sut.uiState.places[1]
+        #expect(place.tags == ["카페"] && place.description == "메모" && place.photoURLs == edited.photoURLs)
+        #expect(!place.liked && place.likeCount == 0)
+        #expect(sut.uiState.places[0] == MapPlace.fixture(id: 1))
+    }
+
+    @Test func 장소를_지우면_목록에서_빼고_지도를_다시_읽는다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.places = { _ in [MapPlace.fixture(id: 1, authorID: 42), MapPlace.fixture(id: 2)] }
+        let sut = await loaded(repository, myUserID: 42)
+        let detailCalls = repository.detailCalls
+        let release = AsyncGate()
+        repository.places = { _ in
+            await release.wait()
+            return [MapPlace.fixture(id: 2)]
+        }
+        sut.deletePlace(placeID: 1)
+        await sut.actionTask?.value
+        #expect(repository.deletedPlaceIDs == [1])
+        #expect(sut.uiState.places == [MapPlace.fixture(id: 2)])
+        #expect(!sut.uiState.actionInProgress)
+        await release.open()
+        await sut.loadTask?.value
+        #expect(repository.detailCalls == detailCalls + 1)
+    }
+
+    @Test func 장소_삭제에_실패하면_그대로_두고_안내한다() async {
+        let repository = MapDetailRepositoryStub()
+        repository.places = { _ in [MapPlace.fixture(id: 1, authorID: 42)] }
+        repository.removePlace = { _ in throw NetworkError.http(statusCode: 403) }
+        let sut = await loaded(repository, myUserID: 42)
+        sut.deletePlace(placeID: 1)
+        await sut.actionTask?.value
+        #expect(sut.uiState.places == [MapPlace.fixture(id: 1, authorID: 42)])
+        #expect(sut.uiState.errorMessage == "장소를 삭제하지 못했어요")
+        #expect(!sut.uiState.actionInProgress)
+    }
+
+    private func loaded(_ repository: MapDetailRepositoryStub, myUserID: Int64? = nil) async -> MapDetailViewModel {
+        let sut = MapDetailViewModel(mapID: 7, repository: repository, currentUserStore: MemoryCurrentUserStore(myUserID))
         sut.retry()
         await sut.loadTask?.value
         return sut

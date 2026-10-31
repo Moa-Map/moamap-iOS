@@ -9,7 +9,7 @@ nonisolated struct MapPlace: Identifiable, Equatable, Sendable {
     let latitude: Double
     let longitude: Double
     /// 등록할 때 붙인 사진. 순서대로 온다.
-    let photoURLs: [URL]
+    var photoURLs: [URL]
     /// 등록자가 적은 한 줄 설명.
     var description = ""
     /// 카카오 분류 경로. `"음식점 > 카페 > 커피전문점"` 처럼 온다.
@@ -22,7 +22,7 @@ nonisolated struct MapPlace: Identifiable, Equatable, Sendable {
     var liked = false
     /// 장소를 가져온 인스타그램 게시물.
     var instagramURL: URL?
-    /// 등록한 사람. 차단한 사람의 장소를 거르는 데 쓴다.
+    /// 등록한 사람. 차단한 사람의 장소를 거르고, 장소를 고치고 지울 수 있는지 가리는 데 쓴다.
     var authorID: Int64?
 }
 

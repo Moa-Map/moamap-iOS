@@ -398,6 +398,8 @@ struct AddPlaceFormContent: View {
 
     let name: String
     let address: String
+    /// 장소 수정에서 이미 올라가 있는 사진. 새로 고른 사진보다 앞에 보인다.
+    var remotePhotoURLs: [URL] = []
     let photos: [UploadImage]
     let tags: [String]
     let tagInput: String
@@ -523,8 +525,9 @@ struct AddPlaceFormContent: View {
 
     private var photoSection: some View {
         PhotoAttachmentRow(
+            remoteURLs: remotePhotoURLs,
             photos: photos,
-            canAddPhoto: photos.count < AddPlaceUiState.maxPhotos,
+            canAddPhoto: remotePhotoURLs.count + photos.count < AddPlaceUiState.maxPhotos,
             onAddPhoto: onAddPhoto,
             onRemovePhoto: onRemovePhoto
         )
@@ -574,6 +577,8 @@ struct PhotoAttachmentRow: View {
     @Environment(\.moaColors) private var colors
     @Environment(\.moaTypography) private var typography
 
+    /// 이미 올라가 있는 사진. 고른 사진보다 앞에 둔다. 빼기 순서도 이 둘을 이어 붙인 순서다.
+    var remoteURLs: [URL] = []
     let photos: [UploadImage]
     /// 최대 장수가 차면 더 붙일 수 없다.
     let canAddPhoto: Bool
@@ -581,7 +586,7 @@ struct PhotoAttachmentRow: View {
     let onRemovePhoto: (Int) -> Void
 
     var body: some View {
-        if photos.isEmpty {
+        if remoteURLs.isEmpty && photos.isEmpty {
             Button(action: onAddPhoto) {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(MoaMapPrimitiveColors.white)
@@ -604,8 +609,17 @@ struct PhotoAttachmentRow: View {
         } else {
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
+                    ForEach(Array(remoteURLs.enumerated()), id: \.offset) { index, url in
+                        photoTile(index: index) { RemoteImage(url: url) }
+                    }
                     ForEach(Array(photos.enumerated()), id: \.offset) { index, photo in
-                        photoTile(photo, index: index)
+                        photoTile(index: remoteURLs.count + index) {
+                            if let image = UIImage(data: photo.data) {
+                                Image(uiImage: image).resizable().scaledToFill()
+                            } else {
+                                MoaMapPrimitiveColors.gray50
+                            }
+                        }
                     }
                     if canAddPhoto {
                         Button(action: onAddPhoto) {
@@ -627,18 +641,12 @@ struct PhotoAttachmentRow: View {
         }
     }
 
-    private func photoTile(_ photo: UploadImage, index: Int) -> some View {
+    private func photoTile(index: Int, @ViewBuilder image: () -> some View) -> some View {
         ZStack(alignment: .topTrailing) {
-            Group {
-                if let image = UIImage(data: photo.data) {
-                    Image(uiImage: image).resizable().scaledToFill()
-                } else {
-                    MoaMapPrimitiveColors.gray50
-                }
-            }
-            .frame(width: 96, height: 96)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .accessibilityLabel("첨부한 사진")
+            image()
+                .frame(width: 96, height: 96)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityLabel("첨부한 사진")
             Button { onRemovePhoto(index) } label: {
                 Image("Icons/close")
                     .renderingMode(.template)

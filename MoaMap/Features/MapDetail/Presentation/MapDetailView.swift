@@ -21,6 +21,7 @@ struct MapDetailView: View {
     @State private var reviewModeration: ModerationViewModel
     @State private var postModeration: ModerationViewModel
     private let makeEditMap: (MapDetail) -> EditMapViewModel
+    private let makeEditPlace: (MapPlace) -> PlaceEditViewModel
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
     private let initialTitle: String
@@ -47,6 +48,7 @@ struct MapDetailView: View {
         _reviewModeration = State(initialValue: viewModels.reviewModeration)
         _postModeration = State(initialValue: viewModels.postModeration)
         makeEditMap = viewModels.makeEditMap
+        makeEditPlace = viewModels.makeEditPlace
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
         self.onBack = onBack
@@ -74,6 +76,7 @@ struct MapDetailView: View {
     /// 펼친 묶음 마커의 장소. 비어 있으면 목록을 띄우지 않는다.
     @State private var expandedClusterIDs: [Int64] = []
     @State private var selectedPlaceID: Int64?
+    @State private var placeEditViewModel: PlaceEditViewModel?
     @State private var addPlaceVisible = false
     @State private var membersVisible = false
     @State private var manageVisible = false
@@ -261,6 +264,10 @@ struct MapDetailView: View {
                 placeDetail(place).id(place.id)
             }
 
+            if let placeEditViewModel {
+                PlaceEditView(viewModel: placeEditViewModel, onClose: { self.placeEditViewModel = nil })
+            }
+
             if postCreateVisible {
                 MapPostCreateView(
                     viewModel: postCreateViewModel,
@@ -320,6 +327,19 @@ struct MapDetailView: View {
             }
             .onChange(of: viewModel.uiState.errorMessage) { _, message in
                 if let message { alert = .error(message) }
+            }
+            .onChange(of: placeEditViewModel?.uiState.saved) { _, saved in
+                guard let saved else { return }
+                viewModel.applyEdit(saved)
+                placeEditViewModel = nil
+                notice = MapDetailMessage.placeUpdated
+            }
+            .onChange(of: viewModel.uiState.places) { _, places in
+                // 지운 장소의 상세와 수정 화면은 닫는다. 나만의 지도 추가 안내와 댓글도 함께 정리된다.
+                if let selectedPlaceID, !places.contains(where: { $0.id == selectedPlaceID }) { self.selectedPlaceID = nil }
+                if let editing = placeEditViewModel?.uiState.original.id, !places.contains(where: { $0.id == editing }) {
+                    placeEditViewModel = nil
+                }
             }
             .onChange(of: selectedPlaceID) { _, placeID in
                 // 나만의 지도 추가 안내와 댓글은 장소마다 새로 시작한다. 공식지도에는 댓글이 없다.
@@ -453,6 +473,10 @@ struct MapDetailView: View {
             onViewMap: { openKakaoMap(place) },
             onAddToPersonalMap: { personalMapViewModel.add() },
             onLike: { viewModel.toggleLike(placeID: place.id) },
+            modifyActions: viewModel.uiState.canModify(place) ? PlaceModifyActions(
+                onEdit: { placeEditViewModel = makeEditPlace(place) },
+                onDelete: { viewModel.deletePlace(placeID: place.id) }
+            ) : nil,
             // 시트 높이가 정해진 뒤에야 장소를 가리지 않는 자리를 안다.
             onCollapsedHeightSettle: { height in moveCamera(to: place, bottomPadding: height) }
         )

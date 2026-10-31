@@ -7,6 +7,12 @@ struct PersonalMapAction: Equatable {
     var failed = false
 }
 
+/// 장소를 고치고 지울 수 있을 때만 시트에 ⋮ 메뉴를 띄운다.
+struct PlaceModifyActions {
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+}
+
 /// 장소 상세. 지도 위에 반쯤 올라온 시트로 열고, 끌어올리면 화면을 다 덮는다.
 /// 댓글 입력은 끝까지 올렸을 때만 둔다.
 struct PlaceDetailView: View {
@@ -29,6 +35,8 @@ struct PlaceDetailView: View {
     let onViewMap: () -> Void
     let onAddToPersonalMap: () -> Void
     let onLike: () -> Void
+    /// nil 이면 ⋮ 메뉴를 띄우지 않는다. 고치거나 지울 권한이 없다.
+    var modifyActions: PlaceModifyActions?
     /// 반만 올라온 시트의 높이가 처음 정해지면 한 번 알린다. 지도가 이만큼 가려진다.
     /// 댓글이 늦게 와 높이가 바뀌어도 다시 알리지 않는다. 그 사이 사용자가 옮긴 지도를 되돌리면 안 된다.
     var onCollapsedHeightSettle: (CGFloat) -> Void = { _ in }
@@ -65,6 +73,8 @@ struct PlaceDetailView: View {
     @State private var reviewText = ""
     @State private var reviewPhoto: UploadImage?
     @State private var deleteTargetID: Int64?
+    @State private var menuVisible = false
+    @State private var placeDeleteDialogVisible = false
     @State private var showsPhotoPicker = false
     @FocusState private var composerFocused: Bool
 
@@ -123,6 +133,24 @@ struct PlaceDetailView: View {
         }
         // 꾹 눌러 띄운 메뉴는 지도까지 덮는다. 팝업은 그 위에 뜬다.
         .longPressMenuHost()
+        .overlay {
+            if menuVisible, let modifyActions { menu(modifyActions).transition(.dropdownMenu) }
+        }
+        .overlay {
+            if placeDeleteDialogVisible, let modifyActions {
+                MoaMapConfirmDialog(
+                    title: "장소를 삭제할까요?",
+                    message: "삭제한 장소는 복구할 수 없어요",
+                    dismissText: "취소",
+                    confirmText: "삭제하기",
+                    onConfirm: {
+                        placeDeleteDialogVisible = false
+                        modifyActions.onDelete()
+                    },
+                    onDismiss: { placeDeleteDialogVisible = false }
+                )
+            }
+        }
         .overlay {
             if let id = deleteTargetID, let reviews {
                 MoaMapConfirmDialog(
@@ -189,8 +217,12 @@ struct PlaceDetailView: View {
                         .accessibilityLabel("장소 상세 펼치기")
                         .accessibilityAddTraits(.isButton)
                 }
-                // 끝까지 올리면 처음 화면으로 가는 × 는 뺀다.
-                BackCloseControls(onBack: onBack, onClose: expanded ? nil : onClose)
+                // 끝까지 올리면 처음 화면으로 가는 × 는 빼고, 고칠 수 있는 장소면 그 자리에 ⋮ 를 둔다.
+                BackCloseControls(
+                    onBack: onBack,
+                    onClose: expanded ? nil : onClose,
+                    onMenu: expanded && modifyActions != nil ? { withAnimation(.dropdownMenu) { menuVisible = true } } : nil
+                )
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
                 if !expanded { controlsHeight = height }
@@ -340,11 +372,14 @@ struct PlaceDetailView: View {
                             likeButton
                             Spacer()
                             // 삭제 요청은 아직 기능이 없다. 누를 수 있는 것처럼 보이지 않게 버튼으로 두지 않는다.
-                            Text("장소 삭제 요청")
-                                .moaTextStyle(typography.body2)
-                                .underline()
-                                .foregroundStyle(colors.textAlternative)
-                                .accessibilityHidden(true)
+                            // 직접 지울 수 있는 장소는 요청할 일이 없어 뺀다.
+                            if modifyActions == nil {
+                                Text("장소 삭제 요청")
+                                    .moaTextStyle(typography.body2)
+                                    .underline()
+                                    .foregroundStyle(colors.textAlternative)
+                                    .accessibilityHidden(true)
+                            }
                         }
                         .padding(.horizontal, 2)
                     }
@@ -355,6 +390,33 @@ struct PlaceDetailView: View {
         .padding(.top, 8)
         // 시안 1번은 사진과 버튼 사이가 12 다. 버튼 위 간격이 이미 12 라 아래 여백을 뺀다.
         .padding(.bottom, compact ? 0 : 8)
+    }
+
+    /// 고칠 수 있는 장소의 ⋮ 메뉴.
+    private func menu(_ actions: PlaceModifyActions) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { menuVisible = false }
+                .accessibilityHidden(true)
+            ActionMenu(
+                items: [
+                    ActionMenuItem(icon: "edit", label: "수정하기") {
+                        menuVisible = false
+                        actions.onEdit()
+                    },
+                    ActionMenuItem(icon: "trash", label: "삭제하기") {
+                        menuVisible = false
+                        placeDeleteDialogVisible = true
+                    }
+                ],
+                dark: true
+            )
+            // 지도 상세 메뉴와 같이 상단바 아래쪽에 살짝 걸쳐 띄운다.
+            .padding(.top, 45)
+            .padding(.trailing, 20)
+            .accessibilityAction(.escape) { menuVisible = false }
+        }
     }
 
     private var likeButton: some View {
@@ -468,6 +530,8 @@ struct BackCloseControls: View {
     let onBack: () -> Void
     /// nil 이면 `×` 를 뺀다.
     let onClose: (() -> Void)?
+    /// `×` 가 없을 때 그 자리에 ⋮ 를 둔다.
+    var onMenu: (() -> Void)?
 
     var body: some View {
         HStack {
@@ -481,6 +545,11 @@ struct BackCloseControls: View {
                     icon("close", size: 32, alignment: .trailing)
                 }
                 .accessibilityLabel("닫기")
+            } else if let onMenu {
+                Button(action: onMenu) {
+                    icon("menu", size: 32, alignment: .trailing)
+                }
+                .accessibilityLabel("장소 메뉴")
             }
         }
         .buttonStyle(.plain)
