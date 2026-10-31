@@ -8,6 +8,7 @@ private enum MainRoute: Hashable {
     case mapAttribution
     case notices
     case noticeDetail(id: Int64)
+    case notifications
     case inquiry
     case blockList
     case communityMaps
@@ -38,6 +39,7 @@ struct MainTabView: View {
     private let makeTermDetailViewModel: (Int64) -> TermDetailViewModel
     private let makeNoticeListViewModel: () -> NoticeListViewModel
     private let makeNoticeDetailViewModel: (Int64) -> NoticeDetailViewModel
+    private let makeNotificationListViewModel: () -> NotificationListViewModel
     private let makeInquiryViewModel: () -> InquiryViewModel
     private let makeBlockListViewModel: () -> BlockListViewModel
     private let makeProfileEditViewModel: () -> ProfileEditViewModel
@@ -69,6 +71,7 @@ struct MainTabView: View {
         makeTermDetailViewModel: @escaping (Int64) -> TermDetailViewModel,
         makeNoticeListViewModel: @escaping () -> NoticeListViewModel,
         makeNoticeDetailViewModel: @escaping (Int64) -> NoticeDetailViewModel,
+        makeNotificationListViewModel: @escaping () -> NotificationListViewModel,
         makeInquiryViewModel: @escaping () -> InquiryViewModel,
         makeBlockListViewModel: @escaping () -> BlockListViewModel,
         makeProfileEditViewModel: @escaping () -> ProfileEditViewModel,
@@ -91,6 +94,7 @@ struct MainTabView: View {
         self.makeTermDetailViewModel = makeTermDetailViewModel
         self.makeNoticeListViewModel = makeNoticeListViewModel
         self.makeNoticeDetailViewModel = makeNoticeDetailViewModel
+        self.makeNotificationListViewModel = makeNotificationListViewModel
         self.makeInquiryViewModel = makeInquiryViewModel
         self.makeBlockListViewModel = makeBlockListViewModel
         self.makeProfileEditViewModel = makeProfileEditViewModel
@@ -115,6 +119,7 @@ struct MainTabView: View {
                     viewModel: exploreViewModel,
                     onProfileClick: { explorePath.append(.profileEdit) },
                     onSettingsClick: { explorePath.append(.settings) },
+                    onNotificationClick: { explorePath.append(.notifications) },
                     onSeeAllCommunityMapsClick: { explorePath.append(.communityMaps) },
                     onSeeAllOfficialMapsClick: { explorePath.append(.officialMaps) },
                     onMapClick: { explorePath.append(.map($0)) },
@@ -265,6 +270,14 @@ struct MainTabView: View {
             NoticeListView(viewModel: makeNoticeListViewModel()) { path.wrappedValue.append(.noticeDetail(id: $0.id)) }
         case .noticeDetail(let id):
             NoticeDetailView(viewModel: makeNoticeDetailViewModel(id))
+        case .notifications:
+            // 알림이 가리키는 지도는 참여한 지도라 소개를 건너뛴다. 장소가 없는 특수 공식지도로 갈 일은 없다.
+            NotificationView(viewModel: makeNotificationListViewModel()) { destination in
+                switch destination {
+                case .map(let mapID), .post(let mapID, _):
+                    path.wrappedValue.append(.mapDetail(mapID: mapID, title: ""))
+                }
+            }
         case .inquiry:
             InquiryView(viewModel: makeInquiryViewModel())
         case .blockList:
@@ -401,6 +414,9 @@ private final class PreviewLocationProvider: LocationProvider {
         makeTermDetailViewModel: { TermDetailViewModel(termID: $0, repository: PreviewTermsRepository()) },
         makeNoticeListViewModel: { NoticeListViewModel(repository: PreviewNoticeRepository(), timeZone: .current) },
         makeNoticeDetailViewModel: { NoticeDetailViewModel(noticeID: $0, repository: PreviewNoticeRepository(), timeZone: .current) },
+        makeNotificationListViewModel: {
+            NotificationListViewModel(repository: PreviewNotificationRepository(), timeZone: .current, now: Date.init)
+        },
         makeInquiryViewModel: { InquiryViewModel(repository: PreviewInquiryRepository(), userRepository: PreviewUserRepository()) },
         makeBlockListViewModel: { BlockListViewModel(blockedUsers: BlockedUserStore(repository: PreviewBlockRepository())) },
         makeProfileEditViewModel: { ProfileEditViewModel(repository: PreviewUserRepository()) },

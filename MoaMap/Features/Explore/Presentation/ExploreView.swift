@@ -7,6 +7,7 @@ struct ExploreView: View {
     let viewModel: ExploreViewModel
     var onProfileClick: () -> Void = {}
     var onSettingsClick: () -> Void = {}
+    var onNotificationClick: () -> Void = {}
     var onSeeAllCommunityMapsClick: () -> Void = {}
     var onSeeAllOfficialMapsClick: () -> Void = {}
     var onMapClick: (MapSummary) -> Void = { _ in }
@@ -78,8 +79,8 @@ struct ExploreView: View {
             MoaMapTopBarLogo(action: onLogoClick)
                 .accessibilityLabel("맨 위로")
             Spacer()
-            // 알림 기능이 생길 때까지 보이기만 한다.
-            headerIcon("Icons/bell-filled")
+            Button(action: onNotificationClick) { headerIcon("Icons/bell-filled") }
+                .buttonStyle(.plain)
                 .accessibilityLabel("알림")
             Button { withAnimation(.dropdownMenu) { showsProfileMenu = true } } label: { headerIcon("Icons/user-filled") }
                 .buttonStyle(.plain)
