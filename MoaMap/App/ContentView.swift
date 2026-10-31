@@ -81,6 +81,7 @@ struct ContentView: View {
                     makeTermDetailViewModel: container.makeTermDetailViewModel(termID:),
                     makeNoticeListViewModel: container.makeNoticeListViewModel,
                     makeNoticeDetailViewModel: container.makeNoticeDetailViewModel(noticeID:),
+                    makeNotificationListViewModel: container.makeNotificationListViewModel,
                     makeInquiryViewModel: container.makeInquiryViewModel,
                     makeBlockListViewModel: container.makeBlockListViewModel,
                     makeProfileEditViewModel: container.makeProfileEditViewModel,

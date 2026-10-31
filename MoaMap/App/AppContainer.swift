@@ -30,6 +30,7 @@ final class AppContainer {
     let userRepository: any UserRepository
     let termsRepository: any TermsRepository
     let noticeRepository: any NoticeRepository
+    let notificationRepository: any NotificationRepository
     let inquiryRepository: any InquiryRepository
     let reportRepository: any ReportRepository
     let blockRepository: any BlockRepository
@@ -97,6 +98,7 @@ final class AppContainer {
         userRepository = UserRepositoryImpl(client: apiClient, uploader: PresignedImageUploader(transport: transport))
         termsRepository = TermsRepositoryImpl(client: apiClient)
         noticeRepository = NoticeRepositoryImpl(client: apiClient)
+        notificationRepository = NotificationRepositoryImpl(client: apiClient)
         inquiryRepository = InquiryRepositoryImpl(client: apiClient)
         reportRepository = ReportRepositoryImpl(client: apiClient)
         blockRepository = BlockRepositoryImpl(client: apiClient)
@@ -229,7 +231,8 @@ final class AppContainer {
             postCalendar: MapPostCalendarViewModel(mapID: mapID, repository: mapPostRepository, timeZone: .current, now: Date.init),
             postCreate: MapPostCreateViewModel(mapID: mapID, repository: mapPostRepository),
             postDetail: MapPostDetailViewModel(
-                mapID: mapID, repository: mapPostCommentRepository, currentUserStore: currentUserStore
+                mapID: mapID, repository: mapPostCommentRepository, postRepository: mapPostRepository,
+                currentUserStore: currentUserStore
             ),
             reviewModeration: makeModerationViewModel(),
             postModeration: makeModerationViewModel(),
@@ -274,6 +277,10 @@ final class AppContainer {
 
     func makeNoticeDetailViewModel(noticeID: Int64) -> NoticeDetailViewModel {
         NoticeDetailViewModel(noticeID: noticeID, repository: noticeRepository, timeZone: .current)
+    }
+
+    func makeNotificationListViewModel() -> NotificationListViewModel {
+        NotificationListViewModel(repository: notificationRepository, timeZone: .current, now: Date.init)
     }
 
     func makeInquiryViewModel() -> InquiryViewModel {

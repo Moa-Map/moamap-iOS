@@ -25,6 +25,8 @@ struct MapDetailView: View {
     private let locationProvider: any LocationProvider
     /// 서버 응답이 오기 전 상단바를 채우는 제목.
     private let initialTitle: String
+    /// 열자마자 띄울 게시물.
+    private let initialPostID: Int64?
     /// 이 화면에서 참여했는지를 함께 넘긴다. 어디까지 되돌릴지는 내비게이션이 정한다.
     private let onBack: (_ joinedHere: Bool) -> Void
 
@@ -32,6 +34,7 @@ struct MapDetailView: View {
         viewModels: MapDetailViewModels,
         locationProvider: any LocationProvider,
         initialTitle: String = "",
+        initialPostID: Int64? = nil,
         onBack: @escaping (_ joinedHere: Bool) -> Void
     ) {
         _viewModel = State(initialValue: viewModels.main)
@@ -51,10 +54,13 @@ struct MapDetailView: View {
         makeEditPlace = viewModels.makeEditPlace
         self.locationProvider = locationProvider
         self.initialTitle = initialTitle
+        self.initialPostID = initialPostID
         self.onBack = onBack
     }
 
     @State private var selectedTab: MapDetailTab = .places
+    /// 처음 띄울 게시물은 한 번만 연다. 닫은 뒤 화면이 다시 나타나도 또 열리면 안 된다.
+    @State private var initialPostOpened = false
     @State private var postViewMode: MapPostViewMode = .card
     @State private var postCreateVisible = false
     @State private var viewport: Viewport = .initial(.center(MapCameraDefaults.center), padding: .init())
@@ -100,6 +106,10 @@ struct MapDetailView: View {
         observingChildren(screen)
             .task {
                 if viewModel.uiState.map == .loading, viewModel.loadTask == nil { viewModel.retry() }
+                if let initialPostID, !initialPostOpened {
+                    initialPostOpened = true
+                    postDetailViewModel.open(postID: initialPostID)
+                }
                 if locationProvider.authorization == .notDetermined {
                     _ = await locationProvider.requestAuthorization()
                 }

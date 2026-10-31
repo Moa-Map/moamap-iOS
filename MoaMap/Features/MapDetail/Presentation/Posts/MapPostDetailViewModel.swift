@@ -33,6 +33,7 @@ nonisolated struct MapPostDetailUiState: Equatable, Sendable {
 }
 
 /// 로그 탭 게시물 상세와 댓글. 게시물 내용은 목록에서 받은 것을 그대로 쓴다.
+/// 알림으로 들어왔을 때만 게시물을 따로 읽어 연다.
 @MainActor @Observable
 final class MapPostDetailViewModel {
     nonisolated static let loadFailedMessage = "댓글을 불러오지 못했어요"
@@ -44,14 +45,29 @@ final class MapPostDetailViewModel {
     private(set) var loadTask: Task<Void, Never>?
     private(set) var sendTask: Task<Void, Never>?
     private(set) var deleteTask: Task<Void, Never>?
+    private(set) var postTask: Task<Void, Never>?
 
     private let repository: any MapPostCommentRepository
+    private let postRepository: any MapPostRepository
     private let currentUserStore: any CurrentUserStore
 
-    init(mapID: Int64, repository: any MapPostCommentRepository, currentUserStore: any CurrentUserStore) {
+    init(
+        mapID: Int64, repository: any MapPostCommentRepository, postRepository: any MapPostRepository,
+        currentUserStore: any CurrentUserStore
+    ) {
         self.mapID = mapID
         self.repository = repository
+        self.postRepository = postRepository
         self.currentUserStore = currentUserStore
+    }
+
+    /// 게시물을 읽어 연다. 지워졌거나 못 읽으면 열지 않고 지도만 보인다.
+    func open(postID: Int64) {
+        cancelTasks()
+        postTask = Task { [weak self, postRepository, mapID] in
+            guard let post = try? await postRepository.fetchPost(mapID: mapID, postID: postID), !Task.isCancelled else { return }
+            self?.open(post)
+        }
     }
 
     /// 다른 게시물을 보던 중이면 그 요청은 버린다.
@@ -136,6 +152,7 @@ final class MapPostDetailViewModel {
     }
 
     private func cancelTasks() {
+        postTask?.cancel()
         loadTask?.cancel()
         sendTask?.cancel()
         deleteTask?.cancel()
