@@ -371,14 +371,17 @@ struct PlaceDetailView: View {
                         HStack {
                             likeButton
                             Spacer()
-                            // 삭제 요청은 아직 기능이 없다. 누를 수 있는 것처럼 보이지 않게 버튼으로 두지 않는다.
-                            // 직접 지울 수 있는 장소는 요청할 일이 없어 뺀다.
+                            // 장소 신고로 보낸다. 직접 지울 수 있는 장소는 요청할 일이 없어 뺀다.
                             if modifyActions == nil {
-                                Text("장소 삭제 요청")
-                                    .moaTextStyle(typography.body2)
-                                    .underline()
-                                    .foregroundStyle(colors.textAlternative)
-                                    .accessibilityHidden(true)
+                                Button {
+                                    moderation.askReport(.place(placeID: place.id), title: "장소 신고하기")
+                                } label: {
+                                    Text("장소 삭제 요청")
+                                        .moaTextStyle(typography.body2)
+                                        .underline()
+                                        .foregroundStyle(colors.textAlternative)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, 2)
