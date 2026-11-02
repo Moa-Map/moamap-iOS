@@ -19,8 +19,11 @@ final class ExploreViewModel {
     private(set) var uiState: ExploreUiState = .idle
     private(set) var communityMaps: [MapSummary] = []
     private(set) var officialState: OfficialMapListState = .loading
+    /// nil 이면 받는 중이다. 비었으면 등록된 배너가 없거나 받지 못한 것이다.
+    private(set) var banners: [Banner]?
     private(set) var loadTask: Task<Void, Never>?
     private(set) var officialTask: Task<Void, Never>?
+    private(set) var bannerTask: Task<Void, Never>?
 
     private let repository: any ExploreRepository
     private let officialMapRepository: any OfficialMapRepository
@@ -41,9 +44,11 @@ final class ExploreViewModel {
         case .loaded:
             loadCommunity(keepCurrent: true)
             refreshOfficial()
+            loadBanners()
         case .failed:
             loadCommunity(keepCurrent: false)
             refreshOfficial()
+            loadBanners()
         }
     }
 
@@ -60,6 +65,7 @@ final class ExploreViewModel {
         cancelTasks()
         retryCommunity()
         retryOfficial()
+        loadBanners()
     }
 
     /// 재시도는 공식지도 요청에 영향을 주지 않는다.
@@ -108,11 +114,29 @@ final class ExploreViewModel {
         }
     }
 
+    /// 실패해도 다시 시도를 띄우지 않는다. 기본 배너가 그 자리를 채우고, 보던 배너가 있으면 둔다.
+    private func loadBanners() {
+        bannerTask?.cancel()
+        bannerTask = Task { [weak self, repository] in
+            defer { if !Task.isCancelled { self?.bannerTask = nil } }
+            do {
+                let banners = try await repository.fetchBanners()
+                try Task.checkCancellation()
+                self?.banners = banners
+            } catch {
+                guard !Task.isCancelled, !(error is CancellationError), let self else { return }
+                if banners == nil { banners = [] }
+            }
+        }
+    }
+
     func cancelTasks() {
         loadTask?.cancel()
         loadTask = nil
         officialTask?.cancel()
         officialTask = nil
+        bannerTask?.cancel()
+        bannerTask = nil
     }
 
     private static func message(for error: any Error) -> String {

@@ -47,6 +47,11 @@ final class ExploreRepositoryImpl: ExploreRepository {
         return nickname?.isEmpty == false ? nickname : nil
     }
 
+    func fetchBanners() async throws -> [Banner] {
+        let response = try await client.send(APIRequest(path: ["api", "v1", "banners"]), as: [BannerResponse].self)
+        return response.compactMap { $0.toDomain() }
+    }
+
     private func fetchPage(_ request: APIRequest) async throws -> MapPage {
         let response = try await client.send(request, as: MapPageResponse.self)
         let maps = (response.content ?? []).compactMap { $0.toDomain() }

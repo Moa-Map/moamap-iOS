@@ -99,6 +99,26 @@ struct ExploreRepositoryTests {
         #expect(try await sut.fetchMyNickname() == expected)
     }
 
+    @Test func 배너를_순서대로_변환하고_이미지가_없으면_버린다() async throws {
+        let sut = try repository(body: #"""
+        {"success":true,"data":[
+          {"bannerId":2,"imageUrl":"https://example.com/b.png"},
+          {"bannerId":3,"imageUrl":""},
+          {"bannerId":4},
+          {"imageUrl":"https://example.com/c.png"},
+          {"bannerId":1,"imageUrl":"https://example.com/a.png"}
+        ]}
+        """#) { request in
+            #expect(request.httpMethod == "GET")
+            #expect(request.url?.path == "/api/v1/banners")
+        }
+        let banners = try await sut.fetchBanners()
+        #expect(banners == [
+            Banner(id: 2, imageURL: try #require(URL(string: "https://example.com/b.png"))),
+            Banner(id: 1, imageURL: try #require(URL(string: "https://example.com/a.png")))
+        ])
+    }
+
     @Test func 서버_오류를_전파한다() async throws {
         let sut = try repository(body: #"{"success":false,"error":{"code":"MAP_001","status":400}}"#)
         await #expect(throws: NetworkError.server(code: "MAP_001", statusCode: 400)) {

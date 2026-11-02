@@ -6,4 +6,6 @@ protocol ExploreRepository {
     /// 이름·설명·태그 일부로 찾는다. 목록과 달리 참여한 지도도 온다.
     func searchMaps(keyword: String, page: Int, size: Int) async throws -> MapPage
     func fetchMyNickname() async throws -> String?
+    /// 노출 순서대로 온다. 등록된 배너가 없으면 빈 목록이다.
+    func fetchBanners() async throws -> [Banner]
 }

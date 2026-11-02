@@ -25,8 +25,7 @@ struct ExploreView: View {
                 ScrollView {
                     // 시안 「메인 화면」: 상단 바 아래 12, 배너·커뮤니티·공식 섹션 사이 32.
                     VStack(alignment: .leading, spacing: 32) {
-                        // 운영자 추천 API 가 없어 임시 데이터다.
-                        FeaturedMapCarousel(maps: FeaturedMap.mocks)
+                        HomeBannerCarousel(banners: viewModel.banners)
                         communitySection
                         officialSection
                     }
@@ -212,6 +211,7 @@ final class PreviewExploreRepository: ExploreRepository {
         MapPage(maps: Self.maps, isLast: true)
     }
     func fetchMyNickname() async throws -> String? { "00" }
+    func fetchBanners() async throws -> [Banner] { [] }
 }
 
 #Preview {

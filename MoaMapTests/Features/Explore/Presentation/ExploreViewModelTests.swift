@@ -10,6 +10,10 @@ private func official(_ id: Int64) -> OfficialMap {
     OfficialMap(id: id, title: "공식 \(id)", description: "", imageURL: nil, joined: false)
 }
 
+private func banner(_ id: Int64) -> Banner {
+    Banner(id: id, imageURL: URL(string: "https://example.com/\(id).png")!)
+}
+
 @MainActor
 private func makeSUT(
     _ repository: ExploreRepositoryStub = ExploreRepositoryStub(),
@@ -22,6 +26,7 @@ private func makeSUT(
 private func settle(_ sut: ExploreViewModel) async {
     await sut.loadTask?.value
     await sut.officialTask?.value
+    await sut.bannerTask?.value
 }
 
 @MainActor
@@ -188,6 +193,66 @@ struct ExploreViewModelTests {
         await release.open()
         await sut.officialTask?.value
         #expect(sut.officialState == .loaded([official(1)]))
+    }
+
+    @Test func 배너는_받기_전엔_nil_이고_받으면_반영한다() async {
+        let repository = ExploreRepositoryStub()
+        repository.banners = { [banner(1), banner(2)] }
+        let sut = makeSUT(repository)
+        sut.refresh()
+        #expect(sut.banners == nil)
+        await settle(sut)
+        #expect(sut.banners == [banner(1), banner(2)])
+    }
+
+    @Test func 배너를_처음_받지_못하면_빈_목록이_된다() async {
+        let repository = ExploreRepositoryStub()
+        repository.banners = { throw NetworkError.http(statusCode: 500) }
+        let sut = makeSUT(repository)
+        sut.refresh()
+        await settle(sut)
+        #expect(sut.banners == [])
+        #expect(sut.uiState == .loaded)
+    }
+
+    @Test func 돌아오면_배너를_다시_읽고_실패하면_보던_배너를_둔다() async {
+        let repository = ExploreRepositoryStub()
+        repository.banners = { [banner(1)] }
+        let sut = makeSUT(repository)
+        sut.refresh()
+        await settle(sut)
+
+        repository.banners = { [banner(2)] }
+        sut.refresh()
+        await settle(sut)
+        #expect(sut.banners == [banner(2)])
+
+        repository.banners = { throw NetworkError.http(statusCode: 500) }
+        sut.refresh()
+        await settle(sut)
+        #expect(sut.banners == [banner(2)])
+        #expect(repository.bannerCalls == 3)
+    }
+
+    @Test func 취소된_배너_요청은_새_결과를_덮지_않는다() async {
+        let repository = ExploreRepositoryStub()
+        let started = AsyncGate()
+        let release = AsyncGate()
+        repository.banners = {
+            await started.open()
+            await release.wait()
+            return [banner(1)]
+        }
+        let sut = makeSUT(repository)
+        sut.load()
+        let old = sut.bannerTask
+        await started.wait()
+        repository.banners = { [banner(2)] }
+        sut.load()
+        await settle(sut)
+        await release.open()
+        await old?.value
+        #expect(sut.banners == [banner(2)])
     }
 
     @Test func 취소된_공식지도_요청은_새_결과를_덮지_않는다() async {

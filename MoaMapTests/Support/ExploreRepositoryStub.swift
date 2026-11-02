@@ -9,8 +9,10 @@ final class ExploreRepositoryStub: ExploreRepository {
     var communityByTag: ((String?, MapSortOrder, Int, Int) async throws -> MapPage)?
     var search: (String, Int) async throws -> MapPage = { _, _ in MapPage(maps: [], isLast: true) }
     var nickname: () async throws -> String? = { nil }
+    var banners: () async throws -> [Banner] = { [] }
     private(set) var recommendationCalls = 0
     private(set) var nicknameCalls = 0
+    private(set) var bannerCalls = 0
     private(set) var communityCalls: [(MapSortOrder, Int)] = []
     private(set) var communityRequests: [CommunityRequest] = []
     private(set) var searchRequests: [SearchRequest] = []
@@ -45,5 +47,9 @@ final class ExploreRepositoryStub: ExploreRepository {
     func fetchMyNickname() async throws -> String? {
         nicknameCalls += 1
         return try await nickname()
+    }
+    func fetchBanners() async throws -> [Banner] {
+        bannerCalls += 1
+        return try await banners()
     }
 }
