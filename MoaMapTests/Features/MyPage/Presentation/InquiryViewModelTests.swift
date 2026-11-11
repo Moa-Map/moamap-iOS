@@ -78,6 +78,12 @@ struct InquiryViewModelTests {
         #expect(sut.uiState.content == String(repeating: "가", count: 1999))
     }
 
+    @Test func 이메일에서_이모지를_뺀다() {
+        let sut = InquiryViewModel(repository: InquiryRepositoryStub(), userRepository: UserRepositoryStub())
+        sut.updateEmail("me😀@moa🇰🇷.com")
+        #expect(sut.uiState.email == "me@moa.com")
+    }
+
     @Test func 두_번_눌러도_한_번만_보내고_접수되면_알린다() async {
         let repository = InquiryRepositoryStub()
         let sut = filled(repository)

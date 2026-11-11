@@ -31,3 +31,18 @@ func 서버_길이는_UTF16_단위다() {
     #expect("👨‍👩‍👧".serverLength == 8)
 }
 
+@Test(arguments: [
+    ("a😀b@c.com", "ab@c.com"),
+    ("https://naver.me/x🇰🇷y", "https://naver.me/xy"),
+    ("1️⃣2#*", "2#*"),
+    ("a👨‍👩‍👧b", "ab"),
+])
+func 이모지로_그려지는_글자를_뺀다(input: String, expected: String) {
+    #expect(input.removingEmoji() == expected)
+}
+
+@Test
+func 이모지가_없으면_그대로_둔다() {
+    #expect("moa_map-1@example.co.kr".removingEmoji() == "moa_map-1@example.co.kr")
+    #expect("https://map.kakao.com/?q=카페#1".removingEmoji() == "https://map.kakao.com/?q=카페#1")
+}

@@ -60,7 +60,7 @@ final class InquiryViewModel {
 
     func updateEmail(_ email: String) {
         emailTouched = true
-        uiState.email = email.limitedToServerLength(InquiryForm.emailMaxLength)
+        uiState.email = email.removingEmoji().limitedToServerLength(InquiryForm.emailMaxLength)
     }
 
     func updateContent(_ content: String) {

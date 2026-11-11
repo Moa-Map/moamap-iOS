@@ -14,4 +14,17 @@ nonisolated extension String {
         }
         return String(self[..<end])
     }
+
+    /// 이모지로 그려지는 글자를 통째로 뺀다. 단독 숫자·`#`·`*` 는 남긴다.
+    func removingEmoji() -> String {
+        String(filter { !$0.isDrawnAsEmoji })
+    }
+}
+
+private nonisolated extension Character {
+    var isDrawnAsEmoji: Bool {
+        unicodeScalars.contains {
+            $0.properties.isEmojiPresentation || $0 == "\u{FE0F}" || $0 == "\u{20E3}"
+        }
+    }
 }
