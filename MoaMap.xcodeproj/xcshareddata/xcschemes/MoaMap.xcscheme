@@ -54,6 +54,17 @@
                ReferencedContainer = "container:MoaMap.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "9E542B49302EE90C0052FD62"
+               BuildableName = "MoaMapUITests.xctest"
+               BlueprintName = "MoaMapUITests"
+               ReferencedContainer = "container:MoaMap.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

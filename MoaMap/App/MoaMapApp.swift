@@ -26,6 +26,21 @@ struct MoaMapApp: App {
 
     var body: some Scene {
         WindowGroup {
+            #if DEBUG
+            if let screen = UITestScreen(arguments: CommandLine.arguments) {
+                screen.view
+            } else {
+                root
+            }
+            #else
+            root
+            #endif
+        }
+    }
+
+    @ViewBuilder
+    private var root: some View {
+        Group {
             if let container {
                 ContentView(container: container)
                     .onOpenURL { container.handleOpenURL($0) }
