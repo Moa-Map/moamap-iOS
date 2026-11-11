@@ -233,7 +233,7 @@ struct PlaceImportEditDetailView: View {
     private func applyTagInput(_ input: String) -> String {
         let tags = viewModel.uiState.edit(of: place).tags
         let result = TagInput.apply(tags: tags, rawInput: input)
-        let remaining = String(result.input.prefix(TagInput.maxLength))
+        let remaining = result.input.limitedToServerLength(TagInput.maxLength)
         tagInput = remaining
         if result.tags != tags { viewModel.updateEditTags(place.id, tags: result.tags) }
         return remaining

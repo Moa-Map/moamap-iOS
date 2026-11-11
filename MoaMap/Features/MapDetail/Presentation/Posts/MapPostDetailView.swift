@@ -158,18 +158,20 @@ struct MapPostDetailView: View {
     private var inputBar: some View {
         let enabled = canComment && state.commentsReady && !state.sending
         return VStack(alignment: .leading, spacing: 8) {
-            CommentInputRow(
-                text: Binding(
-                    get: { commentText },
-                    set: { commentText = String($0.prefix(MapPostDetailUiState.maxCommentLength)) }
-                ),
-                focused: $commentFocused,
-                placeholder: canComment ? "댓글을 입력해주세요" : "지도에 참여하면 댓글을 남길 수 있어요",
-                enabled: enabled,
-                canSend: enabled && !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                sending: state.sending,
-                onSend: { viewModel.send(commentText) }
-            )
+            DraftTextInput(
+                get: { commentText },
+                set: { commentText = $0.limitedToServerLength(MapPostDetailUiState.maxCommentLength) }
+            ) { text in
+                CommentInputRow(
+                    text: text,
+                    focused: $commentFocused,
+                    placeholder: canComment ? "댓글을 입력해주세요" : "지도에 참여하면 댓글을 남길 수 있어요",
+                    enabled: enabled,
+                    canSend: enabled && !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    sending: state.sending,
+                    onSend: { viewModel.send(commentText) }
+                )
+            }
             if let message = state.sendErrorMessage ?? state.deleteErrorMessage {
                 Text(message)
                     .moaTextStyle(typography.caption0)

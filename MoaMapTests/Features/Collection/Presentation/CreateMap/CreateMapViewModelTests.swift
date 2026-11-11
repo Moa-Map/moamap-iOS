@@ -37,6 +37,24 @@ struct CreateMapViewModelTests {
         #expect(sut.uiState.description.count == 500)
     }
 
+    @Test func 이름과_설명은_이모지를_쪼개지_않고_서버_길이로_자른다() {
+        let sut = makeSUT()
+        sut.updateName(String(repeating: "가", count: 98) + "👨‍👩‍👧")
+        #expect(sut.uiState.name == String(repeating: "가", count: 98))
+        sut.updateName(String(repeating: "😀", count: 51))
+        #expect(sut.uiState.name == String(repeating: "😀", count: 50))
+        sut.updateDescription(String(repeating: "나", count: 499) + "🇰🇷")
+        #expect(sut.uiState.description == String(repeating: "나", count: 499))
+    }
+
+    @Test func 태그도_이모지를_쪼개지_않고_서버_길이로_자른다() {
+        let sut = makeSUT()
+        sut.updateTagInput(String(repeating: "😀", count: 16))
+        #expect(sut.uiState.tagInput == String(repeating: "😀", count: 15))
+        sut.updateTagInput(String(repeating: "가", count: 29) + "👍🏽\n")
+        #expect(sut.uiState.tags == [String(repeating: "가", count: 29)])
+    }
+
     @Test func 줄바꿈이_들어와야_태그로_확정하고_공백은_태그_안에_남긴다() {
         let sut = makeSUT()
         sut.updateTagInput("카페 ")

@@ -93,7 +93,7 @@ final class MapPostDetailViewModel {
     func send(_ content: String) {
         let state = uiState
         guard let post = state.post, case .loaded = state.comments, !state.sending else { return }
-        let text = String(content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(MapPostDetailUiState.maxCommentLength))
+        let text = content.trimmingCharacters(in: .whitespacesAndNewlines).limitedToServerLength(MapPostDetailUiState.maxCommentLength)
         guard !text.isEmpty else { return }
         uiState.sending = true
         uiState.sendErrorMessage = nil

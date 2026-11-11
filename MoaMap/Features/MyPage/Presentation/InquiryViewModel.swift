@@ -60,11 +60,11 @@ final class InquiryViewModel {
 
     func updateEmail(_ email: String) {
         emailTouched = true
-        uiState.email = String(email.prefix(InquiryForm.emailMaxLength))
+        uiState.email = email.limitedToServerLength(InquiryForm.emailMaxLength)
     }
 
     func updateContent(_ content: String) {
-        uiState.content = String(content.prefix(InquiryForm.contentMaxLength))
+        uiState.content = content.limitedToServerLength(InquiryForm.contentMaxLength)
     }
 
     func submit() {
@@ -92,7 +92,7 @@ final class InquiryViewModel {
     private func applyPrefill(_ email: String) {
         guard !emailTouched, uiState.email.isEmpty else { return }
         emailTouched = true
-        uiState.email = String(email.trimmingCharacters(in: .whitespacesAndNewlines).prefix(InquiryForm.emailMaxLength))
+        uiState.email = email.trimmingCharacters(in: .whitespacesAndNewlines).limitedToServerLength(InquiryForm.emailMaxLength)
     }
 
     /// 하루 한도를 넘긴 것(429 `USER_013`)은 사용자가 알아야 할 서버 안내라 그대로 보여 준다.

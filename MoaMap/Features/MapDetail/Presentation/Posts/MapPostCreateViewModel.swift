@@ -58,7 +58,7 @@ final class MapPostCreateViewModel {
 
     /// 붙여 넣기로 한 번에 넘길 수 있어 한도를 넘는 입력은 잘라 낸다.
     func updateContent(_ content: String) {
-        uiState.content = String(content.prefix(MapPostCreateUiState.maxContentLength))
+        uiState.content = content.limitedToServerLength(MapPostCreateUiState.maxContentLength)
     }
 
     func addPhoto(data: Data?, type: UTType?) {

@@ -143,24 +143,8 @@ struct InquiryView: View {
 
     private var emailField: some View {
         field("답변 받을 이메일", highlighted: focusedField == .email) {
-            HStack(spacing: 4) {
-                TextField(
-                    "",
-                    text: Binding(get: { state.email }, set: { viewModel.updateEmail($0) }),
-                    prompt: placeholder("답변 받을 이메일을 입력해주세요")
-                )
-                .moaTextStyle(typography.body2)
-                .foregroundStyle(colors.textNormal)
-                .tint(colors.primary)
-                .keyboardType(.emailAddress)
-                .textContentType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.next)
-                .focused($focusedField, equals: .email)
-                .onSubmit { focusedField = .content }
-                .accessibilityLabel("답변 받을 이메일")
-                ClearTextButton(text: Binding(get: { state.email }, set: { viewModel.updateEmail($0) }))
+            DraftTextInput(get: { viewModel.uiState.email }, set: { viewModel.updateEmail($0) }) { text in
+                emailInput(text)
             }
             .frame(height: 21)
             .padding(.horizontal, 16)
@@ -168,10 +152,34 @@ struct InquiryView: View {
         }
     }
 
+    private func emailInput(_ text: Binding<String>) -> some View {
+        HStack(spacing: 4) {
+            TextField(
+                "",
+                text: text,
+                prompt: placeholder("답변 받을 이메일을 입력해주세요")
+            )
+            .moaTextStyle(typography.body2)
+            .foregroundStyle(colors.textNormal)
+            .tint(colors.primary)
+            .keyboardType(.emailAddress)
+            .textContentType(.emailAddress)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .submitLabel(.next)
+            .focused($focusedField, equals: .email)
+            .onSubmit { focusedField = .content }
+            .accessibilityLabel("답변 받을 이메일")
+            ClearTextButton(text: text)
+        }
+    }
+
     private var contentField: some View {
         field("문의 내용", highlighted: focusedField == .content) {
             // 높이는 고정이고 넘치는 글은 칸 안에서 스크롤한다.
-            TextEditor(text: Binding(get: { state.content }, set: { viewModel.updateContent($0) }))
+            DraftTextInput(get: { viewModel.uiState.content }, set: { viewModel.updateContent($0) }) { text in
+                TextEditor(text: text)
+            }
                 .moaTextStyle(typography.body2)
                 .foregroundStyle(colors.textNormal)
                 .tint(colors.primary)
@@ -192,7 +200,7 @@ struct InquiryView: View {
                 .padding(EdgeInsets(top: 16, leading: 16, bottom: 40, trailing: 16))
                 .frame(height: Self.contentFieldHeight)
                 .overlay(alignment: .bottomTrailing) {
-                    Text("\(state.content.count)/\(InquiryForm.contentMaxLength)")
+                    Text("\(state.content.serverLength)/\(InquiryForm.contentMaxLength)")
                         .moaTextStyle(typography.caption0)
                         .foregroundStyle(colors.textAssistive)
                         .padding(16)

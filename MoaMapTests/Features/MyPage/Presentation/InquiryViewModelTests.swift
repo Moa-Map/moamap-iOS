@@ -72,6 +72,12 @@ struct InquiryViewModelTests {
         #expect(sut.uiState.content.count == 2000)
     }
 
+    @Test func 내용은_이모지를_쪼개지_않고_서버_길이로_자른다() {
+        let sut = InquiryViewModel(repository: InquiryRepositoryStub(), userRepository: UserRepositoryStub())
+        sut.updateContent(String(repeating: "가", count: 1999) + "😀")
+        #expect(sut.uiState.content == String(repeating: "가", count: 1999))
+    }
+
     @Test func 두_번_눌러도_한_번만_보내고_접수되면_알린다() async {
         let repository = InquiryRepositoryStub()
         let sut = filled(repository)

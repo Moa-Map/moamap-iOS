@@ -170,11 +170,9 @@ struct ProfileEditView: View {
     private var fields: some View {
         VStack(alignment: .leading, spacing: 20) {
             field("이름", focused: focusedField == .nickname, minHeight: 45) {
-                TextField(
-                    "",
-                    text: Binding(get: { viewModel.uiState.nickname }, set: { viewModel.updateNickname($0) }),
-                    prompt: placeholder("이름을 작성해주세요")
-                )
+                DraftTextInput(get: { viewModel.uiState.nickname }, set: { viewModel.updateNickname($0) }) { text in
+                    TextField("", text: text, prompt: placeholder("이름을 작성해주세요"))
+                }
                 .focused($focusedField, equals: .nickname)
                 .submitLabel(.next)
                 .onSubmit { focusedField = .introduction }
@@ -182,12 +180,9 @@ struct ProfileEditView: View {
             .id(Field.nickname)
             field("자기소개", optional: true, focused: focusedField == .introduction, minHeight: 88) {
                 // 두 줄이 넘으면 칸이 자라고, 여섯 줄부터는 칸 안에서 스크롤한다.
-                TextField(
-                    "",
-                    text: Binding(get: { viewModel.uiState.introduction }, set: { viewModel.updateIntroduction($0) }),
-                    prompt: placeholder("나를 소개하는 한마디를 입력해보세요"),
-                    axis: .vertical
-                )
+                DraftTextInput(get: { viewModel.uiState.introduction }, set: { viewModel.updateIntroduction($0) }) { text in
+                    TextField("", text: text, prompt: placeholder("나를 소개하는 한마디를 입력해보세요"), axis: .vertical)
+                }
                 .lineLimit(1...6)
                 .focused($focusedField, equals: .introduction)
             }

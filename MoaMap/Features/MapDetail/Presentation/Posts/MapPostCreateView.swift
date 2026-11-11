@@ -88,13 +88,15 @@ struct MapPostCreateView: View {
 
     private var contentField: some View {
         VStack(alignment: .trailing, spacing: 4) {
-            TextField(
-                "",
-                // 메서드를 그대로 넘기면 Swift 6.3 컴파일러가 IR 생성 중에 죽는다(CI).
-                text: Binding(get: { state.content }, set: { viewModel.updateContent($0) }),
-                prompt: Text("이 장소에서의 이야기를 남겨보세요").foregroundStyle(colors.textAssistive),
-                axis: .vertical
-            )
+            // 메서드를 그대로 넘기면 Swift 6.3 컴파일러가 IR 생성 중에 죽는다(CI).
+            DraftTextInput(get: { viewModel.uiState.content }, set: { viewModel.updateContent($0) }) { text in
+                TextField(
+                    "",
+                    text: text,
+                    prompt: Text("이 장소에서의 이야기를 남겨보세요").foregroundStyle(colors.textAssistive),
+                    axis: .vertical
+                )
+            }
             .moaTextStyle(typography.body2)
             .foregroundStyle(colors.textNormal)
             .tint(colors.primary)
@@ -102,7 +104,7 @@ struct MapPostCreateView: View {
             .disabled(state.submitting)
             .frame(minHeight: 56, alignment: .topLeading)
             // 한도에 닿으면 더 써지지 않는다. 왜 안 써지는지 보이게 남은 양을 적는다.
-            Text("\(state.content.count)/\(MapPostCreateUiState.maxContentLength)")
+            Text("\(state.content.serverLength)/\(MapPostCreateUiState.maxContentLength)")
                 .moaTextStyle(typography.caption0)
                 .foregroundStyle(colors.textAssistive)
         }

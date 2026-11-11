@@ -37,7 +37,7 @@ nonisolated struct ProfileEditUiState: Equatable, Sendable {
     var canSave: Bool {
         guard case .loaded = load, !saving else { return false }
         let trimmed = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed.count <= Self.nicknameMaxLength else { return false }
+        guard !trimmed.isEmpty, trimmed.serverLength <= Self.nicknameMaxLength else { return false }
         // 이름은 다듬어 보내므로 다듬은 값으로 견준다.
         return trimmed != loadedNickname || introduction != loadedIntroduction || pickedImage != nil
     }
@@ -82,11 +82,11 @@ final class ProfileEditViewModel {
     }
 
     func updateNickname(_ value: String) {
-        uiState.nickname = value
+        uiState.nickname = value.limitedToServerLength(ProfileEditUiState.nicknameMaxLength)
     }
 
     func updateIntroduction(_ value: String) {
-        uiState.introduction = String(value.prefix(ProfileEditUiState.introductionMaxLength))
+        uiState.introduction = value.limitedToServerLength(ProfileEditUiState.introductionMaxLength)
     }
 
     /// 저장 중에는 무시한다. 이미 먼저 고른 사진을 올리고 있어, 바꾸면 화면과 저장된 사진이 어긋난다.

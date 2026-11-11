@@ -160,7 +160,7 @@ final class AddPlaceViewModel {
     func updateTagInput(_ input: String) {
         let result = TagInput.apply(tags: uiState.tags, rawInput: input)
         uiState.tags = result.tags
-        uiState.tagInput = String(result.input.prefix(TagInput.maxLength))
+        uiState.tagInput = result.input.limitedToServerLength(TagInput.maxLength)
     }
 
     /// 입력창이 비었을 때 지우기를 누르면 마지막 태그를 지운다.
@@ -258,7 +258,7 @@ nonisolated enum TagInput {
         var next = tags
         // 마지막 조각은 구분자 뒤에 남은 부분이라 아직 입력 중이다.
         for piece in pieces.dropLast() {
-            let tag = String(piece.trimmingCharacters(in: .whitespacesAndNewlines).prefix(maxLength))
+            let tag = piece.trimmingCharacters(in: .whitespacesAndNewlines).limitedToServerLength(maxLength)
             if !tag.isEmpty && !next.contains(tag) { next.append(tag) }
         }
         return (next, String(pieces.last ?? ""))

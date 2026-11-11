@@ -49,20 +49,24 @@ struct EditMapView: View {
                             }
                             showsPhotoPicker = true
                         }
-                        CreateMapInputField(
-                            label: "지도 이름",
-                            text: binding(state.name, viewModel.updateName), placeholder: "지도 이름을 입력해주세요",
-                            focused: focusedField == .name
-                        )
+                        DraftTextInput(get: { viewModel.uiState.name }, set: { viewModel.updateName($0) }) { text in
+                            CreateMapInputField(
+                                label: "지도 이름",
+                                text: text, placeholder: "지도 이름을 입력해주세요",
+                                focused: focusedField == .name
+                            )
+                        }
                         .focused($focusedField, equals: .name)
                         .background { scrollTarget(.name) }
                         .submitLabel(.next)
                         .onSubmit { focusedField = .description }
-                        CreateMapInputField(
-                            label: "지도 설명",
-                            text: binding(state.description, viewModel.updateDescription), placeholder: "지도 설명을 입력해주세요",
-                            focused: focusedField == .description
-                        )
+                        DraftTextInput(get: { viewModel.uiState.description }, set: { viewModel.updateDescription($0) }) { text in
+                            CreateMapInputField(
+                                label: "지도 설명",
+                                text: text, placeholder: "지도 설명을 입력해주세요",
+                                focused: focusedField == .description
+                            )
+                        }
                         .focused($focusedField, equals: .description)
                         .background { scrollTarget(.description) }
                         .submitLabel(.next)
@@ -188,10 +192,6 @@ struct EditMapView: View {
             get: { viewModel.uiState.errorMessage },
             set: { if $0 == nil { viewModel.consumeError() } }
         )
-    }
-
-    private func binding(_ value: String, _ update: @escaping (String) -> Void) -> Binding<String> {
-        Binding(get: { value }, set: update)
     }
 }
 

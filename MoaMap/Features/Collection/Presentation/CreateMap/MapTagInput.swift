@@ -9,16 +9,16 @@ nonisolated enum MapTagInput {
     static func apply(_ input: String, to tags: [String]) -> (tags: [String], pending: String) {
         let tokens = input.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).map(String.init)
         guard tokens.count > 1, let pending = tokens.last else {
-            return (tags, String(input.prefix(maxLength)))
+            return (tags, input.limitedToServerLength(maxLength))
         }
-        return (adding(tokens.dropLast(), to: tags), String(pending.prefix(maxLength)))
+        return (adding(tokens.dropLast(), to: tags), pending.limitedToServerLength(maxLength))
     }
 
     /// 빈 값과 이미 담긴 태그는 거른다.
     static func adding(_ candidates: some Sequence<String>, to tags: [String]) -> [String] {
         var result = tags
         for candidate in candidates {
-            let tag = String(candidate.trimmingCharacters(in: .whitespacesAndNewlines).prefix(maxLength))
+            let tag = candidate.trimmingCharacters(in: .whitespacesAndNewlines).limitedToServerLength(maxLength)
             if !tag.isEmpty, !result.contains(tag) { result.append(tag) }
         }
         return result

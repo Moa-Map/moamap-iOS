@@ -54,7 +54,7 @@ struct ExploreSearchBar: View {
         .overlay { if focused.wrappedValue { Capsule().strokeBorder(colors.primary, lineWidth: 1) } }
         .shadow(color: .black.opacity(0.04), radius: 8)
         .onChange(of: text) { _, new in
-            let limited = String(new.prefix(maxLength))
+            let limited = new.limitedToServerLength(maxLength)
             if limited != new {
                 text = limited
             } else if limited != query {

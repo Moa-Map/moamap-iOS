@@ -70,14 +70,36 @@ struct ProfileEditViewModelTests {
         #expect(!sut.uiState.canSave)
     }
 
-    @Test func 이름이_비었거나_다듬어서_30자를_넘으면_저장할_수_없다() async {
+    @Test func 이름이_비면_저장할_수_없다() async {
         let sut = await loaded()
         sut.updateNickname("   ")
         #expect(!sut.uiState.canSave)
+    }
+
+    @Test func 이름은_30에서_자르고_저장할_수_있다() async {
+        let sut = await loaded()
         sut.updateNickname(String(repeating: "가", count: 31))
-        #expect(!sut.uiState.canSave)
-        sut.updateNickname("  " + String(repeating: "가", count: 30) + " ")
+        #expect(sut.uiState.nickname == String(repeating: "가", count: 30))
         #expect(sut.uiState.canSave)
+    }
+
+    @Test func 이름은_이모지를_쪼개지_않고_서버_길이로_자른다() async {
+        let sut = await loaded()
+        sut.updateNickname(String(repeating: "가", count: 29) + "😀")
+        #expect(sut.uiState.nickname == String(repeating: "가", count: 29))
+        sut.updateNickname(String(repeating: "😀", count: 16))
+        #expect(sut.uiState.nickname == String(repeating: "😀", count: 15))
+        #expect(sut.uiState.canSave)
+    }
+
+    @Test func 불러온_이름이_서버_길이_30을_넘으면_저장할_수_없다() async {
+        let repository = UserRepositoryStub()
+        repository.fetch = {
+            MyProfile(id: 1, nickname: String(repeating: "😀", count: 16), email: "moa@example.com", profileImageURL: nil, introduction: "안녕")
+        }
+        let sut = await loaded(repository)
+        sut.updateIntroduction("반가워")
+        #expect(!sut.uiState.canSave)
     }
 
     @Test func 자기소개는_100자에서_자른다() async {

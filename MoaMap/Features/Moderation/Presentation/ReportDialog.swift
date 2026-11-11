@@ -99,7 +99,9 @@ struct ReportDialog: View {
 
     private var detailField: some View {
         // 높이는 고정이고 넘치는 글은 칸 안에서 스크롤한다.
-        TextEditor(text: Binding(get: { detail }, set: { detail = String($0.prefix(Self.detailMaxLength)) }))
+        DraftTextInput(get: { detail }, set: { detail = $0.limitedToServerLength(Self.detailMaxLength) }) { text in
+            TextEditor(text: text)
+        }
             .moaTextStyle(typography.body2)
             .foregroundStyle(colors.textNormal)
             .tint(colors.primary)
