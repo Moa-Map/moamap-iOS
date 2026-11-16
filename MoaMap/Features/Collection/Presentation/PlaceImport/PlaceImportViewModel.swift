@@ -34,7 +34,7 @@ final class PlaceImportViewModel {
     // MARK: 링크 → 장소
 
     func updateURL(_ url: String) {
-        uiState.url = url
+        uiState.url = url.removingEmoji()
     }
 
     /// 검색과 재시도가 함께 쓴다.

@@ -38,11 +38,11 @@ final class EditMapViewModel {
     }
 
     func updateName(_ value: String) {
-        uiState.name = String(value.prefix(CreateMapUiState.nameMaxLength))
+        uiState.name = value.limitedToServerLength(CreateMapUiState.nameMaxLength)
     }
 
     func updateDescription(_ value: String) {
-        uiState.description = String(value.prefix(CreateMapUiState.descriptionMaxLength))
+        uiState.description = value.limitedToServerLength(CreateMapUiState.descriptionMaxLength)
     }
 
     func updateTagInput(_ input: String) {

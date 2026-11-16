@@ -120,7 +120,7 @@ final class CommunityMapListViewModel {
 
     /// 입력을 멈추고 `searchDebounce` 뒤에 찾는다. 다 지우면 기다리지 않고 검색 전 목록으로 돌아간다.
     func updateQuery(_ text: String) {
-        let query = String(text.prefix(Self.searchKeywordMaxLength))
+        let query = text.limitedToServerLength(Self.searchKeywordMaxLength)
         uiState.query = query
         searchTask?.cancel()
         guard let keyword = Self.keyword(query) else {

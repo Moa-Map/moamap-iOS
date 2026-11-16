@@ -17,12 +17,10 @@ struct PlaceImportURLView: View {
             onBack: onBack
         ) {
             // 붙여넣은 내용이 길어도 세 줄까지만 늘어난다.
-            TextField(
-                // 메서드를 그대로 넘기면 Xcode 26 컴파일러가 크래시해 클로저로 감싼다.
-                "", text: Binding(get: { viewModel.uiState.url }, set: { viewModel.updateURL($0) }),
-                prompt: Text("url을 입력해주세요").foregroundStyle(colors.textAssistive),
-                axis: .vertical
-            )
+            // 메서드를 그대로 넘기면 Xcode 26 컴파일러가 크래시해 클로저로 감싼다.
+            DraftTextInput(get: { viewModel.uiState.url }, set: { viewModel.updateURL($0) }) { text in
+                TextField("", text: text, prompt: Text("url을 입력해주세요").foregroundStyle(colors.textAssistive), axis: .vertical)
+            }
             .lineLimit(1...3)
             .keyboardType(.URL)
             .textInputAutocapitalization(.never)
@@ -233,7 +231,7 @@ struct PlaceImportEditDetailView: View {
     private func applyTagInput(_ input: String) -> String {
         let tags = viewModel.uiState.edit(of: place).tags
         let result = TagInput.apply(tags: tags, rawInput: input)
-        let remaining = String(result.input.prefix(TagInput.maxLength))
+        let remaining = result.input.limitedToServerLength(TagInput.maxLength)
         tagInput = remaining
         if result.tags != tags { viewModel.updateEditTags(place.id, tags: result.tags) }
         return remaining

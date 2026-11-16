@@ -32,6 +32,12 @@ struct PlaceImportViewModelTests {
         #expect(!sut.uiState.canSearch)
     }
 
+    @Test func 링크에서_이모지를_뺀다() {
+        let sut = sut(url: "")
+        sut.updateURL("https://naver.me/x🇰🇷y")
+        #expect(sut.uiState.url == "https://naver.me/xy")
+    }
+
     @Test func 인스타그램은_고르지_않은_채로_시작한다() async throws {
         let sut = try await extracted([.fixture(id: "1"), .fixture(id: "2")])
         #expect(repository.extractedURLs == ["https://www.instagram.com/p/A1/"])
